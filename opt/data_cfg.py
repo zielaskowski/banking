@@ -1,6 +1,6 @@
-"""
-CONFIGURATION FILE
-Define column names and types for DB.
+"""CONFIGURATION FILE
+Define tables to store in DB ['op', 'cat', 'trans']
+Define column names and types for each table in DB.
 Define column names for import files from each bank.
 
 operations DB
@@ -43,7 +43,10 @@ mi@hommie:~/Dropbox/prog/python/banking> python3 data_cfg.py
 15                 hash                 hash                        hash               hash
 
 """
-import parse_cfg as cfg
+import opt.parse_cfg as cfg
+
+# SQL DB tables names
+DBtabs = ['op', 'cat', 'trans']
 
 op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja"]
 op_col_type = ["TEXT", "TEXT", "TEXT", "REAL", "TEXT", "REAL", "REAL", "TEXT", "TEXT", "REAL", "TEXT", "TEXT", "TEXT", "TEXT"]

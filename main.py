@@ -1,7 +1,6 @@
-from sqlalchemy import create_engine
 import os
 import db
-import gui
+#import gui
 
 class FileSystem:
     ### File system management

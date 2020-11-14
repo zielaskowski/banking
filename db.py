@@ -1,12 +1,15 @@
 import pandas
 import sqlite3
+import os
+import hashlib
+
+import opt.data_cfg as data_cfg
 
 
 class DB:
     # manage data
     # store in SQlite
-    import data_cfg
-    import hashlib
+
 
     op = pandas.DataFrame(columns=data_cfg.op_col)  # table of operations
     op_sub = pandas.DataFrame()  # table of operation during categorization process
@@ -21,7 +24,14 @@ class DB:
             self.__open_db__(file)
 
     def count_unique(self, show_cat=False):
-        # pokaz tez elementy ktore sa skategoryzowane, jako opcja
+        """Grupuje wartości w kazdej kolumnie i podlicza, np:\n
+        typ_transakcji\n
+        Płatność kartą              148\n
+        Przelew z rachunku           13\n
+        Zlecenie stałe                6\n
+        Wypłata z bankomatu           6\n
+        pokaz tez elementy ktore sa skategoryzowane, jako opcja
+        """
         if self.op_sub.empty:
             self.op_sub = self.op
             if not show_cat:  # pokazuje tylko wiersze nieskategoryzowane, dziala tylko na poczatku kategoryzacji
@@ -89,18 +99,12 @@ class DB:
 
     def __open_db__(self, file):
         self.db_file = file
-        engine = create_engine(f'sqlite:///{file}')
-        tables = engine.table_names()
-        correct = True
-        for i in ['op', 'cat', 'trans']:
-            if i not in tables:  # check if correct db file
-                correct = False
-                break
-        if correct:
-            self.op = pandas.read_sql('op', engine)
-            self.cat = pandas.read_sql('cat', engine)
-            self.trans = pandas.read_sql('trans', engine)
-        else:
+        engine = sqlite3.connect(file)
+        try:
+            for tab in data_cfg.DBtabs:
+                query = f'SELECT * FROM {tab}'
+                exec(f'self.{tab} = pandas.read_sql(query, engine)')
+        except:
             self.error = 'Not correct DB <DB.__open_db__>'
 
     def __create_db__(self, file):
@@ -124,7 +128,7 @@ class DB:
             return f'no DB {file}. Nothing written.'
         else:
             msg = f'DB {file} overwritten.'
-        engine = create_engine(f'sqlite:///{self.db_file}')
+        engine = sqlite3.connect(self.db_file)
         self.op.to_sql('op', engine, if_exists='replace', index=False)
         self.cat.to_sql('cat', engine, if_exists='replace', index=False)
         self.trans.to_sql('trans', engine, if_exists='replace', index=False)
