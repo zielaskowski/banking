@@ -17,15 +17,15 @@ fs = FileSystem()
 
 
 
-read_SQL = 1
+read_SQL = 0
 
 if read_SQL:
     dane = db.DB(fs.db_file)
 else:
     dane = db.DB()
-    dane.ins_data('history_20181114_220211_pko.xls', 'ipko')
-    dane.ins_data('TransactionHistory_20181017_221429_RaiOso.XLS', 'raifeisen')
-    dane.ins_data('TransactionHistory_20181114_220559RaiKr.XLS', 'raifeisen_kredyt')
+    dane.ins_data('./testing/history_20181114_220211_pko.xls', 'ipko')
+    dane.ins_data('./testing/TransactionHistory_20181017_221429_RaiOso.XLS', 'raifeisen')
+    dane.ins_data('./testing/TransactionHistory_20181114_220559RaiKr.XLS', 'raifeisen_kredyt')
     dane.trans_col(bank='raifeisen_kredyt', col_name='kwota', op='*', val1=-1)
     dane.trans_col(bank='ipko', col_name='opis_transakcji', op='str.replace', val1='Tytuł: ', val2='')
     dane.trans_col(bank='ipko', col_name='lokalizacja', op='str.replace', val1='Lokalizacja: ', val2='')
@@ -43,9 +43,24 @@ else:
 # kiedy zaczynamy kopiujemy op do op_sub i dalej pracujemy na op_sub
 # kiedy op_sub puste oznacza ze zaczynamy nowa kategorie
 print(dane.count_unique())
-col_name = input('col name')  # lista, dopisujemy kolejne kolumny
-filter_str = input('filter_str')  # lista, dopisujemy kolejne filtry
+col_name = 'nazwa_odbiorcy'  # lista, dopisujemy kolejne kolumny
+filter_str = 'VECTRA'  # lista, dopisujemy kolejne filtry
 print(dane.sub_op(col_name, filter_str))  # filtruje i zwraca op_sub po filtrowaniu
+dane.sub_op_commit('internet') # tworzy nowa kategorie
+print(dane.count_unique(show_cat=False))
+col_name = 'nazwa_odbiorcy'
+filter_str = "P4"
+print(dane.sub_op(col_name, filter_str))  # filtruje i zwraca op_sub po filtrowaniu
+col_name = 'nazwa_odbiorcy'
+filter_str = "JMDI"
+print(dane.sub_op(col_name, filter_str, 'add'))  # filtruje i zwraca op_sub po filtrowaniu
+dane.sub_op_commit('oplaty') # tworzy nowa kategorie
+col_name = 'category'
+filter_str = "internet"
+print(dane.sub_op(col_name, filter_str))
+dane.sub_op_commit('oplaty') # tworzy nowa kategorie
+
+print(dane.cat)
 # input('ok?')
 # #jesli nie
 # continue

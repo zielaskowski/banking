@@ -1,82 +1,136 @@
 import pandas
 import sqlite3
 import os
-import hashlib
 
-import opt.data_cfg as data_cfg
+import opt.parse_cfg as cfg
 
 
 class DB:
     # manage data
     # store in SQlite
 
-
-    op = pandas.DataFrame(columns=data_cfg.op_col)  # table of operations
-    op_sub = pandas.DataFrame()  # table of operation during categorization process
-    cat = pandas.DataFrame(columns=data_cfg.cat_col)  # table of categories
-    trans = pandas.DataFrame(columns=data_cfg.trans_col)  # table of transformations
-    db_file = ""
-    error = ''
-
     def __init__(self, file=''):
+        self.op = pandas.DataFrame(columns=cfg.op_col)  # table of operations
+        self.op_sub = pandas.DataFrame(columns=cfg.op_col)  # table of operation during categorization process
+        self.cat = pandas.DataFrame(columns=cfg.cat_col)  # table of categories
+        self.trans = pandas.DataFrame(columns=cfg.trans_col)  # table of transformations
+        self.hash = pandasDataFrame(columns = cfg.hash_col)  # table to store hash vs category
+        self.cat_temp = pandas.DataFrame(columns=cfg.cat_col) # temporary DF colecting filters before commiting cattegory {col: filter}
+        db_file = ""
+        error = ''
         if file:
             self.db_file = file
             self.__open_db__(file)
 
-    def count_unique(self, show_cat=False):
-        """Grupuje wartości w kazdej kolumnie i podlicza, np:\n
-        typ_transakcji\n
+    def count_unique(self, show_cat=True):
+        """Grupuje wartości w kazdej kolumnie i pokazuje licznosc:\n
+        kazde grupowanie przez self.sub_op ogranicza grpowanie do wczesniej wybranych\n
+        self.sub_op_commit resetuje, i znowu gropwanie pokazuje dla wszystkich danych w self.op\n
+        Przyklad:\n
+        typ_transakcji              count\n
         Płatność kartą              148\n
         Przelew z rachunku           13\n
         Zlecenie stałe                6\n
         Wypłata z bankomatu           6\n
-        pokaz tez elementy ktore sa skategoryzowane, jako opcja
+        opcja show_cat pokazuje elementy tylko nieskategoryzowane lub wszystkie
         """
         if self.op_sub.empty:
-            self.op_sub = self.op
-            if not show_cat:  # pokazuje tylko wiersze nieskategoryzowane, dziala tylko na poczatku kategoryzacji
-                rows = pandas.merge(self.cat['op_hash'], self.op['hash'], how='right', left_on='op_hash',
-                                    right_on='hash', indicator=True)
-                rows = rows['_merge'] == 'right_only'
-                self.op_sub = self.op_sub[rows]
+            return
+        temp_op = self.op_sub
+        if not show_cat:  # pokazuje tylko wiersze nieskategoryzowane
+            hash_i = []
+            [hash_i.append(i) for i in self.hash['hash']]
+            rows = temp['hash'] != hash_i
+            temp = temp[rows]
+        else:
+            cat = []
+            for row in temp_op:
+                hash_li = self.hash['hash'] == row['hash']
+                hash_i = hash_li.index(True)
+                if hash_i:
+                    cat.append(self.hash.iloc[hash_i,0])
+                else:
+                    cat.append('')
+            temp_op['category'] = cat
         df_dict = {}
-        for col in self.cat.columns[:-2]:  # ostatnie dwie kolumny to op_hash i category
-            col_grouped = self.op_sub.groupby(by=col).count().loc[:, 'data_operacji']
+        for col in self.op.columns[1:-1]:
+            col_grouped = temp.groupby(by=col).count().loc[:, 'data_operacji']
             col_grouped = col_grouped.sort_values(ascending=False)
-            col_grouped.name = col
             df_dict.update({col: col_grouped})
         return df_dict
 
-    def sub_op(self, col, filtr):
-        rows = self.op_sub[col] == filtr  # powinno byc ''.find()
-        self.op_sub = self.op_sub[rows]
+    def sub_op(self, col, cat_filter, oper='new'):
+        """wyswietla dane ograniczone do op_sub[col]=filtr\n
+        wybrany col i filtr dodaje do cat_dict: jesli zdecydujemy sie stworzyc kategorie\n
+        z wybranych danych, cat_dict zostanie zapisany do cat db\n
+        Mozliwe operacje:\n
+        'new'(domyslnie): filtruje z op DB i nadpisuje sub_op\n
+        'add': filtruje z op DB i dopisuje do sub_op\n
+        'lim': filtruje z op_sub\n
+        'rem': filtruje z op_sub i usuwa z op_sub\n
+        """
+        def new():
+            rows = [str(i).find(cat_filter) + 1 for i in self.op[col]]
+            rows = [bool(i) for i in rows]
+            return self.op[rows]
+        def add():
+            rows = [str(i).find(cat_filter) + 1 for i in self.op[col]]
+            rows = [bool(i) for i in rows]
+            return self.op_sub.append(self.op[rows])
+        def lim():
+            rows = [str(i).find(cat_filter) + 1 for i in self.op_sub[col]]
+            rows = [bool(i) for i in rows]
+            return self.op_sub[rows]
+        def rem():
+            rows = [str(i).find(cat_filter) + 1 for i in self.op_sub[col]]
+            rows = [not bool(i) for i in rows]
+            return self.op_sub[rows]
+
+        ops = {'new': new, 'add': add, 'lim': lim, 'rem': rem}
+        self.op_sub = ops[oper]
+        self.cat_temp.append({'col_name': col, 'filter':cat_filter, 'oper': oper})
         return self.op_sub
+
+    def sub_op_commit(self, cat_name):
+        """zapisuje cat_dict do cat db\n
+        pozwala to kategoryzowac przyszle dane\n
+        dane aktualnie znajdujace sie w db kategoryzuja sie za pomoca hash
+        resetuje self.sub_op co pozwala powtorzyc proces kategoryzacji jeszcze raz
+        """
+        cat_row = pandas.Series()
+        #add filters for cols
+        for cat in self.cat_temp:
+            cat_row[cat] = self.cat_temp[cat]
+        # add hash
+        for hash_i in self.op_sub['hash']:
+            self.hash.append({'cat': hash_i})
+        # add category and parrent
+        if 'category' in self.cat_temp:
+            cat_row['cat_parent'] = self.cat_temp['category']
+        cat_row['category'] = cat_name
+        self.cat = self.cat.append(cat_row, ignore_index=True)
+        self.op_sub = pandas.DataFrame()
+        return None
 
     def ins_data(self, file, bank):
         xls = pandas.read_excel(file)
-        xls = xls.reindex(columns=self.data_cfg.bank[bank])
-        xls.columns = self.data_cfg.op_col
+        xls = xls.reindex(columns=cfg.bank[bank])
+        xls.columns = cfg.op_col
         xls.bank = bank
-        xls.hash = self.hash(xls)
+        xls.hash = pandas.util.hash_pandas_object(xls)
         xls.replace(r'^\s+$', pandas.np.np.nan, regex=True, inplace=True)  # remove cells with whitespaces
         xls = self.__correct_col_types__(xls)
         self.op = self.op.append(xls, ignore_index=True)
         pandas.DataFrame.drop_duplicates(self.op, subset='hash', inplace=True)
 
-    def hash(self, df):
-        vec = []
-        for index, row in df.iterrows():
-            str_b = str(list(row)).encode()
-            md5 = self.hashlib.md5(str_b)
-            vec.append(md5.hexdigest())
-        return vec
-
     def __correct_col_types__(self, df):
         n_col = len(df.columns)
         for i in range(n_col):
-            num_type = self.data_cfg.op_col_type[i]
+            num_type = cfg.op_col_type[i]
             if num_type in ['INT', 'REAL']:
                 df.iloc[:, i] = self.__str2num__(df.iloc[:, i], num_type)
+            elif num_type == 'TEXT':
+                df.iloc[:,i] = df.iloc[:,i].astype('string')
         return df
 
     @staticmethod
@@ -101,7 +155,7 @@ class DB:
         self.db_file = file
         engine = sqlite3.connect(file)
         try:
-            for tab in data_cfg.DBtabs:
+            for tab in cfg.DBtabs:
                 query = f'SELECT * FROM {tab}'
                 exec(f'self.{tab} = pandas.read_sql(query, engine)')
         except:
@@ -113,11 +167,11 @@ class DB:
         self.db_file = file
         db_file = sqlite3.connect(file)
         db = db_file.cursor()
-        db.execute(f'''CREATE TABLE op ({self.data_cfg.op_col_sql})''')
+        db.execute(f'''CREATE TABLE op ({cfg.op_col_sql})''')
         db_file.commit()
-        db.execute(f'''CREATE TABLE cat ({self.data_cfg.cat_col_sql})''')
+        db.execute(f'''CREATE TABLE cat ({cfg.cat_col_sql})''')
         db_file.commit()
-        db.execute(f'''CREATE TABLE trans ({self.data_cfg.trans_col_sql})''')
+        db.execute(f'''CREATE TABLE trans ({cfg.trans_col_sql})''')
         db_file.commit()
 
     def write_db(self, file=''):
