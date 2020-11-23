@@ -17,15 +17,15 @@ fs = FileSystem()
 
 
 
-read_SQL = 0
+read_SQL = 1
 
 if read_SQL:
     dane = db.DB(fs.db_file)
 else:
     dane = db.DB()
-    dane.ins_data('./testing/history_20181114_220211_pko.xls', 'ipko')
-    dane.ins_data('./testing/TransactionHistory_20181017_221429_RaiOso.XLS', 'raifeisen')
-    dane.ins_data('./testing/TransactionHistory_20181114_220559RaiKr.XLS', 'raifeisen_kredyt')
+    dane.ins_data('./testing/history_20201121_235008.xls', 'ipko')
+    dane.ins_data('./testing/Zestawienie operacji.xlsx', 'raifeisen')
+    dane.ins_data('./testing/Zestawienie operacji(1).xlsx', 'raifeisen_kredyt')
     dane.trans_col(bank='raifeisen_kredyt', col_name='kwota', op='*', val1=-1)
     dane.trans_col(bank='ipko', col_name='opis_transakcji', op='str.replace', val1='Tytuł: ', val2='')
     dane.trans_col(bank='ipko', col_name='lokalizacja', op='str.replace', val1='Lokalizacja: ', val2='')
@@ -43,22 +43,47 @@ else:
 # kiedy zaczynamy kopiujemy op do op_sub i dalej pracujemy na op_sub
 # kiedy op_sub puste oznacza ze zaczynamy nowa kategorie
 print(dane.count_unique())
+print(dane.count_unique(show_cat=False))
 col_name = 'nazwa_odbiorcy'  # lista, dopisujemy kolejne kolumny
 filter_str = 'VECTRA'  # lista, dopisujemy kolejne filtry
 print(dane.sub_op(col_name, filter_str))  # filtruje i zwraca op_sub po filtrowaniu
 dane.sub_op_commit('internet') # tworzy nowa kategorie
+# kategorie:
+#GRANDPA <- internet
+
 print(dane.count_unique(show_cat=False))
 col_name = 'nazwa_odbiorcy'
-filter_str = "P4"
+filter_str = "ADMUS"
 print(dane.sub_op(col_name, filter_str))  # filtruje i zwraca op_sub po filtrowaniu
 col_name = 'nazwa_odbiorcy'
 filter_str = "JMDI"
 print(dane.sub_op(col_name, filter_str, 'add'))  # filtruje i zwraca op_sub po filtrowaniu
-dane.sub_op_commit('oplaty') # tworzy nowa kategorie
+dane.sub_op_commit('opłaty') # tworzy nowa kategorie
+# kategorie:
+#GRANDPA <- internet
+#           opłaty            
+
+
 col_name = 'category'
 filter_str = "internet"
 print(dane.sub_op(col_name, filter_str))
-dane.sub_op_commit('oplaty') # tworzy nowa kategorie
+dane.sub_op_commit('opłaty') # tworzy nowa kategorie
+# kategorie:
+#GRANDPA <- opłaty <- internet
+#              
+
+
+col_name = 'category'
+filter_str = "opłaty"
+print(dane.sub_op(col_name, filter_str))
+col_name = 'nazwa_odbiorcy'
+filter_str = "P4"
+print(dane.sub_op(col_name, filter_str),'lim')
+dane.sub_op_commit('telefon') # tworzy nowa kategorie
+# kategorie:
+#GRANDPA <- opłaty <- internet
+#           telefon
+#           
 
 print(dane.cat)
 # input('ok?')

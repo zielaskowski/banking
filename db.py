@@ -1,4 +1,5 @@
 import pandas
+import numpy as np
 import sqlite3
 import os
 
@@ -14,7 +15,7 @@ class DB:
         self.op_sub = pandas.DataFrame(columns=cfg.op_col)  # table of operation during categorization process
         self.cat = pandas.DataFrame(columns=cfg.cat_col)  # table of categories
         self.trans = pandas.DataFrame(columns=cfg.trans_col)  # table of transformations
-        self.hash = pandasDataFrame(columns = cfg.hash_col)  # table to store hash vs category
+        #self.hash = pandas.DataFrame(columns = cfg.hash_col)  # table to store hash vs category
         self.cat_temp = pandas.DataFrame(columns=cfg.cat_col) # temporary DF colecting filters before commiting cattegory {col: filter}
         db_file = ""
         error = ''
@@ -35,26 +36,14 @@ class DB:
         opcja show_cat pokazuje elementy tylko nieskategoryzowane lub wszystkie
         """
         if self.op_sub.empty:
-            return
-        temp_op = self.op_sub
-        if not show_cat:  # pokazuje tylko wiersze nieskategoryzowane
-            hash_i = []
-            [hash_i.append(i) for i in self.hash['hash']]
-            rows = temp['hash'] != hash_i
-            temp = temp[rows]
+            temp_op = self.op
         else:
-            cat = []
-            for row in temp_op:
-                hash_li = self.hash['hash'] == row['hash']
-                hash_i = hash_li.index(True)
-                if hash_i:
-                    cat.append(self.hash.iloc[hash_i,0])
-                else:
-                    cat.append('')
-            temp_op['category'] = cat
+            temp_op = self.op_sub
+        if not show_cat:  # pokazuje tylko wiersze nieskategoryzowane
+            temp_op = self.op[self.op.category.isna()]
         df_dict = {}
-        for col in self.op.columns[1:-1]:
-            col_grouped = temp.groupby(by=col).count().loc[:, 'data_operacji']
+        for col in cfg.cat_col_names:
+            col_grouped = temp_op.groupby(by=col).count().loc[:, 'data_operacji']
             col_grouped = col_grouped.sort_values(ascending=False)
             df_dict.update({col: col_grouped})
         return df_dict
@@ -70,46 +59,125 @@ class DB:
         'rem': filtruje z op_sub i usuwa z op_sub\n
         """
         def new():
-            rows = [str(i).find(cat_filter) + 1 for i in self.op[col]]
+            # moze byc tylko jedno oper=new
+            self.cat_temp = pandas.DataFrame(columns = cfg.cat_col)
+
+            rows = [str(i).lower().find(cat_filter.lower()) + 1 for i in self.op[col]]
             rows = [bool(i) for i in rows]
             return self.op[rows]
         def add():
-            rows = [str(i).find(cat_filter) + 1 for i in self.op[col]]
+            if self.op_sub.empty:
+                self.sub_op = self.op.copy # zadziala jak oper=new, no ale jeszcze sie nic nie dzieje
+
+            rows = [str(i).lower().find(cat_filter.lower()) + 1 for i in self.op[col]]
             rows = [bool(i) for i in rows]
             return self.op_sub.append(self.op[rows])
         def lim():
-            rows = [str(i).find(cat_filter) + 1 for i in self.op_sub[col]]
+            if self.op_sub.empty:
+                return "Nothing to lim(it). First create new request with oper=new"
+
+            rows = [str(i).lower().find(cat_filter.lower()) + 1 for i in self.op_sub[col]]
             rows = [bool(i) for i in rows]
             return self.op_sub[rows]
         def rem():
-            rows = [str(i).find(cat_filter) + 1 for i in self.op_sub[col]]
+            if self.op_sub.empty:
+                return "Nothing to rem(ove). First create new request with oper=new"
+
+            rows = [str(i).lower().find(cat_filter.lower()) + 1 for i in self.op_sub[col]]
             rows = [not bool(i) for i in rows]
             return self.op_sub[rows]
 
         ops = {'new': new, 'add': add, 'lim': lim, 'rem': rem}
-        self.op_sub = ops[oper]
-        self.cat_temp.append({'col_name': col, 'filter':cat_filter, 'oper': oper})
+        self.op_sub = ops[oper]()
+        if not self.cat_temp.empty:
+            oper_n = 1 + max(self.cat_temp.oper_n)  # numer operacji, kolejnosc jest istotna
+        else:
+            oper_n = 1
+        self.cat_temp = self.cat_temp.append({'col_name': col, 'filter':cat_filter, 'oper': oper, 'oper_n': oper_n}, ignore_index=True)
         return self.op_sub
 
     def sub_op_commit(self, cat_name):
-        """zapisuje cat_dict do cat db\n
-        pozwala to kategoryzowac przyszle dane\n
-        dane aktualnie znajdujace sie w db kategoryzuja sie za pomoca hash
-        resetuje self.sub_op co pozwala powtorzyc proces kategoryzacji jeszcze raz
+        """Tworzy kategorie na podstawie aktualnie wybranych danych (i filtrów użytych do otrzymania tych danych)\n
+        Na podstawie kontekstu zarządza również przypisaniem do odpowiedniego rodzica.\n
+        użyte filtry zapisują się do cat DB\n
+        hash wybranych danych razem z actegoria zapisuje sie do hash DB\n
+
+        tworzenie rodzicow musi byc traktowane specjalnie w zależności od kontekstu:\n
+        rodzic moze miec wiele dzieci, ale dziecko może mieć tylko jdengo rodzica.\n
         """
-        cat_row = pandas.Series()
-        #add filters for cols
-        for cat in self.cat_temp:
-            cat_row[cat] = self.cat_temp[cat]
-        # add hash
-        for hash_i in self.op_sub['hash']:
-            self.hash.append({'cat': hash_i})
-        # add category and parrent
-        if 'category' in self.cat_temp:
-            cat_row['cat_parent'] = self.cat_temp['category']
-        cat_row['category'] = cat_name
-        self.cat = self.cat.append(cat_row, ignore_index=True)
-        self.op_sub = pandas.DataFrame()
+        """
+        jesli wszystkie col_name = category to znaczy ze spinamy je wszystkie pod nowym rodzicem\n
+        nie musimy dopisywac ketgroii do op DB, zmieniamy tylko cat DB. nie ma hash.
+        przyklad:
+        GRANDPA <-  cat2 <- cat5\n
+                            cat6\n
+                            cat7\n
+                    cat3\n
+                    cat4\n
+        1. new cat2
+        2. rem cat7
+        change parent of cat5&cat6; if provided cat_name != cat2 add new category and attach to grandpa, otherway attach to cat2
+
+        1. new cat2
+        2. lim cat5
+        3. add cat6
+        change parent of cat5&cat6; if provided cat_name != cat2 add new category and attach to grandpa, otherway attach to cat2
+
+        1. new cat5
+        2. add cat3
+        change parent of cat5&cat3; if provided cat_name != cat2 add new category and attach to grandpa, otherway attach to cat2
+
+        jesli oprocz col_name = category mamy jeszcze inne col_name, tworzymy dziecko\n
+        ostatni col_name = category uzywamy jako rodzica,\n
+        usuwamy op_temp z hash i wpisujemy nowe
+        jesli nie mamy col_name = category to parrent = GRANDPA
+        przyklad:
+        GRANDPA <-  cat2 <- cat5\n
+                            cat6\n
+                            cat7\n
+                    cat3\n
+                    cat4\n
+        1. new cat2
+        2. rem cat7
+        3. add data
+        change parent of cat5&cat6; add new category do self.cat with cat2 as parent
+        """
+        op_sub_cat = self.op_sub.category.dropna() # ketegorie w wybranych danych
+        if not op_sub_cat.empty:
+            # parents w wybranych danych
+            op_temp_parents = pandas.merge(left=self.cat, right=op_sub_cat, how='right', on='category').cat_parent.dropna()
+            op_temp_parents.drop_duplicates(inplace=True)
+        else:
+            op_temp_parents = pandas.Series()
+        if op_temp_parents.empty:
+            op_temp_parents = ['GRANDPA']
+        
+        if len(op_temp_parents) > 1: # we need to choose correct parent
+            if cat_name in op_temp_parents.to_list():
+                op_temp_parents = [cat_name]
+            else:
+                op_temp_parents = ['GRANDPA']
+
+        # if within data are other cat set new cat as parent for them
+        if not op_sub_cat.empty:
+            self.cat.loc[self.cat.category.isin(op_sub_cat), 'cat_parent'] = cat_name # change parent of selected cat
+
+        # remove catgorized rows from self.op_sub
+        self.op_sub = self.op_sub[self.op_sub.loc[:,'category'].isna()]
+        self.op_sub.loc[:,'category'] = cat_name
+
+        # add parrent and category
+        # dosen't make sense if only categories becouse we already update parents
+        if any(self.cat_temp.loc[:,'col_name'] != 'category'):
+            self.cat_temp.category = cat_name
+            self.cat_temp.cat_parent = op_temp_parents[0]
+            self.cat = self.cat.append(self.cat_temp, ignore_index=True)
+
+        self.op.loc[self.op.loc[:,'hash'].isin(self.op_sub.loc[:,'hash']),'category'] = cat_name
+
+        #resetujemy tymczasowe DB
+        self.op_sub = pandas.DataFrame(columns = cfg.op_col)
+        self.cat_temp = pandas.DataFrame(columns = cfg.cat_col)
         return None
 
     def ins_data(self, file, bank):
@@ -118,7 +186,7 @@ class DB:
         xls.columns = cfg.op_col
         xls.bank = bank
         xls.hash = pandas.util.hash_pandas_object(xls)
-        xls.replace(r'^\s+$', pandas.np.np.nan, regex=True, inplace=True)  # remove cells with whitespaces
+        xls.replace(r'^\s+$', np.nan, regex=True, inplace=True)  # remove cells with whitespaces
         xls = self.__correct_col_types__(xls)
         self.op = self.op.append(xls, ignore_index=True)
         pandas.DataFrame.drop_duplicates(self.op, subset='hash', inplace=True)
@@ -155,7 +223,7 @@ class DB:
         self.db_file = file
         engine = sqlite3.connect(file)
         try:
-            for tab in cfg.DBtabs:
+            for tab in cfg.DB_tabs:
                 query = f'SELECT * FROM {tab}'
                 exec(f'self.{tab} = pandas.read_sql(query, engine)')
         except:

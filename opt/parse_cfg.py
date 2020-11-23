@@ -15,11 +15,6 @@ categories DB
     cat_col <list> - column names
     cat_col_type <list> - column types in cat DB for store in SQLlite.
 
-hash DB
-    stores hashes for category (should speed up opening DBs)
-    hash_col <list> - column names
-    hash_col_type <list> - column types in cat DB for store in SQLlite
-
 transformation DB
     stores transformation (+, -, *, /, str.replace) parameters during import
     trans_col <list> - column names
@@ -87,8 +82,7 @@ def sql_table(col_names, types=''):
 
 
 # SQL DB tables names
-DB_tabs = ['op', 'cat', 'trans', 'hash']
-
+DB_tabs = ['op', 'cat', 'trans']
 
 op_col = data_cfg.op_col
 op_col_type = data_cfg.op_col_type
@@ -96,31 +90,28 @@ op_col_type = data_cfg.op_col_type
 # map banks col names to operation DB col names
 bank = map_bank(data_cfg.bank)
 
-extra_col = ['bank', 'hash']
-extra_col_type = ['TEXT', 'TEXT']
+extra_col = ['bank', 'hash', 'category']
+extra_col_type = ['TEXT', 'TEXT', 'TEXT']
 
 # add extra cols (for bank name and hash)
 op_col = add_extra_col(extra_col, op_col)
 op_col_type = add_extra_col(extra_col_type, op_col_type)
 bank = add_extra_col(extra_col, bank)
 
-# columns used for categorize
-cat_col = ["col_name", "filter", "oper", "oper_n", "category", "cat_parent", 'op_hash']
+# DB used for categorize
+cat_col = ["col_name", "filter", "oper", "oper_n", "category", "cat_parent"]
 cat_col_type = ["TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
 
-# columns avilable for transform operations
+cat_col_names = ["typ_transakcji", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja", "category"]
+
+# DB used for transform operations
 trans_col = ["bank", "col_name", "oper", "val1", "val2"]
 trans_col_type = ["TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
-
-# columns to stare hash for categories
-hash_col = ['cat', 'hash']
-hash_col_type = ["TEXT", "TEXT"]
 
 # create SQL query for tables
 op_col_sql = sql_table(op_col, op_col_type)
 cat_col_sql = sql_table(cat_col, cat_col_type)
 trans_col_sql = sql_table(trans_col, trans_col_type)
-hash_col_sql = sql_table(hash_col, hash_col_type)
 
 if __name__ == '__main__':
     import pandas
