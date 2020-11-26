@@ -7,9 +7,33 @@ import opt.parse_cfg as cfg
 
 
 class DB:
-    # manage data
-    # store in SQlite
-
+    """
+    manage data
+    store in SQlite
+    przyklady:
+    GRANDPA <-  cat2 <- cat5\n
+                        cat6\n
+                        cat7\n
+                cat3\n
+                cat4\n
+    1. filter(dane, new)\n
+    2. filter_commit(cat8)\n
+    GRANDPA <-  cat2 <- cat5\n
+                        cat6\n
+                        cat7\n
+                cat3\n
+                cat4\n
+                cat8\n
+    1. filter(cat2,new)
+    2. filter(cat5,lim)
+    3. filter(cat3,add)
+    4. filter_commit(cat9)
+    GRANDPA <-  cat2 <- cat6\n
+                        cat7\n
+                cat4\n
+                cat9 <- cat5\n
+                        cat3\n
+    """
     def __init__(self, file=''):
         self.op = pandas.DataFrame(columns=cfg.op_col)  # table of operations
         self.op_sub = pandas.DataFrame(columns=cfg.op_col)  # table of operation during categorization process
@@ -23,7 +47,7 @@ class DB:
             self.db_file = file
             self.__open_db__(file)
 
-    def count_unique(self, show_cat=True):
+    def group_data(self, show_cat=True):
         """Grupuje wartości w kazdej kolumnie i pokazuje licznosc:\n
         kazde grupowanie przez self.sub_op ogranicza grpowanie do wczesniej wybranych\n
         self.sub_op_commit resetuje, i znowu gropwanie pokazuje dla wszystkich danych w self.op\n
@@ -48,7 +72,7 @@ class DB:
             df_dict.update({col: col_grouped})
         return df_dict
 
-    def sub_op(self, col, cat_filter, oper='new'):
+    def filter_data(self, col, cat_filter, oper='new'):
         """wyswietla dane ograniczone do op_sub[col]=filtr\n
         wybrany col i filtr dodaje do cat_dict: jesli zdecydujemy sie stworzyc kategorie\n
         z wybranych danych, cat_dict zostanie zapisany do cat db\n
@@ -64,10 +88,10 @@ class DB:
 
             rows = [str(i).lower().find(cat_filter.lower()) + 1 for i in self.op[col]]
             rows = [bool(i) for i in rows]
-            return self.op[rows]
+            return self.op[rows].copy()
         def add():
             if self.op_sub.empty:
-                self.sub_op = self.op.copy # zadziala jak oper=new, no ale jeszcze sie nic nie dzieje
+                self.sub_op = self.op.copy() # zadziala jak oper=new, no ale jeszcze sie nic nie dzieje
 
             rows = [str(i).lower().find(cat_filter.lower()) + 1 for i in self.op[col]]
             rows = [bool(i) for i in rows]
@@ -96,89 +120,146 @@ class DB:
         self.cat_temp = self.cat_temp.append({'col_name': col, 'filter':cat_filter, 'oper': oper, 'oper_n': oper_n}, ignore_index=True)
         return self.op_sub
 
-    def sub_op_commit(self, cat_name):
-        """Tworzy kategorie na podstawie aktualnie wybranych danych (i filtrów użytych do otrzymania tych danych)\n
-        Na podstawie kontekstu zarządza również przypisaniem do odpowiedniego rodzica.\n
-        użyte filtry zapisują się do cat DB\n
-        hash wybranych danych razem z actegoria zapisuje sie do hash DB\n
-
-        tworzenie rodzicow musi byc traktowane specjalnie w zależności od kontekstu:\n
-        rodzic moze miec wiele dzieci, ale dziecko może mieć tylko jdengo rodzica.\n
+    def filter_commit(self, cat_name):
+        """cat_name moze wskazywac rowniez rodzica dla ktorego nalezy stworzyc dziecko\n
+        np.: 'opłaty/telefon'
+        1. free select (not only categories): create new category for all data, if some data already categorized will change it's category
+        3. category select (more than one): move categories or rename if cat_name dosen't exists
         """
-        """
-        jesli wszystkie col_name = category to znaczy ze spinamy je wszystkie pod nowym rodzicem\n
-        nie musimy dopisywac ketgroii do op DB, zmieniamy tylko cat DB. nie ma hash.
-        przyklad:
-        GRANDPA <-  cat2 <- cat5\n
-                            cat6\n
-                            cat7\n
-                    cat3\n
-                    cat4\n
-        1. new cat2
-        2. rem cat7
-        change parent of cat5&cat6; if provided cat_name != cat2 add new category and attach to grandpa, otherway attach to cat2
-
-        1. new cat2
-        2. lim cat5
-        3. add cat6
-        change parent of cat5&cat6; if provided cat_name != cat2 add new category and attach to grandpa, otherway attach to cat2
-
-        1. new cat5
-        2. add cat3
-        change parent of cat5&cat3; if provided cat_name != cat2 add new category and attach to grandpa, otherway attach to cat2
-
-        jesli oprocz col_name = category mamy jeszcze inne col_name, tworzymy dziecko\n
-        ostatni col_name = category uzywamy jako rodzica,\n
-        usuwamy op_temp z hash i wpisujemy nowe
-        jesli nie mamy col_name = category to parrent = GRANDPA
-        przyklad:
-        GRANDPA <-  cat2 <- cat5\n
-                            cat6\n
-                            cat7\n
-                    cat3\n
-                    cat4\n
-        1. new cat2
-        2. rem cat7
-        3. add data
-        change parent of cat5&cat6; add new category do self.cat with cat2 as parent
-        """
-        op_sub_cat = self.op_sub.category.dropna() # ketegorie w wybranych danych
-        if not op_sub_cat.empty:
-            # parents w wybranych danych
-            op_temp_parents = pandas.merge(left=self.cat, right=op_sub_cat, how='right', on='category').cat_parent.dropna()
-            op_temp_parents.drop_duplicates(inplace=True)
-        else:
-            op_temp_parents = pandas.Series()
-        if op_temp_parents.empty:
-            op_temp_parents = ['GRANDPA']
+        #TODO: pass for each cat_name if path given
+        if all(self.cat_temp.col_name == 'category'): # only categories so rename or move them
+            self.__category_commit__(cat_name)
+        else: # free select
+            self.__free_select_commit__(cat_name)
         
-        if len(op_temp_parents) > 1: # we need to choose correct parent
-            if cat_name in op_temp_parents.to_list():
-                op_temp_parents = [cat_name]
-            else:
-                op_temp_parents = ['GRANDPA']
+        #remove rows present in op_sub
+        self.op = self.op.loc[~self.op.loc[:,'hash'].isin(self.op_sub.loc[:,'hash']),:]
+        # and append op_sub
+        self.op = self.op.append(self.op_sub, ignore_index=True)
 
-        # if within data are other cat set new cat as parent for them
-        if not op_sub_cat.empty:
-            self.cat.loc[self.cat.category.isin(op_sub_cat), 'cat_parent'] = cat_name # change parent of selected cat
-
-        # remove catgorized rows from self.op_sub
-        self.op_sub = self.op_sub[self.op_sub.loc[:,'category'].isna()]
-        self.op_sub.loc[:,'category'] = cat_name
-
-        # add parrent and category
-        # dosen't make sense if only categories becouse we already update parents
-        if any(self.cat_temp.loc[:,'col_name'] != 'category'):
-            self.cat_temp.category = cat_name
-            self.cat_temp.cat_parent = op_temp_parents[0]
-            self.cat = self.cat.append(self.cat_temp, ignore_index=True)
-
-        self.op.loc[self.op.loc[:,'hash'].isin(self.op_sub.loc[:,'hash']),'category'] = cat_name
+        # add filters to self.cat
+        self.cat_temp.category = cat_name
+        self.cat_temp.filter_n = self.__max__(self.cat) + 1
+        self.cat = self.cat.append(self.cat_temp, ignore_index=True)
 
         #resetujemy tymczasowe DB
         self.op_sub = pandas.DataFrame(columns = cfg.op_col)
         self.cat_temp = pandas.DataFrame(columns = cfg.cat_col)
+
+        self.__validate_tree__()
+
         return None
+
+    def __free_select_commit__(self, cat_name):
+        """Tworzy kategorie na podstawie aktualnie wybranych danych (i filtrów użytych do otrzymania tych danych)\n
+        __free_select_commit__ jest wywoływane tylko jeśli wybrane dane były filtrowane nie tylko kategoriami\n
+        Jesli wybrane dane posiadja juz kategoria, zostanie on zmieniona (w efekcie moze zniknac stara kategoria jesli nie jest niczym rodzicem i nie posiada juz danych)\n
+        Na podstawie kontekstu zarządza również przypisaniem do odpowiedniego rodzica.\n
+        użyte filtry zapisują się do cat DB\n
+
+        rodzic moze miec wiele dzieci, ale dziecko może mieć tylko jdengo rodzica.\n
+        1. Dla wybranych danych tworzy nowa kategorie,\n
+        2. jesli wybrane sa rowniez dane juz zkategorywone, zmiania im rowniez kategorie\n
+        3. Jesli nazwa nowej kategorii juz istnieje, podpinamy sie do niej\n
+        """
+        if not isinstance(self.op_sub,pandas.DataFrame):
+            # create empty category under GRANDPA
+            self.op = self.op.append({'category': cat_name, 'cat_parent': 'GRANDPA', 'hash': 'empty'}, ignore_index=True)
+            return
+        
+        parent = ['GRANDPA']
+        # kategorie we wszytskich danych
+        op_cat = self.op.loc[:,'category'].dropna().drop_duplicates() 
+        if cat_name in op_cat.to_list(): # if cat_name is one already existing category, take this category's parent, otherway leave grandpa
+            parent = self.op.loc[self.op.category == cat_name, 'cat_parent'].drop_duplicates().to_list()
+        else: # only when creating new category
+            # new category must have empty entry in self.op, so not to loose tree structure during some operation
+            self.op = self.op.append({'category': cat_name, 'cat_parent': parent[0], 'hash': 'empty'}, ignore_index = True)
+
+        # add category 
+        self.op_sub.loc[:, 'category'] = cat_name
+        # add parent 
+        self.op_sub.loc[:, 'cat_parent'] = parent[0]
+
+        return None
+
+
+    def __category_commit__(self, cat_name):
+        """Zmienia nazwe kategorii lub przesuwa je w drzewie\n
+        __one_cat_commit__ jest wywoływany tylko, jeśli wybrane dane należ do JEDNEJ kategorii i filtrowane były tylko kategoriami\n
+
+        1. jeśli cat_name jest nowa nazwą (nie istnieje w drzewie), przenosi wybrane dane do nowej kategorii (rename) i podpina do GRANPDA\n
+        2. jeśli cat_name istnieje, wybrane dane zmieniaja kategorie na cat_name (move)
+        """
+        if not isinstance(self.op_sub,pandas.DataFrame):
+            # create empty category under GRANDPA
+            self.op = self.op.append({'category': cat_name, 'cat_parent': 'GRANDPA', 'hash': 'empty'}, ignore_index=True)
+            return
+        
+        parent = ['GRANDPA']
+        op_cat = self.op.loc[:,'category'].dropna().drop_duplicates() 
+        if cat_name in op_cat.to_list(): # if cat_name is one already existing category, take this category as parent, otherway leave grandpa
+            # add parent 
+            self.op_sub.loc[:, 'cat_parent'] = cat_name
+        else: # cat_name dosen't exists so rename categories and set to GRANDPA
+            # new category must have empty entry in self.op, so not to loose tree structure during some operation
+            self.op = self.op.append({'category': cat_name, 'cat_parent': parent[0], 'hash': 'empty'}, ignore_index = True)
+            # add category 
+            self.op_sub.loc[:, 'category'] = cat_name
+            # add parent 
+            self.op_sub.loc[:, 'cat_parent'] = parent[0]
+        
+        return None
+
+    def __validate_tree__(self):
+        ##VALIDATE TREE##
+        # 1. remove empty categories which are also not referenced
+        empty_cat = self.op.loc[self.op.loc[:, 'hash'] == 'empty', 'category'].drop_duplicates()
+        for cat in empty_cat:
+            if len(self.op.loc[self.op.loc[:, 'category'] == cat]) == 1 and self.op.loc[self.op.loc[:, 'cat_parent'] == cat].empty:
+                self.op.loc[self.op.loc[:, 'category'] == cat].drop(inplace=True)
+        # 2. make sure the names are unique
+        all_cat = self.op.loc[:, 'category'].drop_duplicates()
+        for cat in all_cat:
+            pars = self.op.loc[self.op.loc[:, 'category'] == cat, 'cat_parent'].drop_duplicates()
+            if len(pars) > 1:
+                n = 1
+                for par in pars:
+                    self.op.loc[self.op.loc[:, 'category'] == cat and self.op.loc[:, 'cat_parent'] == par, 'category'] = cat + str(n)
+                    n += 1
+        # 3. remove duplicated rows, may be more than one empty row for cat
+        self.op.drop_duplicates(inplace=True)
+
+    def __max__(self,db):
+        """max function, but also handle empty db
+        """
+        if not db.empty:
+            return max(db.filter_n)
+        else:
+            return 0
+
+    def show_tree(self):
+        """ show tree structure with no of elements:\n
+        GRANDPA(634)
+            cat1(0)
+                cat5(5)
+                cat6(10)
+                    cat8(8)
+                cat(9)()
+            cat2(10)                              
+        """
+        def show_kids(parent, level):
+            kids = self.op.loc[self.op.cat_parent == parent, 'category'].drop_duplicates()
+            level += 1
+            for kid in kids:
+                print('\t'*level + kid + '(' + str(len(self.op.loc[self.op.category == kid])) + ')')
+                show_kids(kid, level)
+        
+        level = 0
+        parent = 'GRANDPA'
+        l = len(self.op.loc[self.op.cat_parent.isna()])
+        print(parent + '(' + str(l) + ')')
+        show_kids(parent, level)
 
     def ins_data(self, file, bank):
         xls = pandas.read_excel(file)

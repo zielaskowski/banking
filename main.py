@@ -23,9 +23,9 @@ if read_SQL:
     dane = db.DB(fs.db_file)
 else:
     dane = db.DB()
-    dane.ins_data('./testing/history_20201121_235008.xls', 'ipko')
+    dane.ins_data('./testing/history_20201123_133040.xls', 'ipko')
     dane.ins_data('./testing/Zestawienie operacji.xlsx', 'raifeisen')
-    dane.ins_data('./testing/Zestawienie operacji(1).xlsx', 'raifeisen_kredyt')
+    dane.ins_data('./testing/Zestawienie operacji (1).xlsx', 'raifeisen_kredyt')
     dane.trans_col(bank='raifeisen_kredyt', col_name='kwota', op='*', val1=-1)
     dane.trans_col(bank='ipko', col_name='opis_transakcji', op='str.replace', val1='Tytuł: ', val2='')
     dane.trans_col(bank='ipko', col_name='lokalizacja', op='str.replace', val1='Lokalizacja: ', val2='')
@@ -42,60 +42,71 @@ else:
 # kategoryzacja
 # kiedy zaczynamy kopiujemy op do op_sub i dalej pracujemy na op_sub
 # kiedy op_sub puste oznacza ze zaczynamy nowa kategorie
-print(dane.count_unique())
-print(dane.count_unique(show_cat=False))
-col_name = 'nazwa_odbiorcy'  # lista, dopisujemy kolejne kolumny
-filter_str = 'VECTRA'  # lista, dopisujemy kolejne filtry
-print(dane.sub_op(col_name, filter_str))  # filtruje i zwraca op_sub po filtrowaniu
-dane.sub_op_commit('internet') # tworzy nowa kategorie
+print(dane.group_data())
+print(dane.group_data(show_cat=False))
+print(dane.filter_data('nazwa_odbiorcy', 'VECTRA'))  # filtruje i zwraca op_sub po filtrowaniu
+dane.filter_commit('internet') # tworzy nowa kategorie
 # kategorie:
 #GRANDPA <- internet
 
-print(dane.count_unique(show_cat=False))
-col_name = 'nazwa_odbiorcy'
-filter_str = "ADMUS"
-print(dane.sub_op(col_name, filter_str))  # filtruje i zwraca op_sub po filtrowaniu
-col_name = 'nazwa_odbiorcy'
-filter_str = "JMDI"
-print(dane.sub_op(col_name, filter_str, 'add'))  # filtruje i zwraca op_sub po filtrowaniu
-dane.sub_op_commit('opłaty') # tworzy nowa kategorie
+print(dane.filter_data('nazwa_odbiorcy', "ADMUS"))  # filtruje i zwraca op_sub po filtrowaniu
+print(dane.filter_data('nazwa_odbiorcy', "JMDI", 'add'))  # filtruje i zwraca op_sub po filtrowaniu
+dane.filter_commit('opłaty') # tworzy nowa kategorie
 # kategorie:
 #GRANDPA <- internet
 #           opłaty            
 
-
-col_name = 'category'
-filter_str = "internet"
-print(dane.sub_op(col_name, filter_str))
-dane.sub_op_commit('opłaty') # tworzy nowa kategorie
+print(dane.filter_data('category', "internet"))
+dane.filter_commit('opłaty') # tworzy nowa kategorie
 # kategorie:
 #GRANDPA <- opłaty <- internet
 #              
 
-
-col_name = 'category'
-filter_str = "opłaty"
-print(dane.sub_op(col_name, filter_str))
-col_name = 'nazwa_odbiorcy'
-filter_str = "P4"
-print(dane.sub_op(col_name, filter_str),'lim')
-dane.sub_op_commit('telefon') # tworzy nowa kategorie
+print(dane.filter_data('category', "opłaty"))
+print(dane.filter_data('nazwa_odbiorcy', "ADMUS",'lim'))
+dane.filter_commit('czynsz') # tworzy nowa kategorie
 # kategorie:
 #GRANDPA <- opłaty <- internet
-#           telefon
+#           czynsz
 #           
 
-print(dane.cat)
-# input('ok?')
-# #jesli nie
-# continue
-# else:
-# input('cat_name')
-# dane.add_cat(col_name, filter_str) #zapisuje cat DB
-# input('search for sub category?")
-# jesli tak to continue
-# jesli nie to zeruje op_sub
+print(dane.filter_data('category', "czynsz"))
+dane.filter_commit('opłaty') # tworzy nowa kategorie
+# kategorie:
+#GRANDPA <- opłaty <- internet
+#                     czynsz
+#           
 
+dane.filter_commit('nowe opłaty') # tworzy nowa kategorie
+# kategorie:
+#GRANDPA <- opłaty <- internet
+#                     czynsz
+#        <- nowe_opłaty
+
+
+print(dane.filter_data('category', "internet"))
+print(dane.filter_data('category', "czynsz", 'add'))
+dane.filter_commit('nowe opłaty') # tworzy nowa kategorie
+# kategorie:
+#GRANDPA <- opłaty 
+#        <- nowe opłaty <- internet
+#                          czynsz
+#           
+
+print(dane.filter_data('category', "internet"))
+print(dane.filter_data('category', "czynsz", 'add'))
+dane.filter_commit('opłaty') # tworzy nowa kategorie
+# kategorie:
+#GRANDPA <- opłaty <- internet
+#                     czynsz
+
+
+
+
+
+dane.show_tree()
+
+print(dane.cat)
 
 # bedzie chyba potrzebne trans_restore....
 
@@ -109,13 +120,3 @@ print(dane.cat)
 #  raczej naturalnie jest od dolu, wiec musi byc latwo tworzyc kategorie z kategorii
 
 #  po dopisaniu nowych wierszy do kategori musi dopisac wiersze rowniez do rodzicow
-
-opłaty
--prąd
--media
---telefon
---internet
---other
-transport
-- moto
-- rent

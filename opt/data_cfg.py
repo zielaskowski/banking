@@ -3,23 +3,22 @@ COLUMNS MAPPING:
 map columns from any bank to internal DB
 if column not present in file from bank put None
 
-                   ipko            raifeisen            raifeisen_kredyt      operations DB
-0         Data operacji  Date of transaction         Date of transaction      data_operacji
-1           Data waluty      Date of booking             Date of booking        data_waluty
-2        Typ transakcji  Type of transaction         Type of transaction     typ_transakcji
-3                 Kwota               Amount                      Amount              kwota
-4                Waluta             Currency                      waluta             waluta
-5   Saldo po transakcji              Balance                    saldo_po           saldo_po
-6      Rachunek nadawcy     rachunek_nadawcy            rachunek_nadawcy   rachunek_nadawcy
-7         Nazwa nadawcy     Sender/Recipient                        User      nazwa_nadawcy
-8         Adres nadawcy        adres_nadawcy               adres_nadawcy      adres_nadawcy
-9     Rachunek odbiorcy    rachunek_odbiorcy           rachunek_odbiorcy  rachunek_odbiorcy
-10       Nazwa odbiorcy     Sender/Recipient              nazwa_odbiorcy     nazwa_odbiorcy
-11       Adres odbiorcy       adres_odbiorcy              adres_odbiorcy     adres_odbiorcy
-12      Opis transakcji                Title  Description of transaction    opis_transakcji
-13          Unnamed: 13          lokalizacja                 lokalizacja        lokalizacja
-14                 bank                 bank                        bank               bank
-15                 hash                 hash                        hash               hash
+                   ipko	             raifeisen	      raifeisen_kredyt	    operations DB
+0         Data operacji	Data zlecenia operacji	Data zlecenia operacji	    data_operacji
+1           Data waluty	       Data realizacji	       Data realizacji	      data_waluty
+2        Typ transakcji	        Typ transakcji	        Typ transakcji	   typ_transakcji
+3                 Kwota	                 Kwota	                 Kwota	            kwota
+4                Waluta	                Waluta	                Waluta	           waluta
+5   Saldo po transakcji		              None	                  None           saldo_po
+6      Rachunek nadawcy	               Produkt	               Produkt	 rachunek_nadawcy
+7         Nazwa nadawcy			          None                    None      nazwa_nadawcy
+8         Adres nadawcy                   None			          None      adres_nadawcy
+9     Rachunek odbiorcy			          None                    None  rachunek_odbiorcy
+10       Nazwa odbiorcy	    Nadawca / odbiorca	    Nadawca / odbiorca	   nazwa_odbiorcy
+11       Adres odbiorcy		              None	                  None     adres_odbiorcy
+12      Opis transakcji	                  Opis	                  Opis	  opis_transakcji
+13          Unnamed: 13	                  none	                  None	      lokalizacja
+
 operations DB
     stores all operation imported from banks
     op_col <list> - column names
@@ -35,8 +34,8 @@ op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "
 op_col_type = ["TEXT", "TEXT", "TEXT", "REAL", "TEXT", "REAL", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
 bank = {
     'ipko': ['Data operacji', 'Data waluty', 'Typ transakcji', 'Kwota', 'Waluta', 'Saldo po transakcji', 'Rachunek nadawcy', 'Nazwa nadawcy', 'Adres nadawcy', 'Rachunek odbiorcy', 'Nazwa odbiorcy', 'Adres odbiorcy', 'Opis transakcji', 'Unnamed: 13'],
-    'raifeisen': ['Date of transaction', 'Date of booking', 'Type of transaction', 'Amount', 'Currency', 'Balance', None, 'Sender/Recipient', None, None, 'Sender/Recipient', None, 'Title', None],
-    'raifeisen_kredyt': ['Date of transaction', 'Date of booking', 'Type of transaction', 'Amount', None, None, None, 'User', None, None, None, None, 'Description of transaction', None]
+    'raifeisen': ['Data zlecenia operacji', 'Data realizacji', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', None, None, None, 'Nadawca / odbiorca', None, 'Opis', None],
+    'raifeisen_kredyt': ['Data zlecenia operacji', 'Data realizacji', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', None, None, None, 'Nadawca / odbiorca', None, 'Opis', None]
 }
 
 if __name__ == '__main__':

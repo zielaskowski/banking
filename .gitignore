@@ -2,5 +2,6 @@
 /.vscode
 /__pycache__
 /opt/__pycache__
+/qt_gui/__pycache__
 /bank.s3db
 /testing

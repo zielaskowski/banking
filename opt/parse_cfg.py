@@ -90,8 +90,8 @@ op_col_type = data_cfg.op_col_type
 # map banks col names to operation DB col names
 bank = map_bank(data_cfg.bank)
 
-extra_col = ['bank', 'hash', 'category']
-extra_col_type = ['TEXT', 'TEXT', 'TEXT']
+extra_col = ['bank', 'hash', 'category', 'cat_parent']
+extra_col_type = ['TEXT', 'TEXT', 'TEXT', 'TEXT']
 
 # add extra cols (for bank name and hash)
 op_col = add_extra_col(extra_col, op_col)
@@ -99,8 +99,8 @@ op_col_type = add_extra_col(extra_col_type, op_col_type)
 bank = add_extra_col(extra_col, bank)
 
 # DB used for categorize
-cat_col = ["col_name", "filter", "oper", "oper_n", "category", "cat_parent"]
-cat_col_type = ["TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
+cat_col = ["col_name", "filter", 'filter_n', "oper", "oper_n", "category"]
+cat_col_type = ["TEXT", "TEXT", 'INT', "TEXT", "INT", "TEXT", "TEXT"]
 
 cat_col_names = ["typ_transakcji", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja", "category"]
 
