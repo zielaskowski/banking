@@ -1,0 +1,1 @@
+{"LastDB": "/home/mi/Dropbox/prog/python/banking/bank.s3db", "welcome": "Write welcome message into ./opt/conf.txt..."}

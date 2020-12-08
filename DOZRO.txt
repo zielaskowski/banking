@@ -1,0 +1,18 @@
+1.SAVE state
+Saving the user's main window settings begins with some familiar code for restoring the window's size and position and the state of any toolbars and dock windows it may have. Splitters too have a state, and this is restored and saved in the same way as the main window's state.
+def closeEvent(self, event):
+    if self.okToContinue():
+        settings = QSettings()
+        settings.setValue("MainWindow/Size", QVariant(self.size()))
+        settings.setValue("MainWindow/Position",QVariant(self.pos()))
+        settings.setValue("MainWindow/State",QVariant(self.saveState()))
+        settings.setValue("MessageSplitter", QVariant(self.messageSplitter.saveStateO))
+        settings.setValue("MainSplitter", QVariant(self.mainSplitter.saveState()))
+
+2.Dialog to choose displayed columns
+
+3. search all
+
+4. DB_view column widget to search and grouping by count
+
+
