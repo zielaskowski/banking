@@ -34,8 +34,8 @@ op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "
 op_col_type = ["TEXT", "TEXT", "TEXT", "REAL", "TEXT", "REAL", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
 bank = {
     'ipko': ['Data operacji', 'Data waluty', 'Typ transakcji', 'Kwota', 'Waluta', 'Saldo po transakcji', 'Rachunek nadawcy', 'Nazwa nadawcy', 'Adres nadawcy', 'Rachunek odbiorcy', 'Nazwa odbiorcy', 'Adres odbiorcy', 'Opis transakcji', 'Unnamed: 13'],
-    'raifeisen': ['Data zlecenia operacji', 'Data realizacji', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', None, None, None, 'Nadawca / odbiorca', None, 'Opis', None],
-    'raifeisen_kredyt': ['Data zlecenia operacji', 'Data realizacji', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', None, None, None, 'Nadawca / odbiorca', None, 'Opis', None]
+    'bnp': ['Data zlecenia operacji', 'Data realizacji', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', None, None, None, 'Nadawca / odbiorca', None, 'Opis', None],
+    'bnp_kredyt': ['Data zlecenia operacji', 'Data realizacji', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', None, None, None, 'Nadawca / odbiorca', None, 'Opis', None]
 }
 
 if __name__ == '__main__':

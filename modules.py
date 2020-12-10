@@ -24,7 +24,7 @@ class FileSystem:
         self._fileCONF = ['opt', 'conf', '.txt']  # Configuration file. name is constant
         self.option = {"LastDB": '',
                        "welcome": "Write welcome message into ./opt/conf.txt..."}
-        self.typeIMP = ['text', '.txt']
+        self.typeIMP = ['excel', '*.xls *.xlsx']
         self.typeDB = ['SQlite3', '.s3db']
 
         self.setAPP()
@@ -45,7 +45,7 @@ class FileSystem:
         if file:
             fp += self._fileIMP[self._NAME] + self._fileIMP[self._EXT]
         if ext:  # 'text (*.txt)'
-            fp += self.typeIMP[0] + ' (*' + self.typeIMP[1] + ')'
+            fp += self.typeIMP[0] + ' (' + self.typeIMP[1] + ')'
         if not path and not file and not ext:  # all: path+name+ext
             fp = self._fileIMP[self._PATH] + self._fileIMP[self._NAME] + self._fileIMP[self._EXT]
         return fp

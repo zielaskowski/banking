@@ -1,5 +1,8 @@
 <RCC>
   <qresource prefix="icons">
+    <file>resources/paribas_kredyt.png</file>
+    <file>resources/pkoBP.png</file>
+    <file>resources/paribas.png</file>
     <file>resources/add.png</file>
     <file>resources/delete-512.png</file>
   </qresource>

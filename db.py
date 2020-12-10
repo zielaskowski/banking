@@ -45,6 +45,7 @@ class DB:
         self.DATA_OPERACJI = cfg.op_col[0]
         self.COL_NAME = cfg.cat_col[0]
         self.FILTER = cfg.cat_col[1]
+        self.FILTER_N = cfg.cat_col[2]
         self.OPER = cfg.cat_col[3]
         self.OPER_N = cfg.cat_col[4]
         self.HASH = cfg.extra_col[1]
@@ -54,7 +55,7 @@ class DB:
         self.VAL1 = cfg.trans_col[3]
         self.VAL2 = cfg.trans_col[4]
 
-        error = ''
+        self.error = ''
         if file:
             self.db_file = file
             self.open_db(file)
@@ -75,9 +76,9 @@ class DB:
         """
         return self.op_sub.loc[self.op_sub.loc[:, self.HASH] != 'empty', :].reset_index()
 
-    def group_data(self, show_cat=True):
-        """Grupuje wartości w kazdej kolumnie i pokazuje licznosc:\n
-        kazde grupowanie przez self.sub_op ogranicza grpowanie do wczesniej wybranych\n
+    def group_data(self, col):
+        """Grupuje wartości w kazdej kolumnie i pokazuje licznosc dla nie pogrupownych danych:\n
+        kazde grupowanie przez self.op_sub usuwa wybrane z grpowania\n
         self.sub_op_commit resetuje, i znowu gropwanie pokazuje dla wszystkich danych w self.op\n
         Przyklad:\n
         typ_transakcji              count\n
@@ -85,22 +86,29 @@ class DB:
         Przelew z rachunku           13\n
         Zlecenie stałe                6\n
         Wypłata z bankomatu           6\n
-        opcja show_cat pokazuje elementy tylko nieskategoryzowane lub wszystkie
         """
-        #if self.op_sub.empty:
-        temp_op = self.op
-        #else:
-        #    temp_op = self.op_sub
-        if not show_cat:  # pokazuje tylko wiersze nieskategoryzowane
-            temp_op = self.op[self.op.loc[:, self.CATEGORY] == cfg.GRANDPA]
-        df_dict = {}
-        for col in cfg.cat_col_names:
-            col_grouped = temp_op.groupby(by=col).count().loc[:, self.DATA_OPERACJI]
-            col_grouped = col_grouped.sort_values(ascending=False)
-            df_dict.update({col: col_grouped})
-        return df_dict
+        # take only not categorized
+        temp_op = self.op[self.op.loc[:, self.CATEGORY] == cfg.GRANDPA].copy()
+        # remove what temporary selected
+        # only if not first row in cat_temp with filter=="GRANDPA"
+        if not self.op_sub.empty:
+            if not self.cat_temp.loc[0, self.FILTER] == cfg.GRANDPA:
+                temp_op.drop(temp_op.loc[temp_op.loc[:, self.HASH].isin(self.op_sub.loc[:, self.HASH]),:].index, inplace=True)
 
-    def filter_data(self, col='', cat_filter='', oper=''):
+        col_grouped = temp_op.groupby(by=col).count().loc[:, self.DATA_OPERACJI]
+        col_grouped = col_grouped.sort_values(ascending=False)
+        if col_grouped.empty:
+            return ['None']
+        col_grouped = col_grouped.to_dict()
+        # keys are sentences, value are no of occurance
+        # aditionally replace EOL with space inside sentences
+        res = []
+        for i in col_grouped:
+            ii = i.replace("\n"," ")
+            res.append(f'x{col_grouped[i]}:  {ii}')
+        return res
+
+    def filter_data(self, col='', cat_filter='', oper='', auto=False):
         """wyswietla dane ograniczone do op_sub[col]=filtr\n
         dzialaja regex\n
         wybrany col i filtr dodaje do cat_dict: jesli zdecydujemy sie stworzyc kategorie\n
@@ -111,7 +119,7 @@ class DB:
         'lim': filtruje z op_sub\n
         'rem': filtruje z op_sub i usuwa z op_sub\n
 
-        wywolujac funkce bez parametrow zwracamy mozliwe opareacje
+        wywolujac funkcje bez parametrow zwracamy mozliwe opareacje
         """
         def new():
             # moze byc tylko jedno oper=new
@@ -128,24 +136,47 @@ class DB:
             return self.op_sub.append(self.op[rows])
         def lim():
             if self.op_sub.empty:
-                return "Nothing to lim(it). First create new request with oper=new"
+                self.error = "Nothing to lim(it). First create new request with oper=new"
+                return
 
             rows = [re.findall(cat_filter.lower(), str(i).lower()) for i in self.op_sub[col]]
             rows = [bool(i) for i in rows]
             return self.op_sub[rows]
         def rem():
             if self.op_sub.empty:
-                return "Nothing to rem(ove). First create new request with oper=new"
+                self.error = "Nothing to rem(ove). First create new request with oper=new"
+                return 
 
             rows = [re.findall(cat_filter.lower(), str(i).lower()) for i in self.op_sub[col]]
             rows = [not bool(i) for i in rows]
             return self.op_sub[rows]
 
         ops = {'new': new, 'add': add, 'lim': lim, 'rem': rem}
+
         # wywolujac funkcje bez parametrow zwracamy mozliwe opareacje
         if not any([col, cat_filter, oper]):
             return ops.keys()
+
+        # when starting filtering from selecting category and category exists
+        # parse filter for category on data
+        if not auto:
+            if self.cat_temp.empty and col == self.CATEGORY:
+                if cat_filter in self.cat[self.CATEGORY].to_list():
+                    self.get_filter_cat(cat_filter)
+                    return
+
+        # if first oper=new on GRANDPA we need to be careful so to not rename the GRANDPA
+        # if comming oper=add need to remove GRANDPA from selection and conv add->new
+        # rem and limiting oper on GRANDPA theoretically make sense, just need to protect
+        # renaming GRANDPA (when only categories filtered) in self.filter_commit()
+        if not self.cat_temp.empty:
+            if self.cat_temp.loc[0, self.FILTER] == cfg.GRANDPA:
+                if oper == 'add':
+                    self.cat_temp_rm(0)
+                    oper = 'new'
+
         self.op_sub = ops[oper]()
+
         # no need to look on hash=empty rows, it's just internal info
         self.op_sub.drop(self.op_sub[self.op_sub.hash == 'empty'].index, inplace=True)
         if not self.cat_temp.empty:
@@ -155,13 +186,44 @@ class DB:
         self.cat_temp = self.cat_temp.append({self.COL_NAME: col, self.FILTER: cat_filter, self.OPER: oper, self.OPER_N: oper_n}, ignore_index=True)
         return self.op_sub
 
+    def get_filter_cat(self, cat_sel=''):
+        """pass op DB through cat db and put to op_sub or op\n
+        when cat specified, limit filters to cat only and store in op_sub\n
+        when not cat specified, also do the commit after each category
+        """
+        self.clean_cat()
+        # limit to cat if exists, otherway take all categories
+        if not cat_sel:
+            cats = self.cat.loc[:,self.CATEGORY].drop_duplicates()
+            if cats.empty: # happen when importing excel
+                return
+        else:
+            cats = [cat_sel]
+
+        for cat in cats:
+            fltr = self.cat[self.cat.loc[:,self.CATEGORY] == cat].copy()
+            for row_i in range(len(fltr)):
+                row = fltr.iloc[row_i,:].copy()
+                # if oper='new' on other than first row, change to add
+                if row_i > 0 and row.loc[self.OPER] == list(self.filter_data())[0]:
+                    row.loc[self.OPER] = list(self.filter_data())[1]
+                self.filter_data(col=row[self.COL_NAME],
+                                cat_filter=row[self.FILTER],
+                                oper=row[self.OPER],
+                                auto=True)
+            if not cat:
+                self.filter_commit(fltr)
+
+    def clean_cat(self):
+        """Do some basic cleaning of cat filters
+        """
+        self.cat.drop_duplicates(inplace=True)
+        self.cat.sort_values(by=self.CATEGORY, inplace=True, ignore_index=True)
+
     def cat_temp_rm(self, oper_n):
         """remove selected filter operation\n
         and recalculate op_sub
         """
-        if oper_n == 0:
-            self.error = 'Not allowed to remove first filter'
-            return
         self.cat_temp.drop(self.cat_temp.loc[self.cat_temp.loc[:, self.OPER_N] == oper_n + 1].index, inplace=True)
         self.op_sub = pandas.DataFrame(columns = cfg.op_col)
         for row_i in range(len(self.cat_temp)):
@@ -170,7 +232,7 @@ class DB:
                             cat_filter=row.loc[self.FILTER],
                             oper=row.loc[self.OPER])
 
-    def filter_commit(self, cat_name):
+    def filter_commit(self, cat_name, parent=cfg.GRANDPA):
         """tworzy nowa kategorie
         1. free select (not only categories): create new category for all data, if some data already categorized will change it's category
         3. category select (more than one): move categories or rename if cat_name dosen't exists
@@ -178,12 +240,14 @@ class DB:
         if self.op_sub.empty:
             # create empty category under GRANDPA
             # will be deleted when filter_commit executed agin if not populated or reffered by child
-            self.op = self.op.append({self.CATEGORY: cat_name, self.CAT_PARENT: cfg.GRANDPA, self.HASH: 'empty'}, ignore_index=True)
-            self.show_tree()
+            self.op = self.op.append({self.CATEGORY: cat_name, self.CAT_PARENT: parent, self.HASH: 'empty'}, ignore_index=True)
             return self.op[self.op.loc[:,self.CATEGORY]==cat_name]
-
-        #TODO: pass for each cat_name if path given
+        
         if all(self.cat_temp.col_name == self.CATEGORY): # only categories so rename or move them
+            # DO NOT change the grandpa!
+            if [cfg.GRANDPA] in self.op_sub.loc[:, self.CATEGORY].drop_duplicates().to_list():
+                self.error = 'Not allowed to change top category'
+                return
             self.__category_commit__(cat_name)
         else: # free select
             self.__free_select_commit__(cat_name)
@@ -342,19 +406,15 @@ class DB:
         xls.replace(r'^\s+$', np.nan, regex=True, inplace=True)  # remove cells with whitespaces
         xls = self.__correct_col_types__(xls)
         xls.loc[:,self.CATEGORY] = cfg.GRANDPA
+        self.op = self.op.append(xls, ignore_index=True)
+        pandas.DataFrame.drop_duplicates(self.op, subset=self.HASH, inplace=True)
         # parse through trans db
         for row_n in range(len(self.trans)):
             row = self.trans.iloc[row_n,:]
             self.trans_col(bank=row.bank, col_name=row.col_name, op=row.op, val1=row.val1, val2=row.val2)
         # parse through cat db
-        for cat_n in self.cat.filter_n.drop_duplicates():
-            cat_sub = self.cat[self.cat.filter_n == cat_n]
-            for row_n in range(len(cat_sub)):
-                row = self.cat.iloc[row_n,:]
-                self.filter_data(col=row.col_name, cat_filter=row.filter, oper=row.oper)
-            self.filter_commit(row.loc[self.CATEGORY])
-        self.op = self.op.append(xls, ignore_index=True)
-        pandas.DataFrame.drop_duplicates(self.op, subset=self.HASH, inplace=True)
+        self.get_filter_cat()
+        return True
 
     def __correct_col_types__(self, df):
         n_col = len(df.columns)

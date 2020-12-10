@@ -89,20 +89,6 @@
               </property>
              </widget>
             </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
-            <item>
-             <widget class="QPushButton" name="imp_btn">
-              <property name="statusTip">
-               <string>import words from TXT file and append to active DB</string>
-              </property>
-              <property name="text">
-               <string>import TXT or DB</string>
-              </property>
-             </widget>
-            </item>
             <item>
              <widget class="QPushButton" name="export_btn">
               <property name="statusTip">
@@ -110,6 +96,87 @@
               </property>
               <property name="text">
                <string>export TXT</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;import history excell file&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QPushButton" name="impPKO_btn">
+              <property name="statusTip">
+               <string>import words from TXT file and append to active DB</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="res.qrc">
+                <normaloff>:/icons/resources/pkoBP.png</normaloff>:/icons/resources/pkoBP.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>60</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="impBNP_btn">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="res.qrc">
+                <normaloff>:/icons/resources/paribas.png</normaloff>:/icons/resources/paribas.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>130</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="impBNPkredyt_btn">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset resource="res.qrc">
+                <normaloff>:/icons/resources/paribas_kredyt.png</normaloff>:/icons/resources/paribas_kredyt.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>130</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="imp_other">
+              <property name="text">
+               <string>other...</string>
               </property>
              </widget>
             </item>
@@ -223,7 +290,7 @@
            <property name="orientation">
             <enum>Qt::Vertical</enum>
            </property>
-           <widget class="QWidget" name="">
+           <widget class="QWidget" name="layoutWidget">
             <layout class="QHBoxLayout" name="horizontalLayout_4">
              <item>
               <widget class="QTableWidget" name="cat_view"/>
@@ -286,12 +353,34 @@
              </item>
             </layout>
            </widget>
-           <widget class="QWidget" name="">
+           <widget class="QWidget" name="layoutWidget">
             <layout class="QVBoxLayout" name="verticalLayout_5">
              <item>
               <widget class="QRadioButton" name="also_not_cat">
                <property name="text">
                 <string>show also not categorized data</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QTableWidget" name="group_view">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>10</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>25</height>
+                </size>
                </property>
               </widget>
              </item>
