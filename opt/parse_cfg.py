@@ -102,13 +102,15 @@ op_col_type = add_extra_col(extra_col_type, op_col_type)
 bank = add_extra_col(extra_col, bank)
 
 # DB used for categorize
-cat_col = ["col_name", "filter", 'filter_n', "oper", "oper_n", "kategoria"]
+# oper col_name must be the same name for both cat & trans
+oper = 'oper'
+cat_col = ["col_name", "filter", 'filter_n', f'{oper}', "oper_n", "kategoria"]
 cat_col_type = ["TEXT", "TEXT", 'INT', "TEXT", "INT", "TEXT", "TEXT"]
 
 cat_col_names = ["typ_transakcji", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja", "kategoria"]
 
 # DB used for transform operations
-trans_col = ["bank", "col_name", "oper", "val1", "val2"]
+trans_col = ["bank", "col_name", f'{oper}', "val1", "val2"]
 trans_col_type = ["TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
 
 # create SQL query for tables

@@ -12,6 +12,127 @@ class GUIMainWin(QtWidgets.QMainWindow, Ui_banking):
         self.setupUi(self)
 
 
+class DBmodel(QtCore.QAbstractTableModel):
+    def __init__(self, db): #, parent=None, *args):
+        super().__init__() #self, parent, *args)
+        self.db = db
+        self.columns = self.db.columns
+        self.backgroundColor = [False] * self.rowCount(None)
+        self.fltr = ''
+        self.markRows = []
+    
+    def markBlueAddRows(self,db):
+        #append db, mark blue background color what already in model
+        self.layoutAboutToBeChanged.emit()
+        self.backgroundColor = [True] * self.rowCount(None)
+        self.db = self.db.append(db, ignore_index=True)
+        self.backgroundColor.extend([False] * len(db))
+        self.layoutChanged.emit()
+
+    def markFltr(self, fltr):
+        self.layoutAboutToBeChanged.emit()
+        self.fltr = fltr
+        self.layoutChanged.emit()
+    
+    def findRows(self, search):
+        self.layoutAboutToBeChanged.emit()
+        self.markRows = []
+        flags = QtCore.Qt.MatchContains | QtCore.Qt.MatchWrap
+        for i in range(len(self.columns)):
+            ind = self.match(self.createIndex(0,i),
+                            QtCore.Qt.DisplayRole,
+                            search,
+                            hits=-1,
+                            flags=flags)
+            [self.markRows.append(i.row()) for i in ind]
+        self.layoutChanged.emit()
+
+    def DispColumns(self, col_names: [str]):
+        # set displayed columns to provided names
+        self.layoutAboutToBeChanged.emit()
+        self.columns = col_names
+        self.layoutChanged.emit()
+        
+    def rowCount(self, parent):
+        # required by QAbstractTableModel
+        return len(self.db)
+    
+    def columnCount(self, parent):
+        # required by QAbstractTableModel
+        return len(self.columns)
+    
+    def data(self, index, role):
+        # required by QAbstractTableModel
+        #can display only strings??, so convert numbers to string
+        txt = str(self.db.loc[index.row(), self.columns[index.column()]])
+        if role == QtCore.Qt.DisplayRole:
+            if txt == 'None':
+                txt = ''
+            return txt
+        # set background collors
+        # green for fltr
+        # blue when not categorized data requested
+        if role == QtCore.Qt.BackgroundRole:
+            # blue
+            if self.backgroundColor[index.row()]:
+                return QtGui.QBrush(QtGui.QColor(0, 170, 255))
+            # green
+            # will not fill completely, need to update TableView after
+            if index.row() in self.markRows:
+                    return QtGui.QBrush(QtGui.QColor(26, 255, 14))
+        # set tool tip
+        if role == QtCore.Qt.ToolTipRole:
+            if txt != 'None':
+                return txt
+    
+    def headerData(self, section, orientation, role):
+        # required by QAbstractTableModel
+        if role == QtCore.Qt.DisplayRole and orientation == QtCore.Qt.Horizontal:
+            return self.columns[section]
+   
+
+class DBmodelProxy(QtCore.QSortFilterProxyModel):
+    #extends model by sorting and filtering
+    def __init__(self, db):
+        super().__init__()
+        self.setSourceModel(DBmodel(db))
+    
+    def lessThan(self, left, right):
+        # sorting for float
+        # make sure empty rows stay at end when sorted (in any order)
+        # make sure collored cells will stay on topwhen sorted (in any order)
+        
+        lDat = self.sourceModel().data(left, QtCore.Qt.DisplayRole)
+        rDat = self.sourceModel().data(right, QtCore.Qt.DisplayRole)
+        lColor = self.sourceModel().data(left, QtCore.Qt.BackgroundRole)
+        rColor = self.sourceModel().data(right, QtCore.Qt.BackgroundRole)
+        #trying to convert
+        try:
+            lDat = float(lDat)
+            rDat = float(rDat)
+        except:
+            pass
+        # both  must be the same type to compare
+        if type(lDat) != type(rDat):
+            lDat = str(lDat)
+            rDat = str(rDat)
+        # keep colored cells at begining
+        if self.sortOrder() == QtCore.Qt.AscendingOrder:
+            if lColor:
+                return True
+            if rColor:
+                return False
+        if self.sortOrder() == QtCore.Qt.DescendingOrder:
+            if lColor:
+                return False
+            if rColor:
+                return True
+        # keep empty cells at end whatever sort order is
+        if self.sortOrder() == QtCore.Qt.AscendingOrder:
+            if lDat == '' or rDat == '':
+                return not lDat < rDat
+        return lDat < rDat
+
 
 class GUIMainWin_ctrl(QtCore.QObject):
     def __init__(self, view):
@@ -30,6 +151,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
         # controling context menu
         self.before_edit = ''
         self.contextFunc = ''
+        # timer to delay execution, i.e. textChnaged in QlineEdit
+        self.timer = QtCore.QTimer()
 
     def connect_signals(self):
         # file management
@@ -43,18 +166,22 @@ class GUIMainWin_ctrl(QtCore.QObject):
         
         self.view.addFltr_btn.clicked.connect(self.addFltr)
         self.view.rmFltr_btn.clicked.connect(self.rmFltr)
+        self.view.addTrans_btn.clicked.connect(self.addTrans)
+        self.view.rmTrans_btn.clicked.connect(self.rmTrans)
         self.view.also_not_cat.toggled.connect(lambda: self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view))
+        self.view.markGrp.toggled.connect(self.markFltrColors)
         self.view.new_cat_name.editingFinished.connect(self.new_cat)
+        self.view.search.textChanged.connect(self.searchDelay)
         # QTreeWidget
         self.view.tree_db.clicked.connect(self.con_tree)
         self.view.tree_db.itemChanged.connect(self.tree_edited)
         self.view.tree_db.itemDoubleClicked.connect(self.treeItemActivated)
         # group_view widgets triggers are defined when created, in self.__tabViewItems__()
-        # DB_cat_view context menu
-        self.view.DB_cat_view.setContextMenuPolicy(QtCore.Qt.ActionsContextMenu)
-        self.addFltrQA = QtWidgets.QAction("add filter", self)
-        self.view.DB_cat_view.addAction(self.addFltrQA)
-        self.addFltrQA.triggered.connect(self.addFltr_fromDB)
+        # DB_[cat|trans]_view context menu
+        self.view.DB_cat_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.view.DB_cat_view.customContextMenuRequested.connect(self.DB_ContextMenu_cat)
+        self.view.DB_trans_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.view.DB_trans_view.customContextMenuRequested.connect(self.DB_ContextMenu_trans)
         # DB_cat_view & DB_trans_view header context menu
         head = self.view.DB_cat_view.horizontalHeader()
         head.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -66,32 +193,98 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.tree_db.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.view.tree_db.customContextMenuRequested.connect(self.TreeContextMenu)
 
+    def DB_ContextMenu_cat(self, position):
+        # need to know on which table clicked so to position context menu correctly
+        self.DB_ContextMenu(position=position, source=self.view.DB_cat_view,)
+
+    def DB_ContextMenu_trans(self, position):
+        # need to know on which table clicked so to position context menu correctly
+        self.DB_ContextMenu(position=position, source=self.view.DB_trans_view,)
+
+    def DB_ContextMenu(self, position, source):
+        """trigered by context menu in DB_view
+        adds new filter based on selection
+        """
+        fltr = {}
+        widgets = {}
+
+        if source.objectName() == 'DB_cat_view':
+            oper = self.db.filter_data()
+            txt = 'add filter: '
+        else:
+            oper = self.db.trans_col()
+            txt = 'add transformation: '
+        
+        menu = QtWidgets.QMenu()
+        
+        for op in oper:
+            widgets[op] = menu.addAction(f'{txt} {op}')
+            
+        act = menu.exec(source.mapToGlobal(position))
+
+        index = source.selectionModel().currentIndex()
+        model = source.model()
+        txt = model.data(index, QtCore.Qt.DisplayRole)
+        col = model.headerData(index.column(),QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole)
+        fltr[self.db.COL_NAME] = col
+        fltr[self.db.FILTER] = txt
+        fltr[self.db.BANK] = self.db.getBank(col, txt)
+        for op in oper:
+            if act == widgets[op]:
+                fltr[self.db.OPER] = op
+                if op == list(self.db.trans_col())[4]:
+                    fltr[self.db.VAL1] = txt
+        if source.objectName() == 'DB_cat_view':
+            self.__setFltrWidgets__(fltr, self.view.cat_view)
+        else:
+            self.__setFltrWidgets__(fltr, self.view.trans_view)
+
     def DB_headerContextMenu_cat(self, position):
+        # need to know on which table clicked so to position context menu correctly
         self.DB_headerContextMenu(position=position, source=self.view.DB_cat_view,)
 
     def DB_headerContextMenu_trans(self, position):
+        # need to know on which table clicked so to position context menu correctly
         self.DB_headerContextMenu(position=position, source=self.view.DB_trans_view,)
 
     def DB_headerContextMenu(self, source, position):
         """create context menu on DB_cat_view\n
         used to select visible columns
         """
-        menu = QtWidgets.QMenu()
-        for i in cfg.op_col:
-            widget = QtWidgets.QRadioButton()
-            widget.setText(i)
-            widget.toggled.connect(lambda: self.col_vis(i))
-            widgetA = QtWidgets.QWidgetAction(widget)
-            if i in cfg.cat_col_names:
-                widget.setDown(True)
-            else:
-                widget.setDown(False)
-            menu.addAction(widgetA)
-        act = menu.exec_(source.mapToGlobal(position))
-        print(act)
-
-    def col_vis(self, col):
-        print(col)
+        while True:
+            all_widgets = {}
+            menu = QtWidgets.QMenu()
+            #widgetA = QtWidgets.QWidgetAction(menu)
+            for i in cfg.op_col:
+                #widget = QtWidgets.QRadioButton()
+                widget = QtWidgets.QAction(i,menu)
+                #widget.setText(i)
+                widget.setCheckable(True)
+                #widget.triggered.connect(lambda: self.col_vis(i))
+                if i in cfg.cat_col_names:
+                    widget.setChecked(True)
+                else:
+                    widget.setChecked(False)
+                #widgetA.createWidget(widget)
+                all_widgets[i] = widget
+                menu.addAction(widget)
+            menu.addSeparator()
+            apply = menu.addAction('apply')
+            act = menu.exec_(source.mapToGlobal(position))
+            cfg.cat_col_names = []
+            for col in all_widgets:
+                if all_widgets[col].isChecked():
+                    cfg.cat_col_names.append(col)
+            if act == apply:
+                self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+                self.fill_trans()
+                self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
+                self.fill_group()
+                self.fill_cat()
+                self.fill_cat()
+                self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
+                self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                break
 
     def TreeContextMenu(self, position):
         """create submenu on QTreeWidget\n
@@ -235,7 +428,9 @@ class GUIMainWin_ctrl(QtCore.QObject):
         def trans1():
             # QtWidget:combo, col_name:COL_NAME
             colWidget = QtWidgets.QComboBox()
-            it = cfg.cat_col_names
+            it = cfg.cat_col_names.copy()
+            # don't mess with categories
+            it.remove(self.db.CATEGORY)
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
@@ -283,35 +478,20 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return colWidget
         def cat6():
             pass
-        def DB0():
+        def DB():
             data = self.db.group_data(cfg.cat_col_names[col_n])
             colWidget = QtWidgets.QComboBox()
             colWidget.insertItems(-1,data)
             colWidget.setEditable(False)
             colWidget.textActivated.connect(self.addFltr_fromGR)
             return colWidget
-        def DB1():
-            return DB0()
-        def DB2():
-            return DB0()
-        def DB3():
-            return DB0()
-        def DB4():
-            return DB0()
-        def DB5():
-            return DB0()
-        def DB6():
-            return DB0()
-        def DB7():
-            return DB0()
-        def DB8():
-            return DB0()
-        def DB9():
-            return DB0()
-        def DB10():
-            return DB0()
+    
         # common stuff
-        colWidget = eval(tabName + str(col_n) + '()')
+        if tabName == 'DB':
+            # for DB all widgets are the same
+            colWidget = eval(tabName + '()')
+        else:
+            colWidget = eval(tabName + str(col_n) + '()')
         if colWidget:
             colWidget.setStyleSheet("background-color: rgb(26, 255, 14); "
                                     "color: rgb(0,0,0); "
@@ -365,44 +545,25 @@ class GUIMainWin_ctrl(QtCore.QObject):
         applicable to op or op_sub DB\n
         check status of also_not_cat
         """
-        widget.setSortingEnabled(False) # otherway we end up with mess
+        widget.setModel(DBmodelProxy(db))
+        widget.setSortingEnabled(True)
+        
+        mod = widget.model().sourceModel()
+
+        mod.DispColumns(cfg.cat_col_names)
+
+        self.headerSize(widget)
+
+        #mark green cells matching filter
+        self.markFltrColors()
+
         # append not categorized data if required
         # but only for DB_cat_view widget
         if self.view.also_not_cat.isChecked() and widget.objectName() == 'DB_cat_view':
-            not_cat = True
-        else:
-            not_cat = False
-
-        cols = cfg.cat_col_names
-        row_n = len(db)
-        widget.setColumnCount(len(cols))
-        widget.setRowCount(0) # reset table
-        widget.setRowCount(row_n)
-        # set column labels
-        widget.setHorizontalHeaderLabels(cols)
-        col = widget.horizontalHeader()
-        col.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        # populate table
-        for x in cols:
-            x_n = cols.index(x)
-            for y in range(row_n):
-                cell = QtWidgets.QTableWidgetItem(str(db.loc[y,x]))
-                if not_cat:
-                    cell.setBackground(QtGui.QBrush(QtGui.QColor(0, 170, 255)))
-                widget.setItem(y, x_n, cell)
-        # add not categorized if requested
-        if not_cat:
-            db = self.db.getOP(not_cat = True)
-            row_n2 = len(db)
-            widget.setRowCount(row_n + row_n2)
-            # populate table
-            for x in cols:
-                for y in range(row_n, row_n2 + row_n):
-                    cell = QtWidgets.QTableWidgetItem(str(db.loc[y - row_n,x]))
-                    widget.setItem(y, cols.index(x), cell)
-        widget.setSortingEnabled(True)
+            mod.markBlueAddRows(self.db.getOP(not_cat = True))
 
     def fill_cat(self):
+
         cols_all = list(self.db.cat.columns)
         cols = [cols_all[i] for i in [0,1,3]] # limit cols to interesting only
         rows_n = len(self.db.cat_temp)
@@ -425,6 +586,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def con_tree(self):
         """called when QTreeWidget selected item
+        set sub date from selected category and refresh tables
         """
         #reset temp DB
         self.db.reset_temp_DB()
@@ -494,23 +656,29 @@ class GUIMainWin_ctrl(QtCore.QObject):
         txt = re.split(r'x\d+:\s+', txt)[-1] # remove no of occurence, leave only sentence
         fltr[self.db.COL_NAME] = cfg.cat_col_names[col_i]
         fltr[self.db.FILTER] = txt
-        self.__setFltrWidgets__(fltr)
-
-    def addFltr_fromDB(self):
-        """trigered by context menu in DB_view
-        adds new filter based on selection
-        """
-        fltr = {}
-        it = self.view.DB_cat_view.currentItem()
-        col_i = self.view.DB_cat_view.column(it)
-        fltr[self.db.COL_NAME] = self.view.DB_cat_view.horizontalHeaderItem(col_i).text()
-        fltr[self.db.FILTER] = it.text()
-        self.__setFltrWidgets__(fltr)
+        self.__setFltrWidgets__(fltr, self.view.cat_view)
  
-    def addFltr(self):
-        """ads filter to db.cat_temp based on widgets selection
+    def addTrans(self):
+        """triggered when trans add btn clicked\n
         """
-        fltr = self.__getFltrWidgets__()
+        fltr = self.__getFltrWidgets__(self.view.trans_view)
+        self.db.trans_col(bank=fltr[self.db.BANK],
+                        col_name=fltr[self.db.COL_NAME],
+                        op=fltr[self.db.OPER],
+                        val1=fltr[self.db.VAL1],
+                        val2=fltr[self.db.VAL2])
+        self.fill_trans()
+        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
+        self.con_tree()
+
+    def rmTrans(self):
+        pass
+
+    def addFltr(self):
+        """triggered when cat add btn clicked\n
+        ads filter to db.cat_temp based on widgets selection
+        """
+        fltr = self.__getFltrWidgets__(self.view.cat_view)
         if all(fltr.values()):
             self.db.filter_data(col=fltr[self.db.COL_NAME],
                                 cat_filter=fltr[self.db.FILTER],
@@ -524,7 +692,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """
         row_count = self.view.cat_view.rowCount() - 1
         it = self.view.cat_view.currentItem()
-        row_i = row_count - self.view.cat_view.row(it)
+        row_i = row_count - self.view.cat_view.row(it) #becouse view is reversed
         if row_i < row_count:
             self.db.cat_temp_rm(oper_n = row_i)
             if self.db.op_sub.empty: # removed completely filters
@@ -534,31 +702,65 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
             self.fill_group()
 
-    def __getFltrWidgets__(self):
+    def __getFltrWidgets__(self, source):
         """collects text from first row widgets in table cat table
         """
         fltr = {}
-        for col_i in range(self.view.cat_view.columnCount()):
-            widget = self.view.cat_view.cellWidget(0,col_i)
+        for col_i in range(source.columnCount()):
+            widget = source.cellWidget(0,col_i)
             if isinstance(widget, QtWidgets.QComboBox):
                 widget_txt = widget.currentText()
             else:
                 widget_txt = widget.text()
-            widget_name = self.view.cat_view.horizontalHeaderItem(col_i).text()
+            widget_name = source.horizontalHeaderItem(col_i).text()
             fltr[widget_name] = widget_txt
         return fltr
 
-    def __setFltrWidgets__(self, fltr):
-        """set cat widgets according to requested
+    def __setFltrWidgets__(self, fltr, source):
+        """set cat or trans widgets according to requested
         """
-        for col_i in range(self.view.cat_view.columnCount()):
-            widget_name = self.view.cat_view.horizontalHeaderItem(col_i).text()
+        for col_i in range(source.columnCount()):
+            widget_name = source.horizontalHeaderItem(col_i).text()
             if widget_name in fltr.keys():
-                widget = self.view.cat_view.cellWidget(0,col_i)
+                widget = source.cellWidget(0,col_i)
                 if isinstance(widget, QtWidgets.QComboBox):
                     widget.setCurrentText(fltr[widget_name])
                 else:
                     widget.setText(fltr[widget_name])
+        
+        #mark green cells matching filter
+        self.markFltrColors()
+
+    def markFltrColors(self):
+        # mark filter by color
+        # make sure we already have model in view
+        mod = self.view.DB_cat_view.model() or None
+        if mod:
+            if self.view.markGrp.isChecked():
+                fltr = self.__getFltrWidgets__(self.view.cat_view)
+                mod.sourceModel().markFltr(fltr[self.db.FILTER])
+            else:
+                mod.sourceModel().markFltr('')
+
+    def searchDelay(self):
+        self.timer.stop()
+        try: # firts time fail due to missing connection
+            self.timer.timeout.disconnect(self.search)
+        except:
+            pass
+        
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.search)
+        self.timer.start(800)
+        
+    def search(self):
+        # mark search result with color
+        # make sure we already have model in view
+        mod = self.view.DB_cat_view.model() or None
+        if mod:
+            txt = self.view.search.text()
+            mod.sourceModel().findRows(txt)
+            mod.sort(0,QtCore.Qt.AscendingOrder)
 
     # file operations
     def openDB(self):
@@ -587,7 +789,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         pass
 
     def save_asDB(self):
-        pass
+        self.db.write_db(self.fs.getDB())
 
     def imp(self, bank):
         file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose Excell file',
@@ -612,3 +814,14 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def exp(self):
         pass
+
+    # GUI
+    def headerSize(self, view):
+        # spread the columns, get the size, change to interactive mode and set size manualy
+        
+        header = view.horizontalHeader()
+        header.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        for i in range(header.count()):
+            size = header.sectionSize(i)
+            header.setDefaultSectionSize(size)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)

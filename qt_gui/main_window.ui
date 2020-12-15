@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>981</width>
-    <height>657</height>
+    <width>871</width>
+    <height>646</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -42,7 +42,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="data">
        <property name="sizePolicy">
@@ -203,39 +203,76 @@
        <attribute name="title">
         <string>wrangling</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <layout class="QVBoxLayout" name="verticalLayout_8">
         <item>
          <widget class="QSplitter" name="splitter_3">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
-          <widget class="QTableWidget" name="trans_view"/>
-          <widget class="QTableWidget" name="DB_trans_view"/>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>10</width>
-            <height>50</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>new</string>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
+          <widget class="QWidget" name="layoutWidget">
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QTableWidget" name="trans_view"/>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_7">
+              <item>
+               <widget class="QPushButton" name="addTrans_btn">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/icons/resources/add.png</normaloff>:/icons/resources/add.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>20</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="flat">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="rmTrans_btn">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/icons/resources/delete-512.png</normaloff>:/icons/resources/delete-512.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>20</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="flat">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QTableView" name="DB_trans_view"/>
          </widget>
         </item>
        </layout>
@@ -244,172 +281,211 @@
        <attribute name="title">
         <string>categorize</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_6">
+       <layout class="QHBoxLayout" name="horizontalLayout_7">
         <item>
-         <widget class="QSplitter" name="splitter_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+         <widget class="QTreeWidget" name="tree_db">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
-          <widget class="QTreeWidget" name="tree_db">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
+          <property name="minimumSize">
+           <size>
+            <width>50</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>250</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="contextMenuPolicy">
+           <enum>Qt::ActionsContextMenu</enum>
+          </property>
+          <property name="columnCount">
+           <number>2</number>
+          </property>
+          <attribute name="headerCascadingSectionResizes">
+           <bool>true</bool>
+          </attribute>
+          <attribute name="headerStretchLastSection">
+           <bool>false</bool>
+          </attribute>
+          <column>
+           <property name="text">
+            <string notr="true">1</string>
            </property>
-           <property name="minimumSize">
-            <size>
-             <width>50</width>
-             <height>0</height>
-            </size>
+          </column>
+          <column>
+           <property name="text">
+            <string notr="true">2</string>
            </property>
-           <property name="contextMenuPolicy">
-            <enum>Qt::ActionsContextMenu</enum>
-           </property>
-           <property name="columnCount">
-            <number>2</number>
-           </property>
-           <attribute name="headerCascadingSectionResizes">
-            <bool>true</bool>
-           </attribute>
-           <attribute name="headerStretchLastSection">
-            <bool>false</bool>
-           </attribute>
-           <column>
-            <property name="text">
-             <string notr="true">1</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string notr="true">2</string>
-            </property>
-           </column>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSplitter" name="splitter">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <widget class="QWidget" name="layoutWidget">
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QTableWidget" name="cat_view"/>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_2">
+              <item>
+               <widget class="QPushButton" name="addFltr_btn">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/icons/resources/add.png</normaloff>:/icons/resources/add.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>20</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="flat">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="rmFltr_btn">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset resource="res.qrc">
+                  <normaloff>:/icons/resources/delete-512.png</normaloff>:/icons/resources/delete-512.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>20</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="flat">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
           </widget>
-          <widget class="QSplitter" name="splitter">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <widget class="QWidget" name="layoutWidget">
-            <layout class="QHBoxLayout" name="horizontalLayout_4">
-             <item>
-              <widget class="QTableWidget" name="cat_view"/>
-             </item>
-             <item>
-              <layout class="QVBoxLayout" name="verticalLayout_2">
-               <item>
-                <widget class="QPushButton" name="addFltr_btn">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="text">
-                  <string/>
-                 </property>
-                 <property name="icon">
-                  <iconset resource="res.qrc">
-                   <normaloff>:/icons/resources/add.png</normaloff>:/icons/resources/add.png</iconset>
-                 </property>
-                 <property name="iconSize">
-                  <size>
-                   <width>20</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                 <property name="flat">
-                  <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QPushButton" name="rmFltr_btn">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="text">
-                  <string/>
-                 </property>
-                 <property name="icon">
-                  <iconset resource="res.qrc">
-                   <normaloff>:/icons/resources/delete-512.png</normaloff>:/icons/resources/delete-512.png</iconset>
-                 </property>
-                 <property name="iconSize">
-                  <size>
-                   <width>20</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                 <property name="flat">
-                  <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </item>
-            </layout>
-           </widget>
-           <widget class="QWidget" name="layoutWidget">
-            <layout class="QVBoxLayout" name="verticalLayout_5">
-             <item>
-              <widget class="QRadioButton" name="also_not_cat">
-               <property name="text">
-                <string>show also not categorized data</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QTableWidget" name="group_view">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>10</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>25</height>
-                </size>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QTableWidget" name="DB_cat_view">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-                 <horstretch>1</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_6">
-               <item>
-                <widget class="QLabel" name="label_3">
-                 <property name="text">
-                  <string>New category name or choose existing one</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="new_cat_name"/>
-               </item>
-              </layout>
-             </item>
-            </layout>
-           </widget>
+          <widget class="QWidget" name="layoutWidget">
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <item>
+             <widget class="QTableWidget" name="group_view">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>10</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QTableView" name="DB_cat_view"/>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <item>
+               <widget class="QRadioButton" name="also_not_cat">
+                <property name="text">
+                 <string>show all data</string>
+                </property>
+                <property name="autoExclusive">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="markGrp">
+                <property name="text">
+                 <string>mark filter</string>
+                </property>
+                <property name="autoExclusive">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_2">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>search</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="search">
+                <property name="maximumSize">
+                 <size>
+                  <width>200</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_6">
+              <item>
+               <widget class="QLabel" name="label_3">
+                <property name="text">
+                 <string>New category name or choose existing one</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="new_cat_name"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
           </widget>
          </widget>
         </item>

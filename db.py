@@ -71,10 +71,16 @@ class DB:
             db = db.reset_index(drop=True)
         return db
     
+    def getBank(self, col, txt):
+        #return bank name for txt in col
+        bank = self.op.loc[self.op.loc[:, col] == txt, self.BANK]
+        bank = bank.to_dict()
+        return list(bank.values())[0]
+
     def getOPsub(self):
         """return op_sub DB without category description rows
         """
-        return self.op_sub.loc[self.op_sub.loc[:, self.HASH] != 'empty', :].reset_index()
+        return self.op_sub.loc[self.op_sub.loc[:, self.HASH] != 'empty', :].reset_index().copy()
 
     def group_data(self, col):
         """Grupuje wartości w kazdej kolumnie i pokazuje licznosc dla nie pogrupownych danych:\n
@@ -87,6 +93,9 @@ class DB:
         Zlecenie stałe                6\n
         Wypłata z bankomatu           6\n
         """
+        # do not categorize numbers
+        if isinstance(self.op.loc[0,col], float):
+            return ['n/a']
         # take only not categorized
         temp_op = self.op[self.op.loc[:, self.CATEGORY] == cfg.GRANDPA].copy()
         # remove what temporary selected
@@ -392,6 +401,8 @@ class DB:
         tree = []
         par_parent = self.op.loc[self.op.loc[:, self.CATEGORY] == parent, self.CAT_PARENT].drop_duplicates()
         par_parent = list(par_parent)
+        # if not par_parent:
+        #     par_parent = ['']
         l = len(self.op.loc[self.op.loc[:, self.CATEGORY] == parent])
         tree.append([par_parent[0], parent, l])
         show_kids(parent)
@@ -515,6 +526,7 @@ class DB:
                     vec_new.append(i)
             return vec_new
 
+        # do not change func position in ops, changing names is ok
         ops = {'*': multiply, '/': div, '+': add, '-': sub, 'str.replace': rep}
         # wywolujac funkce bez parametrow zwracamy mozliwe opareacje
         if not any([bank, col_name, op, val1, val2]):
