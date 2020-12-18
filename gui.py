@@ -30,21 +30,23 @@ class DBmodel(QtCore.QAbstractTableModel):
         self.layoutChanged.emit()
 
     def markFltr(self, fltr):
-        self.layoutAboutToBeChanged.emit()
-        self.fltr = fltr
-        self.layoutChanged.emit()
+        if fltr:
+            self.layoutAboutToBeChanged.emit()
+            self.fltr = fltr
+            self.layoutChanged.emit()
     
     def findRows(self, search):
         self.layoutAboutToBeChanged.emit()
         self.markRows = []
-        flags = QtCore.Qt.MatchContains | QtCore.Qt.MatchWrap
-        for i in range(len(self.columns)):
-            ind = self.match(self.createIndex(0,i),
-                            QtCore.Qt.DisplayRole,
-                            search,
-                            hits=-1,
-                            flags=flags)
-            [self.markRows.append(i.row()) for i in ind]
+        if search:
+            flags = QtCore.Qt.MatchContains | QtCore.Qt.MatchWrap
+            for i in range(len(self.columns)):
+                ind = self.match(self.createIndex(0,i),
+                                QtCore.Qt.DisplayRole,
+                                search,
+                                hits=-1,
+                                flags=flags)
+                [self.markRows.append(i.row()) for i in ind]
         self.layoutChanged.emit()
 
     def DispColumns(self, col_names: [str]):
@@ -66,7 +68,7 @@ class DBmodel(QtCore.QAbstractTableModel):
         #can display only strings??, so convert numbers to string
         txt = str(self.db.loc[index.row(), self.columns[index.column()]])
         if role == QtCore.Qt.DisplayRole:
-            if txt == 'None':
+            if txt == 'None' or txt == '<NA>':
                 txt = ''
             return txt
         # set background collors
@@ -76,10 +78,11 @@ class DBmodel(QtCore.QAbstractTableModel):
             # blue
             if self.backgroundColor[index.row()]:
                 return QtGui.QBrush(QtGui.QColor(0, 170, 255))
-            # green
-            # will not fill completely, need to update TableView after
+            # green serach
             if index.row() in self.markRows:
-                    return QtGui.QBrush(QtGui.QColor(26, 255, 14))
+                return QtGui.QBrush(QtGui.QColor(26, 255, 14))
+            if txt == self.fltr:
+                return QtGui.QBrush(QtGui.QColor(26, 255, 14))
         # set tool tip
         if role == QtCore.Qt.ToolTipRole:
             if txt != 'None':
@@ -155,6 +158,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.timer = QtCore.QTimer()
 
     def connect_signals(self):
+        self.view.installEventFilter(self)
         # file management
         self.view.openDB_btn.clicked.connect(self.openDB)
         self.view.newDB_btn.clicked.connect(self.newDB)
@@ -164,14 +168,26 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.impBNPkredyt_btn.clicked.connect(lambda: self.imp(bank='bnp_kredyt'))
         self.view.export_btn.clicked.connect(self.exp)
         
+        #buttons
         self.view.addFltr_btn.clicked.connect(self.addFltr)
+        self.view.edFltr_btn.clicked.connect(self.edFltr)
+        self.view.upFltr_btn.clicked.connect(lambda: self.mvFltr(dir='up'))
+        self.view.downFltr_btn.clicked.connect(lambda: self.mvFltr(dir='down'))
         self.view.rmFltr_btn.clicked.connect(self.rmFltr)
         self.view.addTrans_btn.clicked.connect(self.addTrans)
-        self.view.rmTrans_btn.clicked.connect(self.rmTrans)
+        self.view.upTrans_btn.clicked.connect(lambda: self.mvTrans(direction='up'))
+        self.view.downTrans_btn.clicked.connect(lambda: self.mvTrans(direction='down'))
+        self.view.rmTrans_btn.clicked.connect(lambda: self.modTrans('remove'))
+        self.view.edTrans_btn.clicked.connect(lambda: self.modTrans('edit'))
+        self.view.import_status_btn.accepted.connect(lambda: self.imp_commit('ok'))
+        self.view.import_status_btn.rejected.connect(lambda: self.imp_commit('no'))
+        # radio buttons
         self.view.also_not_cat.toggled.connect(lambda: self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view))
         self.view.markGrp.toggled.connect(self.markFltrColors)
+        #text widgets
         self.view.new_cat_name.editingFinished.connect(self.new_cat)
-        self.view.search.textChanged.connect(self.searchDelay)
+        self.view.search.textChanged.connect(lambda: self.callDelay(self.search(), 800))
+        
         # QTreeWidget
         self.view.tree_db.clicked.connect(self.con_tree)
         self.view.tree_db.itemChanged.connect(self.tree_edited)
@@ -193,9 +209,38 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.tree_db.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.view.tree_db.customContextMenuRequested.connect(self.TreeContextMenu)
 
+        self.view.tabMenu.currentChanged.connect(lambda: self.headerSize(self.view.DB_cat_view))
+        self.view.tabMenu.currentChanged.connect(lambda: self.headerSize(self.view.DB_trans_view))
+
+    def eventFilter(self, source, event):
+        """Catch signal:\n
+        - if user closed the window\n
+        - if user resize the window\n
+        """
+        #exit
+        if event.type() == QtCore.QEvent.Close:
+            self.exit()
+        #win resize
+        elif event.type() == QtCore.QEvent.Resize:
+            if source.__class__ is self.view.__class__:
+                self.callDelay(lambda: self.headerSize(self.view.DB_cat_view), 400)
+                self.callDelay(lambda: self.headerSize(self.view.DB_trans_view), 400)
+        return False
+
+    def callDelay(self, method, delay):
+        #called when textChanged on self.view.search signal eimitted
+        self.timer.stop()
+        ind = self.timer.metaObject().indexOfMethod('timeout()')
+        if self.isSignalConnected(self.timer.metaObject().method(ind)):
+            self.timer.timeout.disconnect(method)
+        
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(method)
+        self.timer.start(delay)
+
     def DB_ContextMenu_cat(self, position):
         # need to know on which table clicked so to position context menu correctly
-        self.DB_ContextMenu(position=position, source=self.view.DB_cat_view,)
+        self.DB_ContextMenu(position=position, source=self.view.DB_cat_view)
 
     def DB_ContextMenu_trans(self, position):
         # need to know on which table clicked so to position context menu correctly
@@ -299,6 +344,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         cat = self.db.show_tree()
         cat = [i[1] for i in cat]
+        [cat.remove(i) for i in it_names]
 
         menu = QtWidgets.QMenu()
         add = menu.addAction("add actegory")
@@ -338,35 +384,33 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.view.tree_db.blockSignals(False)
             #edit name
             self.view.tree_db.editItem(it_kid)
+            # itemChanged signal will be cathced by self.treeEdited
         # rename existing category
         elif act == ren:
             self.before_edit = it_names[0]
             self.contextFunc = 'ren'
             self.view.tree_db.editItem(it[0])
+            # itemChanged signal will be cathced by self.treeEdited
         # remove category
         elif act == rem:
             for i in it_names:
-                self.db.filter_data(col=self.db.CATEGORY,
-                                        cat_filter=i,
-                                        oper='add')
-            self.db.filter_commit(cfg.GRANDPA)
+                self.db.get_filter_cat(i)
+            self.db.filter_commit(name=cfg.GRANDPA)
             self.fill_tree()
         # merge selected categories
         elif act:
             if act.text() in it_names: # merge
+                self.db.reset_temp_DB()
                 for i in it_names:
-                    self.db.filter_data(col=self.db.CATEGORY,
-                                        cat_filter=i,
-                                        oper='add')
-                self.db.filter_commit(act.text())
+                    self.db.get_filter_cat(i)
+                self.db.filter_commit(name=act.text())
                 self.fill_tree()
             # move selected categories
-            if act.text() in cat: # move
+            elif act.text() in cat: # move
+                self.db.reset_temp_DB()
                 for i in it_names:
-                    self.db.filter_data(col=self.db.CATEGORY,
-                                        cat_filter=i,
-                                        oper='add')
-                    self.db.filter_commit(act.text())
+                    self.db.get_filter_cat(i)
+                    self.db.filter_commit(name=act.text(), nameOf='parent')
                 self.fill_tree()
 
     def treeItemActivated(self, it):
@@ -385,28 +429,14 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """
         if self.contextFunc == 'ren':
             it = self.view.tree_db.selectedItems()
-            new_cat = it[0].text(0)
-            parent = it[0].parent().text(0)
-            cat = self.before_edit
-            # move category with new name to grandpa
-            self.db.filter_data(col=self.db.CATEGORY,
-                            cat_filter=cat,
-                            oper='new')
-            self.db.filter_commit(new_cat)
-            # move to parent if necessery
-            if parent != cfg.GRANDPA:
-                self.db.filter_data(col=self.db.CATEGORY,
-                                    cat_filter=new_cat,
-                                    oper='new')
-                self.db.filter_commit(parent)
+            self.db.get_filter_cat(self.before_edit)
+            self.db.filter_commit(name=it[0].text(0))
 
         elif self.contextFunc == 'add':
             it = self.view.tree_db.selectedItems()
-            new_cat = it[0].text(0)
-            parent = it[0].parent().text(0)
             #create empty category under parent
             self.db.reset_temp_DB()
-            self.db.filter_commit(new_cat, parent)
+            self.db.filter_commit(name=it[0].text(0))
         
         self.before_edit = ''
         self.contextFunc = ''
@@ -585,16 +615,16 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 self.view.cat_view.setItem(rows_n - y, x_n, cell)
 
     def con_tree(self):
-        """called when QTreeWidget selected item
+        """called when QTreeWidget selected item\n
         set sub date from selected category and refresh tables
         """
-        #reset temp DB
+        it = self.view.tree_db.selectedItems()
+        #reset temp DB if new selection (one item selected only)
         self.db.reset_temp_DB()
 
         # limit views to selected category
-        it = self.view.tree_db.selectedItems()
-        cat = it[0].text(0)
-        self.db.filter_data(self.db.CATEGORY, cat, 'new')
+        cat = [i.text(0) for i in it]
+        self.db.get_filter_cat(cat)
 
         self.fill_cat()
         self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
@@ -630,7 +660,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     #categorizing
     def setCatInput(self):
-        # fill new category QlineEdit
+        # fill category completer for search QlineEdit
         cats = self.db.show_tree()
         cats = [i[1] for i in cats]
         completer = QtWidgets.QCompleter(cats)
@@ -638,7 +668,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.new_cat_name.setCompleter(completer)
 
     def new_cat(self):
-        # called when signal emitted editingFinished on QLineEdit
+        # called when signal emitted editingFinished on QLineEdit new category 
         cat = self.view.new_cat_name.text()
         cat.strip()
         if not cat:
@@ -670,9 +700,52 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.fill_trans()
         self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
         self.con_tree()
+        #DEBUG
+        print(self.db.trans)
 
-    def rmTrans(self):
-        pass
+    def modTrans(self, oper):
+        # modify row in trans db: edit or remove
+        if not self.view.trans_view.currentItem(): return
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        row_n = self.view.trans_view.currentItem().row()
+        
+        if oper == 'edit':
+            fltr = {}
+            for col in range(self.view.trans_view.columnCount()):
+                fltr[cfg.trans_col[col]] = self.view.trans_view.item(row_n, col).text()
+        
+        self.db.trans_rm(row_n - 1)
+        #refresh views
+        self.fill_trans()
+        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
+        self.fill_group()
+        self.fill_tree() # will set top item and filter tables accordingly
+        self.setCatInput()
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        
+        if oper == 'edit':
+            self.__setFltrWidgets__(fltr, self.view.trans_view)
+        #DEBUG
+        print(self.db.trans)
+
+    def mvTrans(self, direction):
+        # move row in trans db
+        if not self.view.trans_view.currentItem(): return
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        row_n = self.view.trans_view.currentItem().row()
+
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        if not self.db.trans_mv(row_n - 1, direction):
+            self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            return
+
+        #refresh views
+        self.fill_trans()
+        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
+        self.fill_group()
+        self.fill_tree() # will set top item and filter tables accordingly
+        self.setCatInput()
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def addFltr(self):
         """triggered when cat add btn clicked\n
@@ -687,6 +760,12 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
             self.fill_group()
 
+    def edFltr(self):
+        pass
+
+    def mvFltr(self, dir):
+        pass
+
     def rmFltr(self):
         """remove filter from db.cat_temp based on selected row
         """
@@ -694,7 +773,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         it = self.view.cat_view.currentItem()
         row_i = row_count - self.view.cat_view.row(it) #becouse view is reversed
         if row_i < row_count:
-            self.db.cat_temp_rm(oper_n = row_i)
+            self.db.filter_temp_rm(oper_n = row_i)
             if self.db.op_sub.empty: # removed completely filters
                 self.fill_tree()
                 return
@@ -737,21 +816,12 @@ class GUIMainWin_ctrl(QtCore.QObject):
         mod = self.view.DB_cat_view.model() or None
         if mod:
             if self.view.markGrp.isChecked():
+                # clean search
+                self.view.search.setText('')
                 fltr = self.__getFltrWidgets__(self.view.cat_view)
                 mod.sourceModel().markFltr(fltr[self.db.FILTER])
             else:
                 mod.sourceModel().markFltr('')
-
-    def searchDelay(self):
-        self.timer.stop()
-        try: # firts time fail due to missing connection
-            self.timer.timeout.disconnect(self.search)
-        except:
-            pass
-        
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self.search)
-        self.timer.start(800)
         
     def search(self):
         # mark search result with color
@@ -786,10 +856,29 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
     
     def newDB(self):
-        pass
+        file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose name for new SQlite3 file',
+                                                                directory='',
+                                                                filter=self.fs.getDB(ext=True))
+        # Qt lib returning always / as path separator
+        # we need system specific, couse we are checking for file existence
+        path = QtCore.QDir.toNativeSeparators(file[0])
+        if path:
+            self.fs.setDB(path)
+        else:  # operation canceled
+            return
+        self.fs.writeOpt("LastDB", self.fs.getDB())
+        self.db = DB()
+        self.fill_trans()
+        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
+        self.fill_group()
+        self.fill_tree() # will set top item and filter tables accordingly
+        self.setCatInput()
 
     def save_asDB(self):
         self.db.write_db(self.fs.getDB())
+
+    def exit(self):
+        pass
 
     def imp(self, bank):
         file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose Excell file',
@@ -811,17 +900,35 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.fill_tree() # will set top item and filter tables accordingly
             self.setCatInput()
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.view.import_info.show()
+            self.view.import_status_btn.show()
+
+    def imp_commit(self, sig):
+        #hide import widgets
+        self.view.import_info.hide()
+        self.view.import_status_btn.hide()
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.db.imp_comit(sig)
+        if sig == 'ok':
+            #refresh views
+            self.fill_trans()
+            self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
+            self.fill_group()
+            self.fill_tree() # will set top item and filter tables accordingly
+            self.setCatInput()
+            self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def exp(self):
+        # export data to csv
         pass
 
     # GUI
     def headerSize(self, view):
         # spread the columns, get the size, change to interactive mode and set size manualy
-        
         header = view.horizontalHeader()
         header.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         for i in range(header.count()):
             size = header.sectionSize(i)
             header.setDefaultSectionSize(size)
         header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
+

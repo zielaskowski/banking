@@ -1,5 +1,8 @@
 <RCC>
   <qresource prefix="icons">
+    <file>resources/eidt.png</file>
+    <file>resources/next.png</file>
+    <file>resources/prev.png</file>
     <file>resources/paribas_kredyt.png</file>
     <file>resources/pkoBP.png</file>
     <file>resources/paribas.png</file>
