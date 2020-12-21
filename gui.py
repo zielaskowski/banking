@@ -81,7 +81,7 @@ class DBmodel(QtCore.QAbstractTableModel):
             # green serach
             if index.row() in self.markRows:
                 return QtGui.QBrush(QtGui.QColor(26, 255, 14))
-            if txt == self.fltr:
+            if txt == self.fltr and self.fltr:
                 return QtGui.QBrush(QtGui.QColor(26, 255, 14))
         # set tool tip
         if role == QtCore.Qt.ToolTipRole:
@@ -142,21 +142,22 @@ class GUIMainWin_ctrl(QtCore.QObject):
         super().__init__(view)
         self.view = view
         self.db = DB()
+        self.db.connect(parent=self.showMsg)
         self.fs = FileSystem()
         #connect signals
         self.connect_signals()
         #hide import widgets
         self.view.import_info.hide()
         self.view.import_status_btn.hide()
-        # enable sorting
-        self.view.DB_cat_view.setSortingEnabled(True)
-        self.view.DB_trans_view.setSortingEnabled(True)
         # controling context menu
         self.before_edit = ''
         self.contextFunc = ''
         # timer to delay execution, i.e. textChnaged in QlineEdit
         self.timer = QtCore.QTimer()
+        # set status bar
+        self.setStatusBar()
 
+    # signals and connections
     def connect_signals(self):
         self.view.installEventFilter(self)
         # file management
@@ -182,11 +183,11 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.import_status_btn.accepted.connect(lambda: self.imp_commit('ok'))
         self.view.import_status_btn.rejected.connect(lambda: self.imp_commit('no'))
         # radio buttons
-        self.view.also_not_cat.toggled.connect(lambda: self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view))
+        self.view.also_not_cat.toggled.connect(self.con_tree)
         self.view.markGrp.toggled.connect(self.markFltrColors)
         #text widgets
         self.view.new_cat_name.editingFinished.connect(self.new_cat)
-        self.view.search.textChanged.connect(lambda: self.callDelay(self.search(), 800))
+        self.view.search.textChanged.connect(lambda: self.callDelay(self.search, 800))
         
         # QTreeWidget
         self.view.tree_db.clicked.connect(self.con_tree)
@@ -209,8 +210,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.tree_db.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.view.tree_db.customContextMenuRequested.connect(self.TreeContextMenu)
 
-        self.view.tabMenu.currentChanged.connect(lambda: self.headerSize(self.view.DB_cat_view))
-        self.view.tabMenu.currentChanged.connect(lambda: self.headerSize(self.view.DB_trans_view))
+        self.view.tabMenu.currentChanged.connect(self.headerSize)
 
     def eventFilter(self, source, event):
         """Catch signal:\n
@@ -223,21 +223,20 @@ class GUIMainWin_ctrl(QtCore.QObject):
         #win resize
         elif event.type() == QtCore.QEvent.Resize:
             if source.__class__ is self.view.__class__:
-                self.callDelay(lambda: self.headerSize(self.view.DB_cat_view), 400)
-                self.callDelay(lambda: self.headerSize(self.view.DB_trans_view), 400)
+                self.callDelay(self.headerSize, 200)
         return False
 
     def callDelay(self, method, delay):
-        #called when textChanged on self.view.search signal eimitted
+        #called when you want delay signal
         self.timer.stop()
-        ind = self.timer.metaObject().indexOfMethod('timeout()')
-        if self.isSignalConnected(self.timer.metaObject().method(ind)):
-            self.timer.timeout.disconnect(method)
-        
+        try: self.timer.timeout.disconnect(method)
+        except: pass
+    
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(method)
         self.timer.start(delay)
 
+    # context menus and tree selection
     def DB_ContextMenu_cat(self, position):
         # need to know on which table clicked so to position context menu correctly
         self.DB_ContextMenu(position=position, source=self.view.DB_cat_view)
@@ -324,7 +323,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
                 self.fill_trans()
                 self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
-                self.fill_group()
                 self.fill_cat()
                 self.fill_cat()
                 self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
@@ -429,14 +427,21 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """
         if self.contextFunc == 'ren':
             it = self.view.tree_db.selectedItems()
+            it_parent = it[0].parent()
             self.db.get_filter_cat(self.before_edit)
+            # change category will move to grandpa
             self.db.filter_commit(name=it[0].text(0))
+            # now move back to parent
+            self.db.get_filter_cat(it[0].text(0))
+            self.db.filter_commit(it_parent.text(0), nameOf='parent')
+            self.setCatInput()
 
         elif self.contextFunc == 'add':
             it = self.view.tree_db.selectedItems()
             #create empty category under parent
             self.db.reset_temp_DB()
             self.db.filter_commit(name=it[0].text(0))
+            self.setCatInput()
         
         self.before_edit = ''
         self.contextFunc = ''
@@ -509,7 +514,11 @@ class GUIMainWin_ctrl(QtCore.QObject):
         def cat6():
             pass
         def DB():
-            data = self.db.group_data(cfg.cat_col_names[col_n])
+            if self.view.also_not_cat.isChecked() or not self.view.also_not_cat.isEnabled():
+                db = 'all'
+            else:
+                db = 'sub'
+            data = self.db.group_data(cfg.cat_col_names[col_n], db=db)
             colWidget = QtWidgets.QComboBox()
             colWidget.insertItems(-1,data)
             colWidget.setEditable(False)
@@ -577,7 +586,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """
         widget.setModel(DBmodelProxy(db))
         widget.setSortingEnabled(True)
-        
+
         mod = widget.model().sourceModel()
 
         mod.DispColumns(cfg.cat_col_names)
@@ -591,6 +600,10 @@ class GUIMainWin_ctrl(QtCore.QObject):
         # but only for DB_cat_view widget
         if self.view.also_not_cat.isChecked() and widget.objectName() == 'DB_cat_view':
             mod.markBlueAddRows(self.db.getOP(not_cat = True))
+
+        #update grouping table
+        if widget.objectName() == 'DB_cat_view':
+            self.fill_group()
 
     def fill_cat(self):
 
@@ -616,19 +629,27 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def con_tree(self):
         """called when QTreeWidget selected item\n
+        or also from also_not_cat QRadioButton signal\n
         set sub date from selected category and refresh tables
         """
         it = self.view.tree_db.selectedItems()
-        #reset temp DB if new selection (one item selected only)
+        #reset temp DB , we iterate through all selected items  in each call
         self.db.reset_temp_DB()
 
         # limit views to selected category
         cat = [i.text(0) for i in it]
-        self.db.get_filter_cat(cat)
+        if cfg.GRANDPA in cat:
+            # don't mess up with GRANDPA
+            self.view.also_not_cat.setDisabled(True)
+            self.view.tree_db.clearSelection()
+            self.view.tree_db.setCurrentItem(self.view.tree_db.topLevelItem(0))
+            self.fill_DB(self.db.getOP(not_cat=True), self.view.DB_cat_view)
+        else:
+            self.view.also_not_cat.setDisabled(False)
+            self.db.get_filter_cat(cat)
+            self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
 
         self.fill_cat()
-        self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
-        self.fill_group()
 
     def fill_tree(self):
         self.view.tree_db.blockSignals(True)
@@ -657,6 +678,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.tree_db.setCurrentItem(grandpa)
         self.con_tree() # and adjust tables
         self.view.tree_db.blockSignals(False)
+        self.setCatInput()
 
     #categorizing
     def setCatInput(self):
@@ -700,8 +722,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.fill_trans()
         self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
         self.con_tree()
-        #DEBUG
-        print(self.db.trans)
 
     def modTrans(self, oper):
         # modify row in trans db: edit or remove
@@ -718,7 +738,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
         #refresh views
         self.fill_trans()
         self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
-        self.fill_group()
         self.fill_tree() # will set top item and filter tables accordingly
         self.setCatInput()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -741,9 +760,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         #refresh views
         self.fill_trans()
-        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
-        self.fill_group()
         self.fill_tree() # will set top item and filter tables accordingly
+        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
         self.setCatInput()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
@@ -751,6 +769,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """triggered when cat add btn clicked\n
         ads filter to db.cat_temp based on widgets selection
         """
+        #clear search QeditLine
+        self.view.search.setText('')
         fltr = self.__getFltrWidgets__(self.view.cat_view)
         if all(fltr.values()):
             self.db.filter_data(col=fltr[self.db.COL_NAME],
@@ -758,7 +778,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
                                 oper=fltr[self.db.OPER])
             self.fill_cat()
             self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
-            self.fill_group()
 
     def edFltr(self):
         pass
@@ -779,7 +798,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 return
             self.fill_cat()
             self.fill_DB(self.db.getOPsub(), self.view.DB_cat_view)
-            self.fill_group()
 
     def __getFltrWidgets__(self, source):
         """collects text from first row widgets in table cat table
@@ -831,7 +849,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             txt = self.view.search.text()
             mod.sourceModel().findRows(txt)
             mod.sort(0,QtCore.Qt.AscendingOrder)
-
+  
     # file operations
     def openDB(self):
         file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose SQlite3 file',
@@ -849,9 +867,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
             #self.disp_statusbar('openDB')
             self.fs.writeOpt("LastDB", self.fs.getDB())
             self.fill_trans()
-            self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
-            self.fill_group()
             self.fill_tree() # will set top item and filter tables accordingly
+            self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
             self.setCatInput()
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
     
@@ -869,9 +886,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.fs.writeOpt("LastDB", self.fs.getDB())
         self.db = DB()
         self.fill_trans()
-        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
-        self.fill_group()
         self.fill_tree() # will set top item and filter tables accordingly
+        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
         self.setCatInput()
 
     def save_asDB(self):
@@ -895,13 +911,17 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             #self.disp_statusbar('openDB')
             self.fill_trans()
-            self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
-            self.fill_group()
             self.fill_tree() # will set top item and filter tables accordingly
+            self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
             self.setCatInput()
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             self.view.import_info.show()
             self.view.import_status_btn.show()
+
+            # self disable DB (open, save, new) btns
+            self.view.openDB_btn.setDisabled(True)
+            self.view.newDB_btn.setDisabled(True)
+            self.view.save_asDB_btn.setDisabled(True)
 
     def imp_commit(self, sig):
         #hide import widgets
@@ -909,26 +929,50 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.import_status_btn.hide()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.db.imp_comit(sig)
-        if sig == 'ok':
-            #refresh views
-            self.fill_trans()
-            self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
-            self.fill_group()
-            self.fill_tree() # will set top item and filter tables accordingly
-            self.setCatInput()
-            self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        #refresh views
+        self.fill_trans()
+        self.fill_tree() # will set top item and filter tables accordingly
+        self.fill_DB(self.db.getOP(), self.view.DB_trans_view)
+        self.setCatInput()
+    
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        # self enable DB (open, save, new) btns
+        self.view.openDB_btn.setDisabled(False)
+        self.view.newDB_btn.setDisabled(False)
+        self.view.save_asDB_btn.setDisabled(False)
 
     def exp(self):
         # export data to csv
         pass
 
     # GUI
-    def headerSize(self, view):
+    def headerSize(self, view=''):
         # spread the columns, get the size, change to interactive mode and set size manualy
-        header = view.horizontalHeader()
-        header.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        for i in range(header.count()):
-            size = header.sectionSize(i)
-            header.setDefaultSectionSize(size)
-        header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
+        if not view:
+            view = [self.view.DB_cat_view, self.view.DB_trans_view]
+        else:
+            view = [view]
+        for i in [self.view.DB_cat_view, self.view.DB_trans_view]:
+            header = i.horizontalHeader()
+            header.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+            for i in range(header.count()):
+                size = header.sectionSize(i)
+                header.setDefaultSectionSize(size)
+            header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
 
+    def setStatusBar(self):
+        # add text messages
+        self.view.msg = QtWidgets.QLabel()
+        self.view.statusbar.addWidget(self.view.msg)
+        # add progress meter
+        self.view.prog = QtWidgets.QProgressBar()
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.view.prog.setSizePolicy(sizePolicy)
+        self.view.prog.setMinimumSize(QtCore.QSize(20, 10))
+        self.view.prog.setRange(0, 100)
+        self.view.statusbar.addPermanentWidget(self.view.prog)
+
+    def showMsg(self, msg):
+        # messages from DB
+        if msg:
+            self.view.msg.setText(msg)

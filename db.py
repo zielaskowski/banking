@@ -30,6 +30,9 @@ class DB:
         trans_rm(index): remove selected transformation
     """
     def __init__(self, file=''):
+        # true when connected to parent's method
+        # MUST the first thing class do
+        self.msg_emit = False 
         # DB column names refered by this class
         self.DATA_OPERACJI = cfg.op_col[0]
         self.COL_NAME = cfg.cat_col[0]
@@ -45,26 +48,37 @@ class DB:
         self.VAL2 = cfg.trans_col[4]
 
         self.op = pandas.DataFrame(columns=cfg.op_col)  # table of operations
-        self.op_before_imp = pandas.DataFrame(columns=cfg.op_col)  # temporary table of operations before commiting import
         self.op_sub = pandas.DataFrame(columns=cfg.op_col)  # table of operation during categorization process
         self.cat = pandas.DataFrame({self.COL_NAME: self.CATEGORY,
-                                    self.FILTER: '.+',
+                                    self.FILTER: cfg.GRANDPA,
                                     self.FILTER_N: 1,
                                     self.OPER: 'new',
                                     self.OPER_N: 1,
                                     self.CATEGORY: cfg.GRANDPA}, columns=cfg.cat_col, index=[0])  # table of categories
-        self.cat_before_imp = pandas.DataFrame(columns=cfg.cat_col)
         self.cat_temp = pandas.DataFrame(columns=cfg.cat_col) # temporary DF colecting filters before commiting cattegory {col: filter}
         self.trans = pandas.DataFrame(columns=cfg.trans_col)  # table of transformations
-        self.trans_before_imp = pandas.DataFrame(columns=cfg.trans_col)
-
+        
         self.imp = {} # store raw data {bank: pandas.DataFrame,...}
+        # during import set status and save all db until commit
+        self.imp_status = False
+        self.op_before_imp = pandas.DataFrame(columns=cfg.op_col)  # temporary table of operations before commiting import
+        self.trans_before_imp = pandas.DataFrame(columns=cfg.trans_col)
+        self.cat_before_imp = pandas.DataFrame(columns=cfg.cat_col)
 
-        self.error = ''
+        self.msg = ''
         if file:
-            self.db_file = file
             self.open_db(file)
     
+    def connect(self, parent):
+        # refrence to caller class. This way we call parent methid when needed
+        self.parent=parent
+        self.msg_emit = True
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name == 'msg' and self.msg_emit:
+            self.parent(self.msg)
+
     def getOP(self, not_cat = False):
         """return op DB without category description rows\n
         if not_cat = True, returns only not categorized data and different from op_sub of present
@@ -72,7 +86,7 @@ class DB:
         db = self.op.loc[self.op.loc[:, self.HASH] != 'empty', :].reset_index(drop=True).copy()
         if not_cat:
             db = db.loc[db.loc[:, self.CATEGORY] == cfg.GRANDPA, :].reset_index(drop=True)
-            db.drop(db.loc[db.loc[:, self.HASH].isin(self.op_sub.loc[:, self.HASH]),:].index, inplace=True)
+            #db.drop(db.loc[db.loc[:, self.HASH].isin(self.op_sub.loc[:, self.HASH]),:].index, inplace=True)
             db = db.reset_index(drop=True)
         return db
     
@@ -85,9 +99,10 @@ class DB:
     def getOPsub(self):
         """return op_sub DB without category description rows
         """
-        return self.op_sub.loc[self.op_sub.loc[:, self.HASH] != 'empty', :].reset_index().copy()
+        db = self.op_sub.loc[self.op_sub.loc[:, self.HASH] != 'empty', :].reset_index().copy()
+        return db
 
-    def group_data(self, col):
+    def group_data(self, col, db='all'):
         """Grupuje wartości w kazdej kolumnie i pokazuje licznosc dla nie pogrupownych danych:\n
         kazde grupowanie przez self.op_sub usuwa wybrane z grpowania\n
         self.sub_op_commit resetuje, i znowu gropwanie pokazuje dla wszystkich danych w self.op\n
@@ -103,13 +118,17 @@ class DB:
         # do not categorize numbers
         if isinstance(self.op.loc[0,col], float):
             return ['n/a']
-        # take only not categorized
-        temp_op = self.op[self.op.loc[:, self.CATEGORY] == cfg.GRANDPA].copy()
-        # remove what temporary selected
-        # only if not first row in cat_temp with filter=="GRANDPA"
-        if not self.op_sub.empty:
-            if not self.cat_temp.loc[0, self.FILTER] == cfg.GRANDPA:
-                temp_op.drop(temp_op.loc[temp_op.loc[:, self.HASH].isin(self.op_sub.loc[:, self.HASH]),:].index, inplace=True)
+        # take data
+        if db == 'all':
+            temp_op = self.getOP(not_cat=True)
+        else:
+            temp_op = self.getOPsub()
+
+        # # remove what temporary selected
+        # # only if not first row in cat_temp with filter=="GRANDPA"
+        # if not self.op_sub.empty:
+        #     if not self.cat_temp.loc[0, self.FILTER] == cfg.GRANDPA:
+        #         temp_op.drop(temp_op.loc[temp_op.loc[:, self.HASH].isin(self.op_sub.loc[:, self.HASH]),:].index, inplace=True)
 
         col_grouped = temp_op.groupby(by=col).count().loc[:, self.DATA_OPERACJI]
         col_grouped = col_grouped.sort_values(ascending=False)
@@ -139,8 +158,8 @@ class DB:
         """
         def new():
             # moze byc tylko jedno oper=new
-            self.cat_temp = pandas.DataFrame(columns = cfg.cat_col)
-            rows = [re.findall(cat_filter.lower()[0], str(i).lower()) for i in self.op[col]]
+            self.reset_temp_DB()
+            rows = [re.findall(cat_filter, str(i), re.IGNORECASE) for i in self.op[col]]
             rows = [bool(i) for i in rows]
             return self.op[rows].copy()
         def add():
@@ -152,7 +171,7 @@ class DB:
             return self.op_sub.append(self.op[rows])
         def lim():
             if self.op_sub.empty:
-                self.error = "Nothing to lim(it). First create new request with oper=new"
+                self.msg = "Nothing to lim(it). First create new request with oper=new"
                 return
 
             rows = [re.findall(cat_filter.lower(), str(i).lower()) for i in self.op_sub[col]]
@@ -160,36 +179,44 @@ class DB:
             return self.op_sub[rows]
         def rem():
             if self.op_sub.empty:
-                self.error = "Nothing to rem(ove). First create new request with oper=new"
+                self.msg = "Nothing to rem(ove). First create new request with oper=new"
                 return 
 
             rows = [re.findall(cat_filter.lower(), str(i).lower()) for i in self.op_sub[col]]
             rows = [not bool(i) for i in rows]
             return self.op_sub[rows]
+        def empty():
+            self.reset_temp_DB()
+            return self.op_sub.copy()
+            
+        # no operation on GRANDPA can be accepted
+        if cat_filter == cfg.GRANDPA:
+            self.msg = f'Not allowed to change name of {cfg.GRANDPA} kategory'
+            return
 
-        ops = {'new': new, 'add': add, 'lim': lim, 'rem': rem}
+        ops = {'new': new, 'add': add, 'lim': lim, 'rem': rem, 'empty': empty}
 
         # wywolujac funkcje bez parametrow zwracamy mozliwe opareacje
         if not any([col, cat_filter, oper]):
-            return ops.keys()
+            return list(ops.keys())
 
         # when starting filtering from selecting category and category exists
         # parse filter for category on data
-        if not auto:
-            if self.cat_temp.empty and col == self.CATEGORY:
-                if cat_filter in self.cat[self.CATEGORY].to_list():
-                    self.get_filter_cat(cat_filter)
-                    return
+        # if not auto:
+        #     if self.cat_temp.empty and col == self.CATEGORY:
+        #         if cat_filter in self.cat[self.CATEGORY].to_list():
+        #             self.get_filter_cat(cat_filter)
+        #             return
 
         # if first oper=new on GRANDPA we need to be careful so to not rename the GRANDPA
         # if comming oper=add need to remove GRANDPA from selection and conv add->new
         # rem and limiting oper on GRANDPA theoretically make sense, just need to protect
         # renaming GRANDPA (when only categories filtered) in self.filter_commit()
-        if not self.cat_temp.empty:
-            if self.cat_temp.loc[0, self.FILTER] == cfg.GRANDPA:
-                if oper == 'add':
-                    self.filter_temp_rm(0)
-                    oper = 'new'
+        # if not self.cat_temp.empty:
+        #     if self.cat_temp.loc[0, self.FILTER] == cfg.GRANDPA:
+        #         if oper == 'add':
+        #             self.filter_temp_rm(0)
+        #             oper = 'new'
 
         self.op_sub = ops[oper]()
 
@@ -198,7 +225,7 @@ class DB:
         else:
             oper_n = 1
         self.cat_temp = self.cat_temp.append({self.COL_NAME: col, self.FILTER: cat_filter, self.OPER: oper, self.OPER_N: oper_n}, ignore_index=True)
-        return self.op_sub
+        return
 
     def get_filter_cat(self, cat_sel=''):
         """pass op DB through cat db and put to op_sub or op\n
@@ -206,8 +233,8 @@ class DB:
         when cat specified, limit filters to cat only and store in op_sub\n
         when not cat specified, also do the commit after each category
         """
-        commit= False
-        self.__validate_cat__()
+        commit = False
+        #self.__validate_cat__()
         # limit to cat if exists, otherway take all categories
         if not cat_sel:
             commit = True
@@ -220,9 +247,9 @@ class DB:
             fltr = self.cat[self.cat.loc[:,self.CATEGORY] == cat].copy()
             for row_i in range(len(fltr)):
                 row = fltr.iloc[row_i,:].copy()
-                # if oper='new' on other than first row, change to add
-                if row_i > 0 and row.loc[self.OPER] == list(self.filter_data())[0]:
-                    row.loc[self.OPER] = list(self.filter_data())[1]
+                # if oper='new'  change to add
+                if row.loc[self.OPER] == self.filter_data()[0]:
+                    row.loc[self.OPER] = self.filter_data()[1]
                 self.filter_data(col=row[self.COL_NAME],
                                 cat_filter=row[self.FILTER],
                                 oper=row[self.OPER],
@@ -253,6 +280,7 @@ class DB:
         - if nameOf='category', move selected data to new category (existing or create new)\n
         - if nameOf='parent', move category with children to new category(existing or GRANDPA)\n
         """
+        validate_tree = True
         if nameOf == 'category':
             cat_name = name
             parent = ''
@@ -287,10 +315,12 @@ class DB:
         self.op_sub = self.op_sub.append({self.CATEGORY: cat_name, self.CAT_PARENT: parent, self.HASH: 'empty'}, ignore_index = True)
         # old cat definition shall be deledet by tree validator
             
-        # adding empty category (no data in op_sub)
+        # adding empty category (no data in cat_temp)
         if len(self.op_sub) == 1:
-            self.op = self.op.append(self.op_sub, ignore_index=True)        
-            return
+            self.op = self.op.append(self.op_sub, ignore_index=True)
+            self.filter_data(col=self.CATEGORY, cat_filter=cat_name, oper='empty')
+            self.msg = f'Created empty category {cat_name}. Populate it or reference, otherway will be deleted with next commit.'
+            validate_tree = False
         
         # add category
         self.op_sub.loc[:, self.CATEGORY] = cat_name
@@ -312,7 +342,8 @@ class DB:
         #resetujemy tymczasowe DB
         self.reset_temp_DB()
 
-        self.__validate_tree__()
+        if validate_tree:
+            self.__validate_tree__()
         self.__validate_cat__()
         return
  
@@ -357,10 +388,32 @@ class DB:
         print(self.op.loc[self.op.loc[:, self.HASH] == 'empty', self.CATEGORY:self.CAT_PARENT])
 
     def __validate_cat__(self):
-        """Do some basic cleaning of cat filters
+        """Do some cleaning of cat filters
+        1) arrange: first GRANDPA, than categorys definition, than category location
+        2) remove oper=empty if other filters in category
+        3) merge oper=add|new within category
         """
-        self.cat.drop_duplicates(subset=[self.COL_NAME, self.FILTER, self.OPER, self.CATEGORY], inplace=True)
-        self.cat.sort_values(by=self.CATEGORY, inplace=True, ignore_index=True)
+        cats = self.cat.loc[:, self.CATEGORY].drop_duplicates()
+        filter_n = 1
+        cat_new = pandas.DataFrame(columns=cfg.cat_col)
+        for cat in cats:
+            db = self.cat[self.cat.loc[:, self.CATEGORY] == cat].copy()
+            # if more than one item, remove oper=empty
+            if len(db) > 1:
+                db.drop(db[db.loc[:, self.OPER] == 'empty'].index, inplace=True)
+            # if the same filters with category 'add' or 'new', make one new
+
+            #db.drop_duplicates(subset=[self.COL_NAME, self.FILTER, self.OPER, self.CATEGORY], inplace=True)
+
+            db.reset_index(inplace=True, drop=True)
+            db.loc[:, self.OPER_N] = [i + 1 for i in db.index]
+            db.loc[:,self.FILTER_N] = filter_n
+            filter_n += 1
+            cat_new = cat_new.append(db, ignore_index = True)
+
+        self.cat = cat_new
+        
+
         #DEBUG
         print(self.cat)
 
@@ -403,30 +456,49 @@ class DB:
 
     def imp_comit(self, decision):
         if decision == 'ok':
-            self.op.append(self.op_before_imp, drop_index=True)
+            self.op.append(self.op_before_imp, ignore_index=True)
             pandas.DataFrame.drop_duplicates(self.op, subset=self.HASH, inplace=True, ignore_index=True)
             # parse through trans db
             self.trans_all()
             # parse through cat db
             self.get_filter_cat()
-            return True
         else: # not ok
+            bank = self.op.loc[0, self.BANK]
             self.op = self.op_before_imp.copy()
             self.cat = self.cat_before_imp.copy()
             self.trans = self.trans_before_imp.copy()
-            self.imp[-1] = ''
+            
+            self.imp.pop(self.impDB_bnkName(op='rm', bank=bank), None)
 
         self.op_before_imp = pandas.DataFrame(columns=cfg.op_col)
+        self.imp_status = False
+
+    def impDB_bnkName(self, op, bank):
+        """return bank name apropriate for imp db ( with added number)
+        - op='rm': return bankn, with n=len(bank)
+        - op='add': return bankn, with n=len(bank) + 1
+        """
+        bnks_all = list(self.imp.keys())
+        bnks = [bnk for bnk in bnks_all if re.match(bank, bnk)]
+        n = len(bnks)
+        if op == 'rm':
+            return bank + str(n)
+        else:
+            return bank + str(n + 1)
 
     def imp_data(self, file, bank):
-        """import excell file, do not commit!\n
+        """import excell file, does not commit!\n
         this means creating op_before_imp for current data until commit decision
         """
         xls = pandas.read_excel(file)
         xls = xls.reindex(columns=cfg.bank[bank])
         xls.columns = cfg.op_col
+        # set bank name
         xls.bank = bank
+        # hash data, NEVER hash again, only at very begining with bank attached
         xls.hash = pandas.util.hash_pandas_object(xls)
+        # set all new data to GRANDPA category
+        xls.loc[:, self.CATEGORY] = cfg.GRANDPA
         xls.replace(r'^\s+$', np.nan, regex=True, inplace=True)  # remove cells with whitespaces
         xls = self.__correct_col_types__(xls)
 
@@ -434,12 +506,14 @@ class DB:
         self.cat_before_imp = self.cat.copy()
         self.trans_before_imp = self.trans.copy()
         self.op = xls.copy()
-        self.imp[bank] = xls.copy()
+        self.imp[self.impDB_bnkName(op='add', bank=bank)] = xls.copy()
         
         # parse through trans db
         self.trans_all()
         # parse through cat db
         self.get_filter_cat()
+        self.imp_status = True
+        self.msg = f'Iported data. Review and confirm import.'
         return True
 
     def __correct_col_types__(self, df):
@@ -471,18 +545,28 @@ class DB:
         return pandas.Series(col_digit)
 
     def open_db(self, file):
+        #not allowed when in import mode
+        if self.imp_status:
+            self.msg = 'finish importing before saving DB'
+            return
         engine = sqlite3.connect(file)
         try:
             for tab in cfg.DB_tabs:
                 query = f'SELECT * FROM {tab}'
                 exec(f'self.{tab} = pandas.read_sql(query, engine)')
-            for bnk in cfg.bank.keys():
+            cur = engine.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            bnks = cur.fetchall()
+            bnks = [i[0] for i in bnks
+                            if i[0] not in cfg.DB_tabs]
+            for bnk in bnks:
                 query = f'SELECT * FROM {bnk}'
-                exec(f'self.{bnk} = pandas.read_sql(query, engine)')
-            return True
+                exec(f'self.imp["{bnk}"] = pandas.read_sql(query, engine)')
         except:
-            self.error = 'Not correct DB <DB.__open_db__>'
+            self.msg = 'Not correct DB <DB.__open_db__>'
             return False
+        self.msg = f"opened db: {file}"
+        return True
 
     def __create_db__(self, file):
         if os.path.isfile(file):
@@ -498,13 +582,17 @@ class DB:
             db_file.commit()
 
     def write_db(self, file=''):
+        #not allowed when in import mode
+        if self.imp_status:
+            self.msg = 'finish importing before saving DB'
+            return
         if file:
             self.__create_db__(file)
-            self.error = f'written new DB: {file}. File overwritten if existed'
+            self.msg = f'written new DB: {file}. File overwritten if existed'
         elif not file:
             return f'no DB {file}. Nothing written.'
         else:
-            self.error = f'DB {file} overwritten.'
+            self.msg = f'DB {file} overwritten.'
         engine = sqlite3.connect(file)
         for tab in cfg.DB_tabs:
             exec(f'''self.{tab}.to_sql('{tab}', engine, if_exists='replace', index=False)''')
@@ -586,11 +674,14 @@ class DB:
                 return False
             new_ind = ind + 2
             aft_ind = ind
+        # insert row on indicated position
         self.trans = pandas.DataFrame(np.insert(self.trans.values,new_ind,values=row.to_list(), axis=0))
+        # remove row rom old position
         self.trans.drop([aft_ind], inplace=True)
         self.trans.reset_index(inplace=True, drop=True)
         self.trans.columns = cfg.trans_col
 
+        # reset data db and parse again through trans and filters
         self.op = pandas.DataFrame(columns=cfg.op_col)
         for i in self.imp:
             self.op = self.op.append(self.imp[i], ignore_index=True)
@@ -603,6 +694,7 @@ class DB:
         self.trans.drop([ind], inplace=True)
         self.trans.reset_index(inplace=True, drop=True)
         
+        # reset data db and parse again through trans and filters
         self.op = pandas.DataFrame(columns=cfg.op_col)
         for i in self.imp:
             self.op = self.op.append(self.imp[i], ignore_index=True)
