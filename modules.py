@@ -1,4 +1,5 @@
 import os, sys, json
+import pandas as pd
 
 class FileSystem:
     """Handles all file system stuff
@@ -188,3 +189,64 @@ class FileSystem:
         for i in li:
             str += i + sep
         return str
+
+
+class Panply():
+    def __init__(self, *args, **kwargs):
+        self.db = pd.DataFrame(*args, **kwargs)
+        self.cols = []
+        self.val = 0
+        self.oper = ''
+        self.row = -1
+
+    def __ne__(self, *args, **kwargs):
+        self.oper = 'ne'
+        self.filter()
+
+    def __eq__(self, other):
+        self.oper = 'eq'
+        self.filter()
+
+    def __iter__(self):
+        self.row = -1
+        return self
+
+    def __next__(self):
+        self.row += 1
+        if self.row >= len(self.db) or self.db.empty:
+            raise StopIteration
+        return self.db.iloc[self.row,:]
+    
+    def __len__(self):
+        return len(self.db)
+
+    def __getitem__(self, *args):
+        if len(args) == 1:
+            return self.db.iloc[args[0]]
+        return self.db.iloc[args[0], args[1]]
+
+    def c(self,*args):
+        self.cols = args[0]
+        return self
+    
+    def v(self, *args):
+        self.val = args[0]
+        return self
+
+    def filter(self, *args, **kwargs):
+        if not self.cols or not self.val:
+            return
+        def eq():
+            rows = self.db.loc[:, self.cols] == self.val
+            self.db = self.db.loc[rows,:]
+            return
+        def ne():
+            rows = self.db.loc[:, self.cols] != self.val
+            self.db = self.db.loc[rows,:]
+            return
+        exec(f'{self.oper}()')
+    
+
+
+
+
