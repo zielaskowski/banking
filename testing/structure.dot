@@ -10,18 +10,9 @@ digraph Data {
                 operation (add, lim, rem),category number,\n
                 filter number within category,\n
                 and category name}",fontsize=10]
-
-}
-
-digraph G {
-    splines="FALSE";
-
-    /* Entities */
-    shortName [label="shortName", shape="|square,rectangle,circle,ellipse,triangle,plaintext,point,diamond,pentagon,hexagon,septagon,octagon,egg,trapezium,parallelogram,house,doublecircle,doubleoctagon,tripleoctagon,invtriangle,invtrapezium,invhouse,Mdiamond,Msquare,Mcircle,none,note,tab,folder,box3d|", URL="http://en.wikipedia.org/wiki/John de Fries"]
-    
-    /* Relationships */
-    F1 -> shortName[label=".63"]
-
-    /* Ranks */
-    { rank=|same,min,max,# max is bottom|; shortName; };
+    node [shape=plaintext];
+    op [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
+                <TR><TD><B>op_DB</B></TD></TR>
+                <TR><TD>stores all data imported from bank plus columns: hash and category</TD></TR>
+                </TABLE>>]
 }
