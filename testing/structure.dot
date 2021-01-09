@@ -1,18 +1,111 @@
-digraph Data {
-    node [shape=record];
-    op [label="{operations DB\n|
-                stores all data imported from bank\n
-                plus columns: hash & category}
-                |{input:|output:}",fontsize=10]
-    fltr [label="{filters DB \n|
-                stores filters used to create category\n
-                column name from op DB, used filter (regex),\n
-                operation (add, lim, rem),category number,\n
-                filter number within category,\n
-                and category name}",fontsize=10]
-    node [shape=plaintext];
-    op [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="0">
-                <TR><TD><B>op_DB</B></TD></TR>
-                <TR><TD>stores all data imported from bank plus columns: hash and category</TD></TR>
-                </TABLE>>]
+digraph {
+    rankdir=LR;
+        node [shape=record, fontsize=10];
+
+        com [label="{common function for classes\l
+                    inherited by op, cat and trans}"];
+        db [label="{manager for all DB\l
+                    take care for storing importing xls, SQL file, storing raw data}|{{
+                    <cat>self.cat(category): set working category on all DB\l|
+                    <imp>self.imp_data(file, bank): import xls\l|
+                    <com>self.imp_commit(decision): commit import xls\l|
+                    <op>self.open_db(file): open SQLlite file\l|
+                    <wr>self.write_db(file): write SQLlite file\l|
+                    <con>self.connect(parent): massaging system\l|
+                    <upd>self.__update__(): synchronize all DB when any DB changed\l}}"]
+        op [label="{class op()|
+                    operations DB: stores all data imported from bank plus columns: \l
+                    \|hash\|category\|\n
+                    1)category column shall speed up when more than one filter in category\l
+                    2)hash used to merge with op_temp\l}|{{
+                    <get>self.get(category): returns pandas db for category\l|
+                    <ins>self.ins(db): append date to self.op\l|
+                    <upd_cat>self.updateCat(fltr:list(dict)): update selected category or all\l|
+                    <upd_trans>self.updateTrans(trans:list(dict)): update transformation and all filters\l|
+                    <upd_rm>self.__rmCat__(category): rename given category to Grandpa\l
+                    }}"];
+        fltr [label="{class cat()|
+                    filters DB: stores filters used to create category\l
+                    apply regex(fltr) on selected column and perform operation (add\|lim\|rem)\l
+                    \|col_name\|fltr\|oper\|fltr_n\|oper_n\|category\|\n}|{{
+                    <set>self.setCat(category): perform all functions on category only\l|
+                    <loc>self.__getitem__(): analog to pandas.loc\l|
+                    <add>self.add(\{column, fltr, oper, oper_n\}): add filter or replace at oper_n\l|
+                    <rm>self.rm(oper_n): remove filter from fltr_temp\l|
+                    <mov>self.mv(oper_n, new_oper_n): rearrange filters in fltr_temp\l|
+                    <ren>sef.ren(new_category): rename category\l|
+                    <upd>sef.update(trans:list(dict)): str.replace of filters\l|
+                    <oper>sef.opers(): return avialble operetions\l|
+                    <dic>sef.to_dict(): return all operationsas list(dic)\l
+                    }}"];
+        tree [label="{class tree()\n|
+                    tree DB: stores category hierarchy\l
+                    \|category\|parent\|\n}|{{
+                    <child>self.child(cat): returns children of category\l|
+                    <par>self.parent(cat): returns parent of category\l|
+                    <add>self.add(cat, aprent): add category to parent\l|
+                    <ren>sef.ren(new_category): rename category\l|
+                    <mov>self.mov(cat, aprent): move category to parent\l|
+                    <rm>self.rm(cat): remove category\l
+                    }}"]
+        trans [label="{class trans()\n|
+                    trans DB: stores data transformation filters\l
+                    used to clean up data, mainly replace strings\l
+                    \|col_name\|regex\|oper\|val1\|val2\|oper_n\n}|{{
+                    <loc>self.__getitem__(): analog to pandas.loc\l|
+                    <add>self.add(\{column, regex, oper, val1, val2, oper_n\}): add filter or replace at oper_n\l|
+                    <rm>self.rm(oper_n): remove filter from fltr_temp\l|
+                    <mov>self.mv(oper_n, new_oper_n): rearrange filters in fltr_temp\l|
+                    <oper>sef.opers(): return avialble operetions\l|
+                    <dic>sef.to_dict(): return all operationsas list(dic)\l
+                    }}"];
+        imp [label="{class imp()\n|
+                    list of all imports [bank: pandas]\l}|{{
+                    <ins>self.ins(bank, db)\l|
+                    <pop>self.pop(bank) -\> pandas\l
+                        }}"]
+        
+    
+    subgraph cluster_1 {
+        label="class DB()\n
+                all db changes will call self.update()";
+        {rank=same db com op fltr tree trans imp}
+        }        
+    
+
+        node [shape=box, fontsize=10];
+        cat_set [label="populate"]
+        pop_op [label="populate op"]
+        pop_fltr [label="populate fltr"]
+        pop_trans [label="populate trans"]
+        pop_tree [label="populate tree"]
+        cat_mod [label="modify fltr\n(add\|rm\|ren\|etc)\ncategory already selected\n"]
+        trans_mod [label="modify trans\n(add\|rm\|ren\|etc)\n"]
+        tree_mod [label="modify tree\n(add\|rm\|ren\|etc)\n"]
+
+    subgraph cluster_2{
+        label="class GUI()";
+        edge [fontsize=10];
+        cat_set -> {pop_fltr, pop_op, pop_trans, pop_tree}
+        cat_set -> db:cat [label="set category"]
+        pop_fltr -> fltr:loc
+        pop_op -> op:get
+        pop_trans -> trans:loc
+        pop_tree -> tree:child
+        pop_tree -> tree:par
+
+        {rank=same cat_mod cat_set trans_mod tree_mod}
+        cat_mod -> fltr:add
+        cat_mod -> fltr:rm
+        cat_mod -> fltr:mov
+        cat_mod -> fltr:ren
+
+        trans_mod -> trans:add
+        trans_mod -> trans:rm
+        trans_mod -> trans:mov
+
+        tree_mod -> tree:add
+        tree_mod -> tree:rm
+        tree_mod -> tree:ren
+    }
 }

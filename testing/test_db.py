@@ -12,137 +12,154 @@ bank = 'ipko'
 # dane.imp_data('./testing/Zestawienie operacji (1).xlsx', 'raifeisen_kredyt')
 fs.setIMP(path)
 
-read_SQL = 0
+read_SQL = 1
 
 if read_SQL:
-    dane = db.DB(fs.getDB())
+    dane = db.open_db(fs.getDB())
+    print(db.msg)
 else:
     db.imp_data(fs.getIMP(), bank)
+    print(db.msg)
     db.imp_comit('ok')
+    print(db.msg)
 
-fltr = {db.COL_NAME: 'opis_transakcji', db.FILTER: 'ITALKI', db.OPER: 'add'}
-db.filter_data(col=fltr[db.COL_NAME],
-                cat_filter=fltr[db.FILTER],
-                oper=fltr[db.OPER])
-db.filter_commit('italki')
+print(db.cat.opers())
 
-
-fltr = {db.COL_NAME: 'lokalizacja', db.FILTER: 'ITALKI', db.OPER: 'add'}
-db.filter_data(col=fltr[db.COL_NAME],
-                cat_filter=fltr[db.FILTER],
-                oper=fltr[db.OPER])
-db.filter_commit('nauka')
-
-db.get_filter_cat('italki')
-db.filter_commit('nauka', nameOf='parent')
-
-db.get_filter_cat('nauka')
-db.filter_commit('nauka2')
-
-
-db.get_filter_cat('italki')
-db.filter_commit('Grandpa')
-
-
-fltr = {db.COL_NAME: 'typ_transakcji', db.FILTER: 'Wypłata z bankomatu', db.OPER: 'add'}
-db.filter_data(col=fltr[db.COL_NAME],
-                cat_filter=fltr[db.FILTER],
-                oper=fltr[db.OPER])
-db.filter_commit('bankomat')
-
-
-fltr = {db.COL_NAME: 'lokalizacja', db.FILTER: 'PANEK', db.OPER: 'new'}
-db.filter_data(col=fltr[db.COL_NAME],
-                cat_filter=fltr[db.FILTER],
-                oper=fltr[db.OPER])
-fltr = {db.COL_NAME: 'lokalizacja', db.FILTER: 'PANEK', db.OPER: 'add'}
-db.filter_data(col=fltr[db.COL_NAME],
-                cat_filter=fltr[db.FILTER],
-                oper=fltr[db.OPER])
-db.filter_commit('panek')
-
-db.filter_commit('opłaty')
-
-db.get_filter_cat('panek')
-db.filter_commit(name='opłaty', nameOf='parent')
-
-
-db.get_filter_cat('panek')
-db.filter_commit(name='kom')
-# now move back to parent
-db.get_filter_cat('kom')
-db.filter_commit('opłaty', nameOf='parent')
-
-# remove category
-db.filter_commit('skasuj')
-db.get_filter_cat('skasuj')
-db.filter_commit('Grandpa')
-
-
-
-#duplicated category names
-db.filter_commit('opłaty')
+fltr = {db.COL_NAME: 'opis_transakcji', db.FILTER: 'ITALKI', db.OPER: 'add', db.CATEGORY: 'italki'}
+db.cat.add(fltr)
 print(db.msg)
+print(db.op.get('italki'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+fltr = {db.COL_NAME: 'lokalizacja', db.FILTER: 'ITALKI', db.OPER: 'add' , db.CATEGORY: 'nauka'}
+db.cat.add(fltr)
+print(db.msg)
+print(db.op.get('nauka'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+db.cat.rm(oper_n=1, category='nauka')
+print(db.msg)
+print(db.op.get('nauka'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+db.cat.rm(category='italki')
+print(db.msg)
+print(db.op.get('italki'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+fltr = [{db.COL_NAME: 'lokalizacja', db.FILTER: 'PANEK', db.OPER: 'add', db.CATEGORY: 'panek'}]
+fltr.append({db.COL_NAME: 'lokalizacja', db.FILTER: 'PANEK', db.OPER: 'add', db.CATEGORY: 'panek'})
+db.cat.add(fltr)
+print(db.msg)
+print(db.op.get('panek'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+fltr = [{db.COL_NAME: 'opis_transakcji', db.FILTER: 'ITALKI', db.OPER: 'add', db.CATEGORY: 'italki'}]
+fltr.append({db.COL_NAME: 'lokalizacja', db.FILTER: 'ITALKI', db.OPER: 'add' , db.CATEGORY: 'italki'})
+db.cat.add(fltr)
+print(db.msg)
+print(db.op.get('italki'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+db.cat.mv(oper_n=2, new_oper_n=1, category='panek')
+print(db.msg)
+print(db.op.get('panek'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+db.cat.mv(oper_n=2, new_oper_n=1, category='italki')
+print(db.msg)
+print(db.op.get('italki'))
+print(db.cat.cat)
+print(db.tree.tree)
 
 
-db.get_filter_cat('kom')
-db.filter_commit('panek')
+db.cat.ren(new_category='nauka2', category='nauka')
+print(db.msg)
+print(db.op.get('nauka'))
+print(db.op.get('nauka2'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+db.cat.ren(new_category='italki2', category='italki')
+print(db.msg)
+print(db.op.get('italki'))
+print(db.op.get('italki2'))
+print(db.cat.cat)
+print(db.tree.tree)
+
+db.tree.add(parent='panek', child='inny_panek')
+print(db.op.get('panek'))
+print(db.cat.cat)
+print(db.tree.tree)
 
 
-db.filter_commit('komunikacja')
+db.tree.ren(category='inny_panek', new_category='skasuj')
+print(db.msg)
+print(db.op.get('italki'))
+print(db.cat.cat)
+print(db.tree.tree)
 
-db.get_filter_cat('panek')
-db.filter_commit('komunikacja', nameOf='parent')
-
-fltr = {db.COL_NAME: 'lokalizacja', db.FILTER: 'INNOGYGO', db.OPER: 'add'}
-db.filter_data(col=fltr[db.COL_NAME],
-                cat_filter=fltr[db.FILTER],
-                oper=fltr[db.OPER])
-db.filter_commit('komunikacja')
-
-db.get_filter_cat('komunikacja')
-db.filter_commit('innogy')
-
-db.get_filter_cat('innogy')
-db.filter_commit('komunikacja', nameOf='parent')
-
-db.filter_commit('motocykle')
-
-db.get_filter_cat('motocykle')
-db.filter_commit('komunikacja', nameOf='parent')
-
-#remove cat with data
-db.get_filter_cat('innogy')
-db.filter_commit('Grandpa')
-
-#move empty cat
-db.get_filter_cat('motocykle')
-db.filter_commit('komunikacja', nameOf='parent')
-
-#move empty cat
-db.get_filter_cat('motocykle')
-db.filter_commit('Grandpa', nameOf='parent')
+db.tree.ren(category='panek', new_category='skasuj')
+print(db.msg)
+print(db.op.get('italki'))
+print(db.cat.cat)
+print(db.tree.tree)
 
 
-#remove empty cat
-db.get_filter_cat('motocykle')
-db.filter_commit('Grandpa')
+db.tree.mov(new_parent='skasuj', child='italki2')
+print(db.msg)
+print(db.op.get('italki2'))
+print(db.cat.cat)
+print(db.tree.tree)
 
 
-db.write_db(fs.getDB())
+db.tree.rm(child='skasuj')
+print(db.msg)
+print(db.op.get('italki2'))
+print(db.cat.cat)
+print(db.tree.tree)
 
 
+fltr = {db.COL_NAME: 'typ_transakcji', db.FILTER: 'Wypłata z bankomatu', db.OPER: 'add', db.CATEGORY: 'bankomat'}
+db.cat.add(fltr=fltr)
+print(db.msg)
+print(db.op.get('bankomat'))
+print(db.cat.cat)
+print(db.tree.tree)
 
-    # dane = db.DB()
-    # dane.trans_col(bank='raifeisen_kredyt', col_name='kwota', op='*', val1=-1)
-    # dane.trans_col(bank='ipko', col_name='opis_transakcji', op='str.replace', val1='Tytuł: ', val2='')
-    # dane.trans_col(bank='ipko', col_name='lokalizacja', op='str.replace', val1='Lokalizacja: ', val2='')
-    # dane.trans_col(bank='ipko', col_name='lokalizacja', op='str.replace', val1='Kraj: ', val2='')
-    # dane.trans_col(bank='ipko', col_name='lokalizacja', op='str.replace', val1=' Miasto:', val2=';')
-    # dane.trans_col(bank='ipko', col_name='lokalizacja', op='str.replace', val1=' Adres:', val2=';')
-    # dane.trans_col(bank='', col_name='typ_transakcji', op='str.replace', val1='Card transaction', val2='Płatność kartą')
-    # # dane.trans_all()
-    # print(dane.write_db(fs.db_file))
+
+#db.write_db(fs.getDB())
+
+
+print(db.trans.opers())
+
+
+trans = [{'bank': 'bnp_kredyt', 'col_name': 'kwota', 'oper': '*', 'val1': -1}]
+trans.append({'bank': 'ipko', 'col_name': 'opis_transakcji', 'oper': 'str.replace', 'val1': 'Tytuł: ', 'val2': ''})
+trans.append({'bank': 'ipko', 'col_name': 'lokalizacja', 'oper': 'str.replace', 'val1': 'Lokalizacja: ', 'val2': ''})
+trans.append({'bank': 'ipko', 'col_name': 'lokalizacja', 'oper': 'str.replace', 'val1': 'Kraj: ', 'val2': ''})
+trans.append({'bank': 'ipko', 'col_name': 'lokalizacja', 'oper': 'str.replace', 'val1': ' Miasto:', 'val2': ''})
+trans.append({'bank': 'ipko', 'col_name': 'lokalizacja', 'oper': 'str.replace', 'val1': ' Adres:', 'val2': ''})
+trans.append({'bank': '', 'col_name': 'typ_transakcji', 'oper': 'str.replace', 'val1': 'Card transaction', 'val2': 'Płatność kartą'})
+
+db.trans.add(trans)
+print(db.trans.trans)
+
+db.trans.rm(trans_n=2)
+print(db.trans.trans)
+
+db.trans.mv(trans_n=2, new_trans_n=3)
+print(db.trans.trans)
+
+
+print(db.write_db(fs.getDB()))
 
 
 
