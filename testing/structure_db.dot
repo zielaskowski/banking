@@ -1,0 +1,36 @@
+digraph {
+    rankdir=LR;
+        node [shape=box, fontsize=10];
+        
+            com [label="common function for classes\l
+                    inherited by op, cat and trans"];
+
+        
+        subgraph cluster_1 {
+            label="class db()\n";
+            fontsize=10
+                    
+                    cat [label="self.cat(category)\lset working category on all DB\l"];
+                    imp [label="self.imp_data(file, bank)\limport xls\l"];
+                    comm [label="self.imp_commit(decision)\lcommit import xls\l"];
+                    op [label="self.open_db(file)\lopen SQLlite file\l"];
+                    wr [label="self.write_db(file)\lwrite SQLlite file\l"];
+                    con [label="self.connect(parent)\lmassaging system\l"];
+                    upd [label="self.__update__()\lsynchronize all DB when any DB changed\l"];
+
+        } 
+        subgraph cluster_2 {
+            label="class op()\n";
+            fontsize=10;
+    
+                    get [label="self.get(category): returns pandas db for category\l"]
+                    ins [label="self.ins(db): append date to self.op\l"]
+                    upd_cat [label="self.updateCat(fltr:list(dict)): update selected category or all\l"]
+                    upd_trans [label="self.updateTrans(trans:list(dict)): update transformation and all filters\l"]
+                    upd_rm [label="self.__rmCat__(category): rename given category to Grandpa\l"]
+                    
+        }
+
+        upd -> upd_cat
+
+}

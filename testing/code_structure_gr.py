@@ -3,7 +3,7 @@
 
 from pycallgraph import PyCallGraph
 from pycallgraph.output import GraphvizOutput
-from banking import DB
+from db import DB
 
 graphviz = GraphvizOutput(output_file='filter_none.png')
 
