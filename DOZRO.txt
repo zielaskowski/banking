@@ -6,12 +6,9 @@ def closeEvent(self, event):
         settings.setValue("MainWindow/Size", QVariant(self.size()))
         settings.setValue("MainWindow/Position",QVariant(self.pos()))
         settings.setValue("MainWindow/State",QVariant(self.saveState()))
-        settings.setValue("MessageSplitter", QVariant(self.messageSplitter.saveStateO))
+        settings.setValue("MessageSplitter", QVariant(self.messageSplitter.saveState()))
         settings.setValue("MainSplitter", QVariant(self.mainSplitter.saveState()))
 
-2.Dialog to choose displayed columns
-
-3. search all
 
 4. DB_view column widget to search and grouping by count
 

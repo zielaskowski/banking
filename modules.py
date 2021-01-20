@@ -24,7 +24,9 @@ class FileSystem:
         self._fileAPP = ['', '', '']
         self._fileCONF = ['opt', 'conf', '.txt']  # Configuration file. name is constant
         self.option = {"LastDB": '',
-                       "welcome": "Write welcome message into ./opt/conf.txt..."}
+                       "welcome": "Write welcome message into ./opt/conf.txt...",
+                       "visColumns": [],
+                       "winSize": ''}
         self.typeIMP = ['excel', '*.xls *.xlsx']
         self.typeDB = ['SQlite3', '.s3db']
 
@@ -114,6 +116,7 @@ class FileSystem:
         allowed options: \n
         LastDB - last DB when app was closed \n
         welcome - welcome text, showed when no DB opened \n
+        visColumns - list of names for visible columns\n
         """
         if op not in self.option:
             return 'nie ma takiej opcji'
@@ -128,6 +131,7 @@ class FileSystem:
         allowed options: \n
         LastDB - last DB when app was closed \n
         welcome - welcome text, showed when no DB opened \n
+        visColumns - list of names for visible columns\n
         """
         if op in self.option:
             with open(self.getCONF(), 'r') as file:

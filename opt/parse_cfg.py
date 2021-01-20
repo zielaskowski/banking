@@ -74,11 +74,9 @@ def sql_table(col_names, types=''):
     define table for SQL querry
     keep type of column equal among dbs (don't provide types for db other than op)
     :type col_names: list
-    :type types: list, if missing use types from op
+    :type types: list
     :return str
     """
-    if not types:
-        col_type(col_names)
     sql = []
     for i in range(len(col_names)):
         sql.append(col_names[i] + ' ' + types[i])
@@ -110,20 +108,18 @@ extra_col_type = ['TEXT', 'TEXT', 'TEXT']
 op_col = add_extra_col(extra_col, op_col)
 op_col_type = add_extra_col(extra_col_type, op_col_type)
 bank = add_extra_col(extra_col, bank)
-# 'all' key used in transform operations (when applicable to any bank)
-bank['all'] = ''
 
 # DB used for categorize
 # oper col_name must be the same name for both cat & trans
-cat_col = ["col_name", "filter", 'filter_n', f'{oper}', "oper_n", f'{category}']
-cat_col_type = ["TEXT", "TEXT", 'INT', "TEXT", "INT", "TEXT", "TEXT"]
+cat_col = ["col_name", 'selection', "filter", 'filter_n', f'{oper}', "oper_n", f'{category}']
+cat_col_type = ["TEXT", "TEXT", 'INT',  "TEXT", "TEXT", "INT", "TEXT", "TEXT"]
 
-# allowed for cat_col[col_name]
+# allowed columns for filtering cat_col[col_name]
 #op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja", 'bank', 'hash', 'kategoria']
-cat_col_names = [op_col[i] for i in [2,6,7,8,9,10,11,12]]
+cat_col_names = [op_col[i] for i in [2,3,6,7,8,9,10,11,12, 13]]
 
 # DB used for transform operations
-trans_col = [f'{bank_col}', "col_name", f'{oper}', "val1", "val2", "trans_n"]
+trans_col = [f'{bank_col}', "col_name", f'{oper}', 'val1', "val2", "trans_n"]
 trans_col_type = ["TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "INT"]
 
 # DB used for category structure

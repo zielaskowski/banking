@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1130</width>
-    <height>579</height>
+    <width>962</width>
+    <height>570</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -368,7 +368,7 @@
            </property>
            <property name="maximumSize">
             <size>
-             <width>250</width>
+             <width>16777215</width>
              <height>16777215</height>
             </size>
            </property>
@@ -399,7 +399,7 @@
            <property name="orientation">
             <enum>Qt::Vertical</enum>
            </property>
-           <widget class="QWidget" name="">
+           <widget class="QWidget" name="layoutWidget">
             <layout class="QVBoxLayout" name="verticalLayout_5">
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -571,7 +571,7 @@
              </item>
             </layout>
            </widget>
-           <widget class="QWidget" name="">
+           <widget class="QWidget" name="layoutWidget">
             <layout class="QVBoxLayout" name="verticalLayout_6">
              <item>
               <widget class="QTableWidget" name="group_view">

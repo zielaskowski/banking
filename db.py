@@ -3,7 +3,6 @@ import numpy as np
 import sqlite3
 import os
 import re
-import inspect
 
 import opt.parse_cfg as cfg
 
@@ -15,16 +14,17 @@ class COMMON:
         self.VAL2 = cfg.trans_col[4]
         self.TRANS_N = cfg.trans_col[5]
         self.COL_NAME = cfg.cat_col[0]
-        self.FILTER = cfg.cat_col[1]
-        self.FILTER_N = cfg.cat_col[2]
-        self.OPER = cfg.cat_col[3]
-        self.OPER_N = cfg.cat_col[4]
+        self.SEL = cfg.cat_col[1]
+        self.FILTER = cfg.cat_col[2]
+        self.FILTER_N = cfg.cat_col[3]
+        self.OPER = cfg.cat_col[4]
+        self.OPER_N = cfg.cat_col[5]
         self.DATA_OPERACJI = cfg.op_col[0]
         self.HASH = cfg.extra_col[1]
         self.CATEGORY = cfg.extra_col[2]
         self.CAT_PARENT = cfg.tree_col[1]
 
-        def transMultiply(vec, x, y):
+        def transMultiply(vec, x, y) -> list:
             try: x = float(x)
             except: return
             vec_new = []
@@ -34,19 +34,19 @@ class COMMON:
                 else:
                     vec_new.append(i)
             return vec_new
-        def transDiv(vec: list, x: str, y: str):
+        def transDiv(vec: list, x: str, y: str) -> list:
             try: x = float(x)
             except: return
             return
-        def transAdd(vec: list, x: str, y: str):
+        def transAdd(vec: list, x: str, y: str) -> list:
             try: x = float(x)
             except: return
             return
-        def transSub(vec: list, x: str, y: str):
+        def transSub(vec: list, x: str, y: str) -> list:
             try: x = float(x)
             except: return
             return
-        def transRep(vec: list, x: str, y: str):
+        def transRep(vec: list, x: str, y: str) -> list:
             vec_new = []
             for i in vec:
                 if type(i) == str:  # moga byc NULL lub inne kwiatki
@@ -55,19 +55,29 @@ class COMMON:
                     vec_new.append(i)
             return vec_new
 
-        def catAdd(vec_all: 'list(str)', vec: 'list(bool)', fltr: str):
-            rows = [re.findall(fltr, str(i), re.IGNORECASE) for i in vec_all]
-            rows = [bool(i) for i in rows]
-            return list(np.array(rows) | np.array(vec))
-        def catLim(vec_all: 'list(str)', vec: 'list(bool)', fltr: str):
-            rows = [re.findall(fltr, str(i), re.IGNORECASE) for i in vec_all]
-            rows = [bool(i) for i in rows]
+        def catAdd(rows: 'list(str)', vec: 'list(bool)') -> list:
+            return list(np.array(vec) | np.array(rows))
+        def catLim(rows: 'list(str)', vec: 'list(bool)') -> list:
             return list(np.array(vec) & np.array(rows))
-        def catRem(vec_all: 'list(str)', vec: 'list(bool)', fltr: str):
-            rows = [re.findall(fltr, str(i), re.IGNORECASE) for i in vec_all]
-            rows = [not bool(i) for i in rows]
+        def catRem(rows: 'list(str)', vec: 'list(bool)') -> list:
             return list(np.array(vec) & ~np.array(rows))
-        
+        def fltrMa(vec_all: 'list(str)', fltr: str) -> list:
+            rows = [re.findall(fltr, str(i), re.IGNORECASE) for i in vec_all]
+            rows = [bool(i) for i in rows]
+            return rows
+        def fltrGt(vec_all: 'list(str)', fltr: str) -> list:
+            try:
+                fltr = float(fltr)
+            except:
+                return [False] * len(vec_all)
+            return vec_all > fltr
+        def fltrLt(vec_all: 'list(str)', fltr: str) -> list:
+            try:
+                fltr = float(fltr)
+            except:
+                return [False] * len(vec_all)
+            return vec_all < fltr
+
         # transform and category filtering operations
         self.transOps = {'*': transMultiply,
                          '/': transDiv,
@@ -77,6 +87,11 @@ class COMMON:
         self.catOps = {'add': catAdd,
                        'lim': catLim,
                        'rem': catRem}
+        self.catFltrs = {'txt_match': fltrMa,
+                        'greater >': fltrGt,
+                        'smaller <': fltrLt}
+
+
 
 class OP(COMMON):
     """operations DB: stores all data imported from bank plus columns:\n
@@ -84,16 +99,17 @@ class OP(COMMON):
     1)category column shall speed up when more than one filter in category\n
     2)hash used o avoid duplicates when importing "new" data\n
     """
-    def __init__(self):
+    def __init__(self, parent):
         super().__init__()
         self.op = pandas.DataFrame(columns=cfg.op_col)  # table of operations
+        self.parent = parent
     
     def get(self, category: str) -> pandas:
         """returns pandas db for category\n
         """
         # stores list of bools for rows assigned to curCat
         catRows = self.op.loc[:, self.CATEGORY] == category
-        return self.op.loc[catRows,:]
+        return self.op.loc[catRows,:].copy().reset_index()
     
     def ins(self, db):
         """adds new data to self.op
@@ -101,7 +117,58 @@ class OP(COMMON):
         """
         self.op = self.op.append(db, ignore_index=True)
         pandas.DataFrame.drop_duplicates(self.op, subset=self.HASH, inplace=True, ignore_index=True)
-    
+
+    def group_data(self, col: str, category=cfg.GRANDPA) -> list:
+        """Grupuje wartości w kazdej kolumnie i pokazuje licznosc dla nie pogrupownych danych:\n
+        Przyklad:\n
+        typ_transakcji              count\n
+        Płatność kartą              148\n
+        Przelew z rachunku           13\n
+        Zlecenie stałe                6\n
+        Wypłata z bankomatu           6\n
+        """
+        if self.op.empty:
+            return ['empty']
+        # do not categorize numbers or dates
+        dtName = self.op[col].dtypes.name
+        if dtName == 'datetime64[ns]' or dtName == 'float64':
+            return ['n/a']
+        # take data
+        temp_op = self.get(category=category)
+
+        col_grouped = temp_op.groupby(by=col).count().loc[:, self.DATA_OPERACJI]
+        col_grouped = col_grouped.sort_values(ascending=False)
+        if col_grouped.empty:
+            return ['None']
+        col_grouped = col_grouped.to_dict()
+        # keys are sentences, value are no of occurance
+        # aditionally replace EOL with space inside sentences
+        res = []
+        for i in col_grouped:
+            ii = i.replace("\n"," ")
+            res.append(f'x{col_grouped[i]}:  {ii}')
+        return res
+
+    def sum_data(self, op='', category='') -> 'str(int)':
+        """sum whole category\n
+        if op == count: return number of rows
+        if op == col_name: return sum of col_name for category
+        if op == '' return possible op
+        """
+        ops = [cfg.op_col[i] for i in range(len(cfg.op_col_type)) 
+                                if cfg.op_col_type[i] in ['INT', 'REAL']]
+        ops.append('count')
+        if not op:
+            return ops
+        if op in ops:
+            db = self.get(category=category)
+            if op == 'count':
+                return str(len(db))
+            else:
+                summ = int(db[op].sum())
+                if summ == 0: return ''
+                else: return str(summ)
+
     def __updateTrans__(self, change: [{}]):
         """reset all categories and update trans\n
         change can be one or more rows from trans DB
@@ -120,17 +187,40 @@ class OP(COMMON):
         """update categories
         change can be one or more rows from cat DB
         """
+        def grandpas():
+            # set rows belong to grandpa
+            # store categories or rows not belonging to grandpa
+            # modify only rows belong to Grandpa for add oper
+                if fltr[self.OPER] == 'add':
+                    grandpas = self.op.loc[:,self.CATEGORY] == cfg.GRANDPA
+                else:
+                    grandpas = pandas.Series([True] * len(self.op))
+                otherCat.extend(list(set(self.op.loc[ser & ~grandpas,self.CATEGORY].to_list())))
+                if cat in otherCat: otherCat.remove(cat)
+                return grandpas
         cat = ''
+        otherCat = []
         ser = [False] * len(self.op)
         for fltr in change:
             if cat != fltr[self.CATEGORY]:
-                self.op.loc[ser,self.CATEGORY] = cat
+                self.op.loc[ser & grandpas(), self.CATEGORY] = cat
+                
                 cat = fltr[self.CATEGORY]
-                self.__rmCat__(cat)
+                if cat == cfg.GRANDPA:
+                    self.__rmCat__()
+                else:
+                    self.__rmCat__(cat)
                 ser = [False] * len(self.op)
+
             ser_all = self.op.loc[:, fltr[self.COL_NAME]]
-            ser = self.catOps[fltr[self.OPER]](ser_all, ser, fltr[self.FILTER])
-        self.op.loc[ser,self.CATEGORY] = cat
+            rows = self.catFltrs[fltr[self.SEL]](ser_all, fltr[self.FILTER])
+            ser = self.catOps[fltr[self.OPER]](rows, ser)
+
+        # modify only rows belong to Grandpa for add oper
+        self.op.loc[ser & grandpas(), self.CATEGORY] = cat
+
+        if otherCat:
+            self.parent.msg = f'Unselected rows belonging to other categories: {otherCat}'
 
     def __rmCat__(self, category=''):
         """change category=cat to grandpa\n
@@ -143,14 +233,16 @@ class OP(COMMON):
             catRows = self.op.loc[:, self.CATEGORY] == category
         self.op.loc[catRows, self.CATEGORY] = cfg.GRANDPA
 
+
 class CAT(COMMON):
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
         self.cat = pandas.DataFrame({self.COL_NAME: cfg.op_col[0],
+                                    self.SEL: 'txt_match',
                                     self.FILTER: '.*',
                                     self.FILTER_N: 0,
-                                    self.OPER: list(self.catOps.keys())[0],
+                                    self.OPER: 'add',
                                     self.OPER_N: 1,
                                     self.CATEGORY: cfg.GRANDPA}, columns=cfg.cat_col, index=[0])  # table of categories
         # start with selected grandpa category,
@@ -171,11 +263,12 @@ class CAT(COMMON):
         else:
             self.catRows = self.cat.loc[:, self.CATEGORY] == category
         
-    def __getitem__(self,*args) -> str:
-        """equivalent of pandas.iloc\n
+    def __getitem__(self,*args, **kwargs) -> str:
+        """equivalent of pandas.loc\n
         work on curent category only (set by setCat())
         """
-        return self.cat.loc[self.catRows,:].iloc[args]
+        it = self.cat.loc[self.catRows,:].reset_index().loc[args[0]]
+        return str(it)
 
     def __to_dict__(self, category='') -> [{}]:
         """return list of rows, each row as dic\n
@@ -199,10 +292,18 @@ class CAT(COMMON):
         self.parent.__update__(change=self.__to_dict__(category="*"),
                                     fromDB='cat')
 
+    def __len__(self):
+        return len(self.cat.loc[self.catRows,:])
+
     def opers(self) -> list:
         """return avilable filtering operations
         """
         return list(self.catOps.keys())
+    
+    def fltrs(self) -> list:
+        """return avilable filters
+        """
+        return list(self.catFltrs.keys())
 
     def add(self, fltr: "dict|list(dict)", **kwargs):
         """add new filter, can be also used for replacement when oper_n provided\n
@@ -219,7 +320,7 @@ class CAT(COMMON):
             fltr_list = fltr
         for fltr in fltr_list:
             #define categories
-            if self.CATEGORY in fltr.keys():
+            if self.CATEGORY in fltr.keys() and fltr[self.CATEGORY]:
                 self.setCat(fltr[self.CATEGORY])
             else:
                 fltr[self.CATEGORY] = self.curCat
@@ -228,33 +329,37 @@ class CAT(COMMON):
                 self.parent.msg = f'category.add: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.'
                 return
             
-            if not kwargs:
+            if not kwargs and not any(self.catRows): 
+                # if category already exists don't touch tree
                 # kwargs present only if coming from other DB, so no need to call back
                 kwargs = {'op': 'add', 'parent': cfg.GRANDPA, 'child': self.curCat}
             else:
                 kwargs = {}
 
             #define filter position
-            if self.OPER_N not in fltr.keys():
-                fltr[self.OPER_N] = self.__max__(self.OPER_N) + 1
-                old_oper_row = pandas.DataFrame().index
-            else: # mark old filter_n for later removal
-                old_oper_row = (self.cat.loc[self.catRows, self.OPER_N] == fltr[self.OPER_N]).index
-                kwargs = {}
+            if self.OPER_N in fltr.keys():
+                if not fltr[self.OPER_N]:
+                    fltr[self.OPER_N] = self.__max__(self.OPER_N) + 1
+                else: # renumber oper_n above inserting position
+                    fltr[self.OPER_N] = float(fltr[self.OPER_N])
+                    newSer = self.cat.loc[self.catRows, self.OPER_N].apply(lambda x: self.__addAbove__(x, fltr[self.OPER_N]))
+                    self.cat.loc[self.catRows, self.OPER_N] = newSer
+                    kwargs = {} # not changing whole category so no need to alert tree
 
-            # define oper_n
-            fltr[self.FILTER_N] = self.__max__(self.FILTER_N) + 1
+            # define new filter_n or take of current category
+            fltr[self.FILTER_N] = self.__max__(self.FILTER_N)
 
             # validate
-            cat2val = self.cat.drop(old_oper_row).append(fltr, ignore_index=True)
+            cat2val = self.cat.append(fltr, ignore_index=True)
             valid_cat = self.__validate__(cat2val)
             if not valid_cat.empty:
-                self.cat = valid_cat.copy()
+                self.cat = valid_cat
                 self.setCat(self.curCat) # to have the same number of rows
                 self.parent.__update__(change=self.__to_dict__(), fromDB='cat',
                                         **kwargs)
+                return True
             else:
-                return
+                return False
 
     def rm(self, oper_n=0, category='', **kwargs):
         """remove filter or category\n
@@ -281,12 +386,13 @@ class CAT(COMMON):
             oper_n = [oper_n]
 
         # find row to be deleted
-        operRows = self.cat.loc[self.catRows, self.OPER_N].isin(oper_n)
+        operRows = self.cat.loc[:, self.OPER_N].isin(oper_n)
+        dropRows = self.cat.loc[operRows & self.catRows]
 
         #validate
-        valid_cat = self.__validate__(self.cat.drop(operRows.index))
+        valid_cat = self.__validate__(self.cat.drop(dropRows.index))
         if not valid_cat.empty:
-            self.cat = valid_cat.copy()
+            self.cat = valid_cat
             self.setCat(self.curCat) # to have the same number of rows
             if any(self.catRows):
                 # we did not delete whole category, so no need to update other DB
@@ -295,7 +401,7 @@ class CAT(COMMON):
                                     fromDB='cat',
                                     **kwargs)
 
-    def mv(self, oper_n:int, new_oper_n:int, category=''):
+    def mov(self, oper_n:int, new_oper_n:int, category=''):
         """move filter at oper_n to new position
         """
         #define categories
@@ -303,13 +409,13 @@ class CAT(COMMON):
             self.setCat(category)
     
         if self.curCat in [cfg.GRANDPA, '*']:
-            self.parent.msg = f'category.mv: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.'
+            self.parent.msg = f'category.mov: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.'
             return
         
         oper_n_row = (self.cat.loc[:, self.OPER_N] == oper_n) & self.catRows
         new_oper_n_row = (self.cat.loc[:, self.OPER_N] == new_oper_n) & self.catRows
         if not(any(oper_n_row) and any(new_oper_n_row)):
-            self.parent.msg = f'category.mv: Wrong operation position'
+            self.parent.msg = f'category.mov: Wrong operation position'
             return
 
         db = self.cat.copy()
@@ -318,7 +424,7 @@ class CAT(COMMON):
         
         valid_cat = self.__validate__(db)
         if not valid_cat.empty:
-            self.cat = valid_cat.copy()
+            self.cat = valid_cat
             self.setCat(self.curCat) # to have the same number of rows
             self.parent.__update__(change=self.__to_dict__(), fromDB='cat')
 
@@ -330,7 +436,7 @@ class CAT(COMMON):
             self.setCat(category)
     
         if self.curCat in [cfg.GRANDPA, '*']:
-            self.parent.msg = f'category.mv: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.'
+            self.parent.msg = f'category.ren: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.'
             return
         
         self.cat.loc[self.catRows, self.CATEGORY] = new_category
@@ -338,52 +444,62 @@ class CAT(COMMON):
         
         if not kwargs:
             # kwargs present only if coming from other DB, so no need to call back
-            kwargs = {'op': 'ren', 'category': category, 'new_category': new_category}
+            kwargs = {'op': 'rm', 'child': category}
         else:
             kwargs = {}
 
         # validate
         valid_cat = self.__validate__(self.cat)
         if not valid_cat.empty:
-            self.cat = valid_cat.copy()
+            self.cat = valid_cat
             self.setCat(self.curCat) # to have the same number of rows
             self.parent.__update__(change=self.__to_dict__(),
                                     fromDB='cat',
                                     **kwargs)
     
+    def __addAbove__(self, x, filter_n):
+        if x >= filter_n:
+            return x + 1
+        else:
+            return x
+
     def __max__(self, column:str):
         """max function, but also handle empty db
         - col=oper_n: limit max to selected category
-        - col=filter_n: do not count current category
+        - col=filter_n: take from curent category if exist or max+1
         """
         if column == self.FILTER_N:
-                return max(self.cat.loc[~self.catRows, column], default=0)
+            if any(self.catRows): # category already exists
+                return self.cat.loc[self.catRows, self.FILTER_N].iloc[0]
+            else:
+                return max(self.cat.loc[:, column], default=0) + 1
         else:
             return max(self.cat.loc[self.catRows, column], default=0)
 
     def __validate__(self, db: "pandas") -> "Null or pandas":
         """ cleaning of self.cat
-        1) remove duplicates within filter & col_name, only when for oper in [add, new]
-        2) first oper in cat must add which is not allowed to remove
+        1) concate FILTER_N for CATEGORY
+        2) first oper in cat must be add which is not allowed to remove
         4) renumber oper_n within categories to avoid holes
         """
         db.sort_values(by=[self.FILTER_N, self.OPER_N], ignore_index=True, inplace=True)
-        # 1) check for duplicates for 'new' and 'add' oper in whole cat db
-        newAddOper = db.loc[:, self.OPER].isin(['add', 'new'])
-        dup = db.loc[newAddOper, :].duplicated(subset=[self.COL_NAME, self.FILTER], keep='first')
-        if any(dup.to_list()):
-            self.parent.msg = f'cat.__validate__: filter already exist in {self.curCat} category'            
-            return pandas.DataFrame()
+        catRows = db.loc[:, self.CATEGORY] == self.curCat
+        # 1) align filter_n among category
+        # only if we have curent category (not after remove)
+        if any(catRows):
+            fltr_n = db.loc[catRows, self.FILTER_N].iloc[0]
+            db.loc[catRows, self.FILTER_N] = fltr_n
+            db.sort_values(by=[self.FILTER_N, self.OPER_N], ignore_index=True, inplace=True)
+            catRows = db.loc[:, self.CATEGORY] == self.curCat
         
         #2) check first row in cat
-        catRows = db.loc[:, self.CATEGORY] == self.curCat
         if any(catRows):
             oper = db.loc[catRows, self.OPER].iloc[0]
         else:
             # we removed whole category, but this way we pass check
             oper = 'add'
 
-        if oper != list(self.catOps.keys())[0]:
+        if oper != 'add':
             self.parent.msg = f'cat.__validate__: catgeory must start with "add" operation. Not allowed to remove or move.'
             return pandas.DataFrame()
 
@@ -395,6 +511,7 @@ class CAT(COMMON):
         db.sort_values(by=[self.FILTER_N, self.OPER_N], ignore_index=True, inplace=True)
         return db
 
+
 class TRANS(COMMON):
     def __init__(self, parent):
         super().__init__()
@@ -404,19 +521,40 @@ class TRANS(COMMON):
     def __getitem__(self, *args) -> str:
         """equivalent of pandas.iloc\n
         """
-        return self.trans.iloc[args]
+        return str(self.trans.iloc[args[0]])
 
     def __to_dict__(self) -> [{}]:
         """return list of rows, each row as dic\n
         """
         return self.trans.to_dict('records')
 
+    def __validate__(self, db) -> pandas:
+        """validate tranformation DB. returns DB if ok or empty (when found duplicates)
+        1) remove duplicates
+        2) renumber filter_n to remove holes
+        3) sort by trans_n
+        """
+        # remove duplicates
+        dup = db.duplicated(subset=[self.COL_NAME, self.OPER, self.VAL1], keep='first')
+        if any(dup.to_list()):
+            self.parent.msg = f'trans.__validate__: transformation already exist'            
+            return pandas.DataFrame()
+        # renumber trans_n
+        db.sort_values(by=self.TRANS_N, ignore_index=True, inplace=True)
+        trans_max = len(db) + 1
+        trans_l = list(range(1, trans_max))
+        db.loc[:, self.TRANS_N] = trans_l
+        # sort by trans_n
+        db.sort_values(by=self.TRANS_N, ignore_index=True, inplace=True)
+
+        return db
+
     def add(self, fltr: "dict|list(dict)"):
         """add new transformation, can be also used for replacement when trans_n provided\n
         also possible to pass multiple dicts in list\n
         minimum input: {bank: str,col_name: str, oper: str, val1: str, val2: str}\n
         optionally:\n
-        - trans_n, will replace at position if provided, other way will add after last one
+        - trans_n, will put at position if provided, other way will add after last one
         """
         if not isinstance(fltr, list):
             fltr_list = [fltr]
@@ -424,41 +562,50 @@ class TRANS(COMMON):
             fltr_list = fltr
         for fltr in fltr_list:
             #define filter position
-            if self.TRANS_N not in fltr.keys():
-                fltr[self.TRANS_N] = self.__max__(self.TRANS_N) + 1
-                old_trans_row = pandas.DataFrame().index
-            else: # mark old filter_n for later removal
-                old_trans_row = (self.trans.loc[:, self.TRANS_N] == fltr[self.TRANS_N]).index
-            
-            self.trans = self.trans.drop(old_trans_row).append(fltr, ignore_index=True)
-            self.trans.sort_values(by=self.TRANS_N, ignore_index=True, inplace=True)
+            if self.TRANS_N in fltr.keys():
+                if not fltr[self.TRANS_N]:
+                    fltr[self.TRANS_N] = self.__max__() + 1
+                else: # renumber ilter_n above inserting position
+                    fltr[self.TRANS_N] = float(fltr[self.TRANS_N])
+                    newSer = self.trans[self.TRANS_N].apply(lambda x: self.__addAbove__(x, fltr[self.TRANS_N]))
+                    self.trans.loc[:, self.TRANS_N] = newSer
 
-            self.parent.__update__(change=self.__to_dict__(), fromDB='trans')
+            cat2val = self.trans.append(fltr, ignore_index=True)
+            valid_cat = self.__validate__(cat2val)
+            if not valid_cat.empty:
+                self.trans = valid_cat
+                self.parent.__update__(change=self.__to_dict__(), fromDB='trans')
     
+    def __addAbove__(self, x, filter_n):
+        if x >= filter_n:
+            return x + 1
+        else:
+            return x
+
     def rm(self, trans_n:int):
         """remove transformation\n
         """
+        trans_n = float(trans_n)
         transRows = self.trans.loc[:, self.TRANS_N] == trans_n
         self.trans.drop(self.trans[transRows].index, inplace=True)
 
-        # renumber trans_n
-        self.trans.sort_values(by=self.TRANS_N, ignore_index=True, inplace=True)
-        trans_max = len(self.trans) + 1
-        trans_l = list(range(1, trans_max))
-        self.trans.loc[:, self.TRANS_N] = trans_l
+        self.trans = self.__validate__(self.trans)
                 
         self.parent.__update__(change=self.__to_dict__(), fromDB='trans')
 
-    def mv(self, trans_n:int, new_trans_n:int):
+    def mov(self, trans_n:int, new_trans_n:int):
         """move transformation at trans_n to new position
         """
+        trans_n = float(trans_n)
+        new_trans_n = float(new_trans_n)
+
         trans_n_row = self.trans.loc[:, self.TRANS_N] == trans_n
         new_trans_n_row = self.trans.loc[:, self.TRANS_N] == new_trans_n
 
         self.trans.loc[trans_n_row, self.TRANS_N] = new_trans_n
         self.trans.loc[new_trans_n_row, self.TRANS_N] = trans_n
 
-        self.trans.sort_values(by=self.TRANS_N, ignore_index=True, inplace=True)
+        self.trans = self.__validate__(self.trans)
         self.parent.__update__(change=self.__to_dict__(), fromDB='trans')
 
     def opers(self):
@@ -466,10 +613,10 @@ class TRANS(COMMON):
         """
         return list(self.transOps.keys())
     
-    def __max__(self, column:str):
+    def __max__(self):
         """max function, but also handle empty db
         """
-        return max(self.trans.loc[:, column], default=0)
+        return max(self.trans.loc[:, self.TRANS_N], default=0)
         
             
 class TREE(COMMON):
@@ -485,7 +632,38 @@ class TREE(COMMON):
 
     def parent(self, child: str) -> str:
         parentRow = self.tree.loc[:, self.CATEGORY] == child
-        return self.tree.loc[parentRow, self.CAT_PARENT].to_string(index=False)
+        return self.tree.loc[parentRow, self.CAT_PARENT].to_string(index=False).strip()
+
+    def allChild(self, catStart = cfg.GRANDPA) -> list:
+        """return list of all children (categories)
+        starting from category = catStart
+        """
+        childLev = {}
+        childrenAll = self.tree.loc[:, self.CATEGORY].to_list()
+        for i in list(set(childrenAll)):
+            lev = 0
+            parent = self.parent(i)
+            while parent != '/':
+                parent = self.parent(parent)
+                lev += 1
+            childLev[i] = lev
+        
+        # children only below catStart, including catStart
+        def childRec(kid: str):
+            for i in self.child(parent=kid):
+                children.append(i)
+                childRec(i)
+
+        if catStart == cfg.GRANDPA:
+            children = list(childLev.keys())
+        else:
+            children = [catStart]
+            childRec(catStart)
+
+        childLev = {key: value for key, value in sorted(childLev.items(), key=lambda item: item[1])
+                                        if key in children}
+
+        return childLev
 
     def add(self, parent: str, child: str, **kwargs):
         """adds new category (only empty)
@@ -508,11 +686,11 @@ class TREE(COMMON):
         forbiden.append(self.parent(category))
 
         if category == cfg.GRANDPA:
-            self.par.msg = f'Not allowed to rename "{category}".'
+            self.par.msg = f'tree.ren(): Not allowed to rename "{category}".'
             return
 
         if new_category in forbiden:
-            self.par.msg = f'Not allowed to rename into child or parent'
+            self.par.msg = f'tree.ren(): Not allowed to rename into child or parent'
             return
 
         if not kwargs:
@@ -563,20 +741,52 @@ class TREE(COMMON):
                             fromDB='tree',
                             **kwargs)
 
+
 class IMP:
-    def __init__(self):
+    def __init__(self, parent):
         self.imp = {} # store raw data {bank: pandas.DataFrame,...}
+        self.iter = 100
+        #we limit the banks to new only if not commit yet
+        # otherway all
+        self.scope = list(self.imp.keys())
+        self.parent = parent
+
+    def __iter__(self):
+        self.iter = 0
+        return self
+    
+    def __next__(self):
+        """if exists banks not commited, we itareate only them
+        """
+        if self.iter < len(self.scope):
+            bankn = self.scope[self.iter]
+            bank = self.__bank__(bankn)
+            db = self.imp[bankn]
+            self.iter += 1
+            return bank, db
+        else:
+            raise StopIteration
 
     def ins(self, bank: str, db: 'pandas'):
+        """adding new data, class will work only on this new date until commit or pop
+        """
+        if list(self.imp.keys()) != self.scope:
+            self.parent.msg = 'Commit or reject before adding another data'
         bank = self.__bank_n__(bank=bank)
         self.imp[bank] = db
+        # we can add one bank per commit
+        self.scope = [bank]
 
     def pop(self):
         """remove last import
         """
-        bank = list(self.imp.keys())[-1]
-        self.imp.pop(bank)
+        for i in self.scope:
+            self.imp.pop(i)
+        self.scope = list(self.imp.keys())
         return
+
+    def commit(self):
+        self.scope = list(self.imp.keys())
 
     def __bank_n__(self, bank: str) -> str:
         """return bank name apropriate for imp db ( with added number)
@@ -586,6 +796,13 @@ class IMP:
         bnks = [bnk for bnk in bnks_all if re.match(f'{bank}\d+', bnk)]
         n = len(bnks)
         return bank + str(n + 1)
+
+    def __bank__(self, bank: str) -> str:
+        """remove bank number from bank name
+        """
+        ret = re.findall(r'^.+(?=\d+)', bank)
+        return ret[0]
+
 
 class DB(COMMON):
     """
@@ -604,11 +821,11 @@ class DB(COMMON):
         filter_commit(name, nameOf='category|parent): comit filtered data and store filters for category
         get_filter_cat(cat_sel''): set temp dbs to show data and filters for category
         filter_temp_rm(oper_n): remove selected temprary filter
-        filter_mv(oper_n, direction): move selected filter
+        filter_mov(oper_n, direction): move selected filter
         filter_rm(oper_n): remove selected filter
     3. db trans stores data basic manipulations, mainly string replace
         trans_col(bank='', col_name='', op='+|-|*|str_repl', val1='', val2=''): transform data in selected column
-        trans_mv(index, direction): move selected 
+        trans_mov(index, direction): move selected 
         trans_rm(index): remove selected transformation
     4. db tree stores categories hierarchy
     5. db imp{} stores raw data in dictionary, before any changes. Allowes reverse changes
@@ -620,11 +837,11 @@ class DB(COMMON):
 
         super().__init__()
 
-        self.op = OP()
+        self.op = OP(self)
         self.cat = CAT(self)
         self.trans = TRANS(self)
         self.tree = TREE(self)
-        self.imp = IMP()
+        self.imp = IMP(self)
         
         # during import set status and save all db until commit
         self.imp_status = False
@@ -646,6 +863,11 @@ class DB(COMMON):
         tree and cat needs to know caller function and it's arguments
         """
         if fromDB.lower() == 'trans':
+            #restore whole DB
+            self.op = OP(self)
+            for bank, db in self.imp:
+                self.op.ins(db=db)
+
             self.op.__updateTrans__(change)
             self.cat.__update__(change)
             # cat.update will call self.update again with fromDB='cat'
@@ -654,11 +876,15 @@ class DB(COMMON):
             # when renaming or removing category, tree shall be also updated
             if kwargs:
                 exec(f"self.tree.{kwargs['op']}(**{kwargs})")
+                self.op.__rmCat__(category=kwargs['child'])
             self.op.__updateCat__(change)
         if fromDB.lower() == 'tree':
             # when renaming or removing in tree, cat shall be also updated
+            # but first remove cat from op
             if kwargs:
+                self.op.__rmCat__(category=kwargs['category'])
                 exec(f"self.cat.{kwargs['op']}(**{kwargs})")
+                
        
     def connect(self, parent):
         """refrence to caller class.\n
@@ -673,9 +899,10 @@ class DB(COMMON):
         if name == 'msg' and self.msg_emit:
             self.parent(self.msg)
 
-    def imp_comit(self, decision):
+    def imp_commit(self, decision):
         if decision == 'ok':
-            self.op.ins(self.op_before_imp)
+            self.imp.commit()
+            self.__update__(change=self.trans.__to_dict__(), fromDB='trans')
             self.msg = 'Data added to DB'
 
         else: # not ok
@@ -722,13 +949,13 @@ class DB(COMMON):
         xls.hash = pandas.util.hash_pandas_object(xls, index=False)
         
         xls.replace(r'^\s+$', np.nan, regex=True, inplace=True)  # remove cells with whitespaces
-        xls = self.__correct_col_types__(xls)
+        self.__correct_col_types__(xls)
 
-        self.op_before_imp = self.op.op
-        self.cat_before_imp = self.cat.cat
-        self.trans_before_imp = self.trans.trans
-        self.tree_before_imp = self.tree.tree
-        self.op.op = xls.copy()
+        self.op_before_imp = self.op.op.copy()
+        self.cat_before_imp = self.cat.cat.copy()
+        self.trans_before_imp = self.trans.trans.copy()
+        self.tree_before_imp = self.tree.tree.copy()
+
         self.imp.ins(bank=bank, db=xls.copy())
         
         self.__update__(change=self.trans.__to_dict__(), fromDB='trans')
@@ -747,7 +974,7 @@ class DB(COMMON):
                 df.iloc[:,i] = df.iloc[:,i].astype('string')
             elif num_type == 'TIMESTAMP':
                 df.iloc[:,i] = pandas.to_datetime(df.iloc[:,i])
-        return df
+        return
 
     @staticmethod
     def __str2num__(col, num_type):
@@ -755,16 +982,20 @@ class DB(COMMON):
         for i in col:
             i = str(i)
             try:
-                i = float(i)
-                col_digit.append(i)
-            except:
-                i = ''.join(x for x in i if x.isdigit() or x == '.' or x == ',')
-                i = i.replace(",", ".")
                 if num_type == "INT":
                     i = int(i)
                 else:
                     i = float(i)
                 col_digit.append(i)
+            except:
+                i = ''.join(x for x in i if x.isdigit() or x == '.' or x == ',')
+                i = i.replace(",", ".")
+                if i:
+                    if num_type == "INT":
+                        i = int(i)
+                    else:
+                        i = float(i)
+                    col_digit.append(i)
         return pandas.Series(col_digit)
 
     def open_db(self, file):
@@ -787,6 +1018,7 @@ class DB(COMMON):
                 query = f'SELECT * FROM {bnk}'
                 exec(f'self.imp.imp["{bnk}"] = pandas.read_sql(query, engine)')
                 exec(f'self.__correct_col_types__(self.imp.imp["{bnk}"])')
+            self.imp.commit()
         except:
             engine.close()
             self.msg = 'Not correct DB <DB.__open_db__>'
