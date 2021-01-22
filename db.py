@@ -23,8 +23,13 @@ class COMMON:
         self.HASH = cfg.extra_col[1]
         self.CATEGORY = cfg.extra_col[2]
         self.CAT_PARENT = cfg.tree_col[1]
+        self.START = cfg.split_col[0]
+        self.END = cfg.split_col[1]
+        self.DAYS = cfg.split_col[5]
+        self.SPLIT_N = cfg.split_col[6]
+        self.DATA_OP = cfg.op_col[0]
 
-        def transMultiply(vec, x, y) -> list:
+        def transMultiply(vec: list, x: str, y: str) -> list:
             try: x = float(x)
             except: return
             vec_new = []
@@ -34,18 +39,6 @@ class COMMON:
                 else:
                     vec_new.append(i)
             return vec_new
-        def transDiv(vec: list, x: str, y: str) -> list:
-            try: x = float(x)
-            except: return
-            return
-        def transAdd(vec: list, x: str, y: str) -> list:
-            try: x = float(x)
-            except: return
-            return
-        def transSub(vec: list, x: str, y: str) -> list:
-            try: x = float(x)
-            except: return
-            return
         def transRep(vec: list, x: str, y: str) -> list:
             vec_new = []
             for i in vec:
@@ -80,9 +73,6 @@ class COMMON:
 
         # transform and category filtering operations
         self.transOps = {'*': transMultiply,
-                         '/': transDiv,
-                         '+': transAdd,
-                         '-': transSub,
                          'str.replace': transRep}
         self.catOps = {'add': catAdd,
                        'lim': catLim,
@@ -222,7 +212,64 @@ class OP(COMMON):
         if otherCat:
             self.parent.msg = f'Unselected rows belonging to other categories: {otherCat}'
 
-    def __rmCat__(self, category=''):
+    def __updateSplit__(self, change: [{}]) -> dict:
+        """split selected rows\n
+        change can be one or more rows from split db\n
+        1) hash new rows\n
+        2) add "split:" to category name if != grandpa and return input for cat.add
+            {col_name: col_name, function: 'txt_match' , filter: filter, oper: 'add'}
+        """
+        catAdd = []
+        colKwota = self.sum_data()[0]
+
+        for ch in change:
+            ch = pandas.Series(ch)
+            if ch[self.COL_NAME] != self.HASH:
+                # make sure we have proper data types
+                try:
+                    ch[self.START] = pandas.to_datetime(ch[self.START])
+                    ch[self.END] = pandas.to_datetime(ch[self.END])
+                    ch[self.VAL1] = float(ch[self.VAL1])
+                    ch[self.DAYS] = float(ch[self.DAYS])
+                except:
+                    return catAdd
+
+            #get op rows
+            start = self.op.loc[:, self.DATA_OP] > ch[self.START]
+            end = self.op.loc[:, self.DATA_OP] < ch[self.END]
+            days_n = (ch[self.END] - ch[self.START]) // ch[self.DAYS]
+            cat = self.op.loc[:, ch[self.COL_NAME]] == ch[self.FILTER]
+            rows = self.op.loc[start & end & cat, :].copy()
+            
+            if abs(rows.loc[:, colKwota].sum()) < abs(days_n.days * ch[self.VAL1]):
+                return catAdd
+
+            self.op.drop(rows.index, inplace=True)
+
+            newKwota = rows.loc[:, colKwota].apply(lambda x: x - (ch[self.VAL1] * days_n.days) / len(rows))
+            rows.loc[:, colKwota] = newKwota
+
+            # add new rows
+            for i in range(days_n.days):
+                row = rows.iloc[0,:].to_dict()
+                row[self.DATA_OP] = ch[self.START] + pandas.Timedelta(ch[self.DAYS] * i, unit='D')
+                row[self.CATEGORY] = 'split:' + ch[self.FILTER]
+                row[colKwota] = ch[self.VAL1]
+                hashRow = pandas.DataFrame(row, columns=list(row.keys()), index=[0])
+                hashRow = hashRow.drop([self.HASH, self.CATEGORY], axis=1)
+                row[self.HASH] = pandas.util.hash_pandas_object(hashRow, index=False).to_string(index=False).strip()
+                rows = rows.append(row, ignore_index=True)
+
+            self.op = self.op.append(rows, ignore_index=True)
+            catAdd.append({self.COL_NAME: ch[self.COL_NAME], 
+                            self.SEL: 'txt_match',
+                            self.FILTER: 'split:' + ch[self.FILTER],
+                            self.OPER: 'add',
+                            self.CATEGORY: 'split:' + ch[self.FILTER]})
+        return catAdd
+
+
+    def __rmCat__(self, category='', **kwargs):
         """change category=cat to grandpa\n
         if empty category, change all
         """
@@ -232,6 +279,7 @@ class OP(COMMON):
         else:
             catRows = self.op.loc[:, self.CATEGORY] == category
         self.op.loc[catRows, self.CATEGORY] = cfg.GRANDPA
+
 
 
 class CAT(COMMON):
@@ -263,7 +311,7 @@ class CAT(COMMON):
         else:
             self.catRows = self.cat.loc[:, self.CATEGORY] == category
         
-    def __getitem__(self,*args, **kwargs) -> str:
+    def __getitem__(self, *args, **kwargs) -> str:
         """equivalent of pandas.loc\n
         work on curent category only (set by setCat())
         """
@@ -309,7 +357,7 @@ class CAT(COMMON):
         """add new filter, can be also used for replacement when oper_n provided\n
         also possible to pass multiple dicts in list\n
         not allowed on category in ['grandpa', '*']\n
-        minimum input: {col_name: str, filter: str, oper: str}\n
+        minimum input: {col_name: str, function: str, filter: str, oper: str}\n
         optionally:\n
         - category, otherway will use self.curCat\n
         - oper_n, will replace at position if provided, other way will add after last one
@@ -320,7 +368,9 @@ class CAT(COMMON):
             fltr_list = fltr
         for fltr in fltr_list:
             #define categories
-            if self.CATEGORY in fltr.keys() and fltr[self.CATEGORY]:
+            c = False
+            if self.CATEGORY in fltr.keys(): c = fltr[self.CATEGORY]
+            if c:
                 self.setCat(fltr[self.CATEGORY])
             else:
                 fltr[self.CATEGORY] = self.curCat
@@ -337,14 +387,15 @@ class CAT(COMMON):
                 kwargs = {}
 
             #define filter position
-            if self.OPER_N in fltr.keys():
-                if not fltr[self.OPER_N]:
-                    fltr[self.OPER_N] = self.__max__(self.OPER_N) + 1
-                else: # renumber oper_n above inserting position
-                    fltr[self.OPER_N] = float(fltr[self.OPER_N])
-                    newSer = self.cat.loc[self.catRows, self.OPER_N].apply(lambda x: self.__addAbove__(x, fltr[self.OPER_N]))
-                    self.cat.loc[self.catRows, self.OPER_N] = newSer
-                    kwargs = {} # not changing whole category so no need to alert tree
+            c = False
+            if self.OPER_N in fltr.keys(): c =  fltr[self.OPER_N]
+            if not c:
+                fltr[self.OPER_N] = self.__max__(self.OPER_N) + 1
+            else: # renumber oper_n above inserting position
+                fltr[self.OPER_N] = float(fltr[self.OPER_N])
+                newSer = self.cat.loc[self.catRows, self.OPER_N].apply(lambda x: self.__addAbove__(x, fltr[self.OPER_N]))
+                self.cat.loc[self.catRows, self.OPER_N] = newSer
+                kwargs = {} # not changing whole category so no need to alert tree
 
             # define new filter_n or take of current category
             fltr[self.FILTER_N] = self.__max__(self.FILTER_N)
@@ -444,7 +495,7 @@ class CAT(COMMON):
         
         if not kwargs:
             # kwargs present only if coming from other DB, so no need to call back
-            kwargs = {'op': 'rm', 'child': category}
+            kwargs = {'op': 'ren', 'category': category, 'new_category': new_category}
         else:
             kwargs = {}
 
@@ -457,7 +508,7 @@ class CAT(COMMON):
                                     fromDB='cat',
                                     **kwargs)
     
-    def __addAbove__(self, x, filter_n):
+    def __addAbove__(x, filter_n):
         if x >= filter_n:
             return x + 1
         else:
@@ -562,21 +613,23 @@ class TRANS(COMMON):
             fltr_list = fltr
         for fltr in fltr_list:
             #define filter position
-            if self.TRANS_N in fltr.keys():
-                if not fltr[self.TRANS_N]:
-                    fltr[self.TRANS_N] = self.__max__() + 1
-                else: # renumber ilter_n above inserting position
-                    fltr[self.TRANS_N] = float(fltr[self.TRANS_N])
-                    newSer = self.trans[self.TRANS_N].apply(lambda x: self.__addAbove__(x, fltr[self.TRANS_N]))
-                    self.trans.loc[:, self.TRANS_N] = newSer
+            t = False
+            if self.TRANS_N in fltr.keys(): t = fltr[self.TRANS_N]
+            if not t:
+                fltr[self.TRANS_N] = self.__max__() + 1
+            else: # renumber ilter_n above inserting position
+                fltr[self.TRANS_N] = float(fltr[self.TRANS_N])
+                newSer = self.trans[self.TRANS_N].apply(lambda x: self.__addAbove__(x, fltr[self.TRANS_N]))
+                self.trans.loc[:, self.TRANS_N] = newSer
 
             cat2val = self.trans.append(fltr, ignore_index=True)
             valid_cat = self.__validate__(cat2val)
             if not valid_cat.empty:
                 self.trans = valid_cat
-                self.parent.__update__(change=self.__to_dict__(), fromDB='trans')
+                self.parent.__update__(fromDB='restore_all')
     
-    def __addAbove__(self, x, filter_n):
+    @staticmethod
+    def __addAbove__(x, filter_n):
         if x >= filter_n:
             return x + 1
         else:
@@ -591,7 +644,7 @@ class TRANS(COMMON):
 
         self.trans = self.__validate__(self.trans)
                 
-        self.parent.__update__(change=self.__to_dict__(), fromDB='trans')
+        self.parent.__update__(fromDB='restore_all')
 
     def mov(self, trans_n:int, new_trans_n:int):
         """move transformation at trans_n to new position
@@ -606,7 +659,7 @@ class TRANS(COMMON):
         self.trans.loc[new_trans_n_row, self.TRANS_N] = trans_n
 
         self.trans = self.__validate__(self.trans)
-        self.parent.__update__(change=self.__to_dict__(), fromDB='trans')
+        self.parent.__update__(fromDB='restore_all')
 
     def opers(self):
         """return avilable filtering operations
@@ -617,7 +670,7 @@ class TRANS(COMMON):
         """max function, but also handle empty db
         """
         return max(self.trans.loc[:, self.TRANS_N], default=0)
-        
+
             
 class TREE(COMMON):
     def __init__(self, parent):
@@ -804,6 +857,88 @@ class IMP:
         return ret[0]
 
 
+class SPLIT(COMMON):
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+        self.split = pandas.DataFrame(columns=cfg.split_col)
+    
+    def __updateCat__(self, change: [{}]):
+        """shall be called from trans DB
+        change is one or more rows from trans
+        """
+        pass
+
+    def add(self, split: "dict|list(dict)"):
+        """add new split, can be also used for replacement when split_n provided\n
+        also possible to pass multiple dicts in list\n
+        minimum input: {start_date: date, end_date: date, col_name: str, fltr: str, val: float, day: int}\n
+        optionally:\n
+        - split_n, will replace at position if provided, other way will add after last one
+        """
+        if not isinstance(split, list):
+            split = [split]
+        for spl in split:
+            s = False
+            if self.SPLIT_N in spl.keys(): s = spl[self.SPLIT_N]
+            if not s:
+                spl[self.SPLIT_N] = self.__max__() + 1 
+            else: # renumber split_n above inserting position
+                spl[self.SPLIT_N] = float(spl[self.SPLIT_N])
+                newSer = self.split[self.SPLIT_N].apply(lambda x: self.__addAbove__(x, spl[self.SPLIT_N]))
+                self.split.loc[:, self.SPLIT_N] = newSer
+
+            valSplit = self.__validate__(self.split.append(spl, ignore_index=True))
+            if not valSplit.empty:
+                self.split = valSplit.copy()
+                self.parent.__update__(change = self.__to_dict__(), fromDB='split')
+
+    def rm(self, split_n: int):
+        """remove split row
+        """
+        splitRow = self.split.loc[:, self.SPLIT_N] == split_n
+        self.split.drop(self.split.loc[splitRow].index(), inplace = True)
+        self.parent.__update__(fromDB='restore_all')
+
+    def __validate__(self, db) -> pandas:
+        """validate split DB. returns DB if ok or empty (when found duplicates)
+        1) remove duplicates
+        2) renumber split_n to remove holes
+        3) sort by split_n
+        """
+        # remove duplicates
+        dup = db.duplicated(subset=[self.START, self.END, self.COL_NAME, self.FILTER, self.VAL1, self.DAYS], keep='first')
+        if any(dup.to_list()):
+            self.parent.msg = f'split.__validate__: transformation already exist'            
+            return pandas.DataFrame()
+        # renumber split_n
+        db.sort_values(by=self.SPLIT_N, ignore_index=True, inplace=True)
+        split_max = len(db) + 1
+        split_l = list(range(1, split_max))
+        db.loc[:, self.SPLIT_N] = split_l
+        # sort by split_n
+        db.sort_values(by=self.SPLIT_N, ignore_index=True, inplace=True)
+
+        return db
+
+    def __to_dict__(self) -> [{}]:
+        """return list of rows, each row as dic\n
+        """
+        return self.split.to_dict('records')
+
+    def __max__(self):
+        """max function, but also handle empty db
+        """
+        return max(self.split.loc[:, self.SPLIT_N], default=0)
+
+    @staticmethod
+    def __addAbove__(x, filter_n):
+        if x >= filter_n:
+            return x + 1
+        else:
+            return x
+
+
 class DB(COMMON):
     """
     manage other DBs and stores in SQLite db\n
@@ -829,6 +964,7 @@ class DB(COMMON):
         trans_rm(index): remove selected transformation
     4. db tree stores categories hierarchy
     5. db imp{} stores raw data in dictionary, before any changes. Allowes reverse changes
+    6. db split stores data to split operation into two by amount
     """
     def __init__(self, file=''):
         # MSG system, emits signal to parrent when self.msg change
@@ -842,6 +978,9 @@ class DB(COMMON):
         self.trans = TRANS(self)
         self.tree = TREE(self)
         self.imp = IMP(self)
+        self.split = SPLIT(self)
+
+        self.noOPupdate = False
         
         # during import set status and save all db until commit
         self.imp_status = False
@@ -849,20 +988,23 @@ class DB(COMMON):
         self.trans_before_imp = pandas.DataFrame()
         self.cat_before_imp = pandas.DataFrame()
         self.tree_before_imp = pandas.DataFrame()
+        self.split_before_imp = pandas.DataFrame()
 
         self.msg = ''
         if file:
             self.open_db(file)
     
-    def __update__(self, change: [{}], fromDB='', **kwargs):
+    def __update__(self, fromDB: str, change='', **kwargs):
         """synchronize data between update DB\n
+        change: [{}]
         - if fromDB='trans', update self.op and self.cat\n
             with trans where change and than all cat in op
         - if fromDB='cat', update categories in op for provided cat (but not trans)
         - if fromDB='tree', remove category from cat if needed
         tree and cat needs to know caller function and it's arguments
         """
-        if fromDB.lower() == 'trans':
+        if fromDB.lower() == 'restore_all':
+            change = self.trans.__to_dict__()
             #restore whole DB
             self.op = OP(self)
             for bank, db in self.imp:
@@ -870,22 +1012,35 @@ class DB(COMMON):
 
             self.op.__updateTrans__(change)
             self.cat.__update__(change)
+            cat = self.op.__updateSplit__(change = self.split.__to_dict__())
+            if cat: self.cat.add(cat)
             # cat.update will call self.update again with fromDB='cat'
             # so op.updateCat will update with new filters
         if fromDB.lower() == 'cat':
             # when renaming or removing category, tree shall be also updated
             if kwargs:
                 exec(f"self.tree.{kwargs['op']}(**{kwargs})")
-                self.op.__rmCat__(category=kwargs['child'])
-            self.op.__updateCat__(change)
+                if kwargs['op'] == 'ren':
+                    # op.__updateCat__() touch only grandpa category
+                    # when altering only one category, 
+                    # starting from Grandpa, will claer all categories in op
+                    self.op.__rmCat__(**kwargs)
+            if not self.noOPupdate:
+                self.op.__updateCat__(change)
+            else:
+                self.noOPupdate = False
         if fromDB.lower() == 'tree':
             # when renaming or removing in tree, cat shall be also updated
             # but first remove cat from op
             if kwargs:
-                self.op.__rmCat__(category=kwargs['category'])
+                if kwargs['op'] == 'ren':
+                    self.op.__rmCat__(**kwargs)
                 exec(f"self.cat.{kwargs['op']}(**{kwargs})")
-                
-       
+        if fromDB.lower() == 'split':
+            self.noOPupdate = True
+            cat = self.op.__updateSplit__(change)
+            if cat: self.cat.add(cat)
+
     def connect(self, parent):
         """refrence to caller class.\n
         This way we can call parent method when needed\n
@@ -912,6 +1067,7 @@ class DB(COMMON):
             self.cat.cat = self.cat_before_imp.copy()
             self.trans.trans = self.trans_before_imp.copy()
             self.tree.tree = self.tree_before_imp.copy()
+            self.split.split = self.split_before_imp.copy()
 
             self.msg = 'Import rejected. Restored main DB'
 
@@ -919,6 +1075,7 @@ class DB(COMMON):
         self.trans_before_imp = pandas.DataFrame()
         self.cat_before_imp = pandas.DataFrame()
         self.tree_before_imp = pandas.DataFrame()
+        self.split_before_imp = pandas.DataFrame()
         self.imp_status = False
 
     def __impDB_bnkName__(self, op, bank):
@@ -955,10 +1112,11 @@ class DB(COMMON):
         self.cat_before_imp = self.cat.cat.copy()
         self.trans_before_imp = self.trans.trans.copy()
         self.tree_before_imp = self.tree.tree.copy()
+        self.split_before_imp = self.split.split.copy()
 
         self.imp.ins(bank=bank, db=xls.copy())
         
-        self.__update__(change=self.trans.__to_dict__(), fromDB='trans')
+        self.__update__(fromDB='restore_all')
         self.msg = f'Iported data. Review and confirm import.'
         return True
 

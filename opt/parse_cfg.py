@@ -53,7 +53,6 @@ def map_bank(bank):
         bank[key] = cols
     return bank
 
-
 def add_extra_col(extra_cols: list, dest: "list|dict") -> list:
     """
     Add columns to operation_DB and bank lists
@@ -67,7 +66,6 @@ def add_extra_col(extra_cols: list, dest: "list|dict") -> list:
             key = list(dest.keys())
             dest[key[i]] = i_list
     return dest
-
 
 def sql_table(col_names, types=''):
     """
@@ -91,9 +89,12 @@ GRANDPA = 'Grandpa'
 oper = 'oper'
 bank_col = 'bank'
 category = 'kategoria'
+col_name = 'col_name'
+val1 = 'val1'
+fltr = 'filter'
 
 # SQL DB tables names
-DB_tabs = ['op', 'cat', 'trans', 'tree']
+DB_tabs = ['op', 'cat', 'trans', 'tree', 'split']
 
 op_col = data_cfg.op_col
 op_col_type = data_cfg.op_col_type
@@ -111,7 +112,7 @@ bank = add_extra_col(extra_col, bank)
 
 # DB used for categorize
 # oper col_name must be the same name for both cat & trans
-cat_col = ["col_name", 'selection', "filter", 'filter_n', f'{oper}', "oper_n", f'{category}']
+cat_col = ["col_name", 'function', f"{fltr}", 'filter_n', f'{oper}', "oper_n", f'{category}']
 cat_col_type = ["TEXT", "TEXT", 'INT',  "TEXT", "TEXT", "INT", "TEXT", "TEXT"]
 
 # allowed columns for filtering cat_col[col_name]
@@ -119,18 +120,23 @@ cat_col_type = ["TEXT", "TEXT", 'INT',  "TEXT", "TEXT", "INT", "TEXT", "TEXT"]
 cat_col_names = [op_col[i] for i in [2,3,6,7,8,9,10,11,12, 13]]
 
 # DB used for transform operations
-trans_col = [f'{bank_col}', "col_name", f'{oper}', 'val1', "val2", "trans_n"]
+trans_col = [f'{bank_col}', f"{col_name}", f'{oper}', f'{val1}', "val2", "trans_n"]
 trans_col_type = ["TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "INT"]
 
 # DB used for category structure
 tree_col = [f'{category}', 'parent']
 tree_col_type = ["TEXT", "TEXT"]
 
+# DB used to split operations
+split_col = ['start_date', 'end_date', f'{col_name}', f'{fltr}', f'{val1}', 'days', 'split_n']
+split_col_type = ['TIMESTAMP', 'TIMESTAMP', 'TEXT', 'TEXT', 'TEXT', 'INT', 'INT']
+
 # create SQL query for tables
 op_col_sql = sql_table(op_col, op_col_type)
 cat_col_sql = sql_table(cat_col, cat_col_type)
 trans_col_sql = sql_table(trans_col, trans_col_type)
 tree_col_sql = sql_table(tree_col, tree_col_type)
+split_col_sql = sql_table(split_col, split_col_type)
 
 if __name__ == '__main__':
     import pandas

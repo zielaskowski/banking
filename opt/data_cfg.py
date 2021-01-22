@@ -29,7 +29,7 @@ bank files translation <dictionary>
     Each list will be mapped against operation DB: op_col
 """
 
-
+# first column MUST be a date!
 op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja"]
 op_col_type = ["TIMESTAMP", "TIMESTAMP", "TEXT", "REAL", "TEXT", "REAL", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
 bank = {

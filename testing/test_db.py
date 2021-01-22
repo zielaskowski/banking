@@ -23,11 +23,10 @@ config.trace_filter = GlobbingFilter(include=[
 #         'db.TRANS.add*'
 # ])
 
-#graphviz = GraphvizOutput(output_file='./testing/structure_DB.dot', output_type='dot')
-graphviz = GraphvizOutput(output_file='./testing/structure_DB.png')
+#graphviz = GraphvizOutput(output_file='./testing/structure_PyCallGraph.dot', output_type='dot')
+graphviz = GraphvizOutput(output_file='./testing/structure_PyCallGraph.png')
 
-graph=True
-# graph=False
+graph=False
 
 def foo():
     fs = FileSystem()
@@ -47,20 +46,37 @@ def foo():
     else:
         db.imp_data(fs.getIMP(), bank)
         print(db.msg)
-        db.imp_comit('ok')
+        db.imp_commit('ok')
         print(db.msg)
 
     print(db.cat.opers())
 
 
-    fltr = {db.COL_NAME: 'opis_transakcji', db.FILTER: 'ITALKI', db.OPER: 'add', db.CATEGORY: 'italki'}
+    fltr = {db.COL_NAME: 'typ_transakcji',db.SEL: 'txt_match', db.FILTER: 'Wypłata z bankomatu', db.OPER: 'add', db.CATEGORY: 'bankomat'}
+    db.cat.add(fltr=fltr)
+    print(db.msg)
+    print(db.op.get('bankomat'))
+    print(db.cat.cat)
+    print(db.tree.tree)
+    
+    print(db.op.sum_data('kwota','bankomat'))
+
+    split = {db.START:'2020-08-28 00:00:00', db.END:'2020-11-20 00:00:00', db.COL_NAME: db.CATEGORY, db.FILTER: 'bankomat', db.VAL1: -20, db.DAYS: 3}
+    db.split.add(split=split)
+
+    print(db.op.sum_data('kwota','bankomat'))
+    print(db.op.sum_data('kwota','split:bankomat'))
+
+    fltr = {db.COL_NAME: 'opis_transakcji',db.SEL: 'txt_match', db.FILTER: 'ITALKI', db.OPER: 'add', db.CATEGORY: 'italki'}
     db.cat.add(fltr)
     print(db.msg)
     print(db.op.get('italki'))
     print(db.cat.cat)
     print(db.tree.tree)
 
-    fltr = {db.COL_NAME: 'lokalizacja', db.FILTER: 'ITALKI', db.OPER: 'add' , db.CATEGORY: 'nauka'}
+
+
+    fltr = {db.COL_NAME: 'lokalizacja', db.SEL: 'txt_match',db.FILTER: 'ITALKI', db.OPER: 'add' , db.CATEGORY: 'nauka'}
     db.cat.add(fltr)
     print(db.msg)
     print(db.op.get('nauka'))
@@ -79,29 +95,29 @@ def foo():
     print(db.cat.cat)
     print(db.tree.tree)
 
-    fltr = [{db.COL_NAME: 'lokalizacja', db.FILTER: 'PANEK', db.OPER: 'add', db.CATEGORY: 'panek'}]
-    fltr.append({db.COL_NAME: 'lokalizacja', db.FILTER: 'PANEK', db.OPER: 'add', db.CATEGORY: 'panek'})
+    fltr = [{db.COL_NAME: 'lokalizacja',db.SEL: 'txt_match', db.FILTER: 'PANEK', db.OPER: 'add', db.CATEGORY: 'panek'}]
+    fltr.append({db.COL_NAME: 'lokalizacja', db.SEL: 'txt_match',db.FILTER: 'PANEK', db.OPER: 'add', db.CATEGORY: 'panek'})
     db.cat.add(fltr)
     print(db.msg)
     print(db.op.get('panek'))
     print(db.cat.cat)
     print(db.tree.tree)
 
-    fltr = [{db.COL_NAME: 'opis_transakcji', db.FILTER: 'ITALKI', db.OPER: 'add', db.CATEGORY: 'italki'}]
-    fltr.append({db.COL_NAME: 'lokalizacja', db.FILTER: 'ITALKI', db.OPER: 'add' , db.CATEGORY: 'italki'})
+    fltr = [{db.COL_NAME: 'opis_transakcji',db.SEL: 'txt_match', db.FILTER: 'ITALKI', db.OPER: 'add', db.CATEGORY: 'italki'}]
+    fltr.append({db.COL_NAME: 'lokalizacja',db.SEL: 'txt_match', db.FILTER: 'ITALKI', db.OPER: 'add' , db.CATEGORY: 'italki'})
     db.cat.add(fltr)
     print(db.msg)
     print(db.op.get('italki'))
     print(db.cat.cat)
     print(db.tree.tree)
 
-    db.cat.mv(oper_n=2, new_oper_n=1, category='panek')
+    db.cat.mov(oper_n=2, new_oper_n=1, category='panek')
     print(db.msg)
     print(db.op.get('panek'))
     print(db.cat.cat)
     print(db.tree.tree)
 
-    db.cat.mv(oper_n=2, new_oper_n=1, category='italki')
+    db.cat.mov(oper_n=2, new_oper_n=1, category='italki')
     print(db.msg)
     print(db.op.get('italki'))
     print(db.cat.cat)
@@ -155,19 +171,32 @@ def foo():
     print(db.tree.tree)
 
 
-    fltr = {db.COL_NAME: 'typ_transakcji', db.FILTER: 'Wypłata z bankomatu', db.OPER: 'add', db.CATEGORY: 'bankomat'}
+    fltr = {db.COL_NAME: 'typ_transakcji',db.SEL: 'txt_match', db.FILTER: 'Wypłata z bankomatu', db.OPER: 'add', db.CATEGORY: 'bankomat'}
     db.cat.add(fltr=fltr)
     print(db.msg)
     print(db.op.get('bankomat'))
     print(db.cat.cat)
     print(db.tree.tree)
 
-
-    #db.write_db(fs.getDB())
-
-
     print(db.trans.opers())
 
+
+    fltr = [{db.COL_NAME: 'nazwa_nadawcy',db.SEL: 'txt_match', db.FILTER: 'ALINA MAŁGORZATA OLENDER ZIELASKOWS KA', db.OPER: 'add', db.CATEGORY: 'zwrot'}]
+    fltr.append({db.COL_NAME: 'kwota',db.SEL: 'greater >', db.FILTER: '1200', db.OPER: 'rem', db.CATEGORY: 'zwrot'})
+    db.cat.add(fltr=fltr)
+    print(db.msg)
+    print(db.op.get('zwrot'))
+    print(db.cat.cat)
+    print(db.tree.tree)
+
+    fltr = {db.COL_NAME: 'nazwa_nadawcy',db.SEL: 'txt_match', db.FILTER: 'ALINA MAŁGORZATA OLENDER ZIELASKOWS KA', db.OPER: 'add', db.CATEGORY: 'stypendium'}
+    db.cat.add(fltr=fltr)
+    print(db.msg)
+    print(db.op.get('stypendium'))
+    print(db.cat.cat)
+    print(db.tree.tree)
+
+    
 
     trans = [{'bank': 'bnp_kredyt', 'col_name': 'kwota', 'oper': '*', 'val1': -1}]
     trans.append({'bank': 'ipko', 'col_name': 'opis_transakcji', 'oper': 'str.replace', 'val1': 'Tytuł: ', 'val2': ''})
@@ -185,6 +214,8 @@ def foo():
 
     db.trans.mv(trans_n=2, new_trans_n=3)
     print(db.trans.trans)
+
+
 
 
     print(db.write_db(fs.getDB()))
