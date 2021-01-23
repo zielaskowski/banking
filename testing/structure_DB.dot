@@ -1,0 +1,27 @@
+digraph {
+	
+	imp -> "op.ins()" -> "op.__updateTrans__()" -> "cat.__update__()" -> "op.__updateCat__()"
+
+	"cat.add()" -> "tree.add()" [label="creating\nnew cat"]
+					"tree.add()" -> "op.__updateCat__()"
+	"cat.add()" -> "op.__updateCat__()" [label="updating\n cat"]
+	"cat.rm()" -> "tree.rm()" -> "op.__updateCat__()"
+	"cat.mov()" -> "op.__updateCat__()"
+	"cat.ren()" -> "tree.ren()" -> "op.__rmCat__()" -> "op.__updateCat__()"
+
+
+	"trans.add()" -> "op.ins()" 
+	"trans.rm()" -> "op.ins()" 
+	"trans.mov()" -> "op.ins()" 
+
+	"tree.add()"
+	"tree.ren()" -> "op.__rmCat__()" -> "cat.ren()" -> "op.__updateCat__()"
+	"tree.mov()"
+	"tree.rm()" -> "cat.rm()" -> "op.__updateCat__()"
+
+	"split.add()" -> "op.__updateSplit__()"
+					"op.__updateSplit__()" -> "cat.add()" [label="cat_name!=hash"]
+	"split.rm()" -> imp 
+
+
+}

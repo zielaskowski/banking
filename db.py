@@ -19,7 +19,6 @@ class COMMON:
         self.FILTER_N = cfg.cat_col[3]
         self.OPER = cfg.cat_col[4]
         self.OPER_N = cfg.cat_col[5]
-        self.DATA_OPERACJI = cfg.op_col[0]
         self.HASH = cfg.extra_col[1]
         self.CATEGORY = cfg.extra_col[2]
         self.CAT_PARENT = cfg.tree_col[1]
@@ -126,7 +125,7 @@ class OP(COMMON):
         # take data
         temp_op = self.get(category=category)
 
-        col_grouped = temp_op.groupby(by=col).count().loc[:, self.DATA_OPERACJI]
+        col_grouped = temp_op.groupby(by=col).count().loc[:, self.DATA_OP]
         col_grouped = col_grouped.sort_values(ascending=False)
         if col_grouped.empty:
             return ['None']
@@ -279,7 +278,6 @@ class OP(COMMON):
         else:
             catRows = self.op.loc[:, self.CATEGORY] == category
         self.op.loc[catRows, self.CATEGORY] = cfg.GRANDPA
-
 
 
 class CAT(COMMON):
@@ -572,12 +570,15 @@ class TRANS(COMMON):
     def __getitem__(self, *args) -> str:
         """equivalent of pandas.iloc\n
         """
-        return str(self.trans.iloc[args[0]])
+        return str(self.trans.loc[args[0]])
 
     def __to_dict__(self) -> [{}]:
         """return list of rows, each row as dic\n
         """
         return self.trans.to_dict('records')
+
+    def __len__(self):
+        return len(self.trans)
 
     def __validate__(self, db) -> pandas:
         """validate tranformation DB. returns DB if ok or empty (when found duplicates)
@@ -863,11 +864,13 @@ class SPLIT(COMMON):
         self.parent = parent
         self.split = pandas.DataFrame(columns=cfg.split_col)
     
-    def __updateCat__(self, change: [{}]):
-        """shall be called from trans DB
-        change is one or more rows from trans
+    def __len__(self):
+        return len(self.split)
+
+    def __getitem__(self, *args) -> str:
+        """equivalent of pandas.iloc\n
         """
-        pass
+        return str(self.split.loc[args[0]])
 
     def add(self, split: "dict|list(dict)"):
         """add new split, can be also used for replacement when split_n provided\n
@@ -1159,7 +1162,7 @@ class DB(COMMON):
     def open_db(self, file):
         #not allowed when in import mode
         if self.imp_status:
-            self.msg = 'finish importing before saving DB'
+            self.msg = 'finish importing before opening another DB'
             return
         engine = sqlite3.connect(file)
         try:
@@ -1180,6 +1183,12 @@ class DB(COMMON):
         except:
             engine.close()
             self.msg = 'Not correct DB <DB.__open_db__>'
+            self.op = OP(self)
+            self.cat = CAT(self)
+            self.trans = TRANS(self)
+            self.tree = TREE(self)
+            self.imp = IMP(self)
+            self.split = SPLIT(self)
             return False
         engine.close()
         self.msg = f"opened db: {file}"
