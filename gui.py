@@ -1,8 +1,20 @@
 import re
 from qt_gui.main_window import Ui_banking, QtCore, QtGui, QtWidgets
+from qt_gui.calendar import Ui_calendar
 from db import DB
 from modules import FileSystem
 import opt.parse_cfg as cfg
+
+
+class GUICalendar(QtWidgets.QDialog, Ui_calendar):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.calendarWidget.clicked.connect(self.accepted)
+
+    def accepted(self, data):
+        self.dat = data
+        self.accept()
 
 
 
@@ -190,9 +202,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.openDB_btn.clicked.connect(self.openDB)
         self.view.newDB_btn.clicked.connect(self.newDB)
         self.view.save_asDB_btn.clicked.connect(self.save_asDB)
-        self.view.impPKO_btn.clicked.connect(lambda: self.imp(bank='ipko'))
-        self.view.impBNP_btn.clicked.connect(lambda: self.imp(bank='bnp'))
-        self.view.impBNPkredyt_btn.clicked.connect(lambda: self.imp(bank='bnp_kredyt'))
+        self.view.imp_btn.clicked.connect(self.imp)
         self.view.export_btn.clicked.connect(self.exp)
         
         #buttons
@@ -201,6 +211,9 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.upFltr_btn.clicked.connect(lambda: self.mvFltr(direction='up'))
         self.view.downFltr_btn.clicked.connect(lambda: self.mvFltr(direction='down'))
         self.view.rmFltr_btn.clicked.connect(lambda: self.modFltr('remove'))
+        self.view.addSplit_btn.clicked.connect(self.addSplit)
+        self.view.edSplit_btn.clicked.connect(lambda: self.modSplit('edit'))
+        self.view.rmSplit_btn.clicked.connect(lambda: self.modSplit('remove'))
         self.view.addTrans_btn.clicked.connect(self.addTrans)
         self.view.upTrans_btn.clicked.connect(lambda: self.mvTrans(direction='up'))
         self.view.downTrans_btn.clicked.connect(lambda: self.mvTrans(direction='down'))
@@ -217,6 +230,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
         
         # cat_view
         self.view.cat_view.itemSelectionChanged.connect(self.markFltrColors)
+        # split calendar widget
+        self.view.split_view.itemSelectionChanged.connect(self.showCalendar)
         # win layout change
         self.view.splitter_2.splitterMoved.connect(lambda: self.callDelay(self.headerSize, 200))
         # QTreeWidget
@@ -224,7 +239,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.tree_db.itemChanged.connect(self.tree_edited)
         self.view.tree_db.itemDoubleClicked.connect(self.treeItemActivated)
         # group_view widgets triggers are defined when created, in self.__viewWidget__()
-        # DB_[cat|trans]_view context menu
+        # DB_view context menu
         self.view.DB_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.view.DB_view.customContextMenuRequested.connect(self.DB_ContextMenu)
         # DB_view header context menu
@@ -275,12 +290,15 @@ class GUIMainWin_ctrl(QtCore.QObject):
         widgets = {}
         source = self.view.DB_view
 
-        if self.view.tabMenu.currentIndex() == 2: # 'categorize'
+        if self.view.tabMenu.currentIndex() == 2:  # 'categorize'
             oper = self.db.cat.opers()
             txt = 'add filter: '
-        else:
+        elif self.view.tabMenu.currentIndex() == 1:  # 'wrangling'
             oper = self.db.trans.opers()
             txt = 'add transformation: '
+        elif self.view.tabMenu.currentIndex() == 3:  # split
+            oper = ['sel row']
+            txt = 'add split: '
         
         menu = QtWidgets.QMenu()
         
@@ -296,20 +314,30 @@ class GUIMainWin_ctrl(QtCore.QObject):
         txt = model.data(indexModel, QtCore.Qt.DisplayRole)
         col = model.headerData(indexModel.column(),QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole)
         bankIndex = model.createIndex(indexModel.row(), cfg.op_col.index(self.db.BANK))
+        hashIndex = model.createIndex(indexModel.row(), cfg.op_col.index(self.db.HASH))
         bank = model.data(bankIndex, QtCore.Qt.DisplayRole)
+        hashRow = model.data(hashIndex, QtCore.Qt.DisplayRole)
 
-        fltr[self.db.COL_NAME] = col
-        fltr[self.db.FILTER] = txt
-        fltr[self.db.BANK] = bank
         for op in oper:
             if act == widgets[op]:
                 fltr[self.db.OPER] = op
                 if op == 'str.replace':
                     fltr[self.db.VAL1] = txt
-        if self.view.tabMenu.currentIndex() == 2: # 'categorize'
+                if op == 'sel row':
+                    fltr[self.db.COL_NAME] = self.db.HASH
+                    fltr[self.db.FILTER] = hashRow
+                    fltr[self.db.CATEGORY] = self.curCat
+                else:
+                    fltr[self.db.COL_NAME] = col
+                    fltr[self.db.FILTER] = txt
+                    fltr[self.db.BANK] = bank
+
+        if self.view.tabMenu.currentIndex() == 2:  # 'categorize'
             self.__setFltrWidgets__(fltr, self.view.cat_view)
-        else: # wrangling
+        elif self.view.tabMenu.currentIndex() == 1:  # wrangling
             self.__setFltrWidgets__(fltr, self.view.trans_view)
+        elif self.view.tabMenu.currentIndex() == 3:  # split
+            self.__setFltrWidgets__(fltr, self.view.split_view)
 
     def DB_headerContextMenu(self, position):
         """create context menu on DB_cat_view\n
@@ -555,7 +583,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return colWidget
         def split1():
             # QLineEdit end date
-            return split0()
+            colWidget = QtWidgets.QLineEdit()
+            return colWidget
         def split2():
             # QComboWidget col_name
             colWidget = QtWidgets.QComboBox()
@@ -565,16 +594,19 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return colWidget
         def split3():
             # QLineEdit filter
-            return split0()
+            return split1()
         def split4():
             # QLineEdit value
-            return split0()
+            return split1()
         def split5():
             # QLineEdit days
-            return split0()
+            return split1()
         def split6():
             # QLineEdit split_n
-            return split0()
+            return split1()
+        def split7():
+            # QLineEdit split_n
+            return split1()
         # common stuff
         if tabName == 'DB':
             # for DB all widgets are the same
@@ -602,7 +634,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
             db.setCat(self.curCat)
             hideCols = [self.db.FILTER_N, self.db.OPER_N, self.db.CATEGORY]
         elif dbTxt == 'split':
-            hideCols = [self.db.SPLIT_N]
+            db.setSplit(self.curCat)
+            hideCols = [self.db.SPLIT_N, self.db.CATEGORY]
         
         rows_n = len(db)
         widget.setColumnCount(len(cols))
@@ -625,6 +658,9 @@ class GUIMainWin_ctrl(QtCore.QObject):
             for i in hideCols]
         col = widget.horizontalHeader()
         col.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        # select col_name column (anything but date in the split)
+        ind = widget.model().index(0, cols.index(self.db.COL_NAME))
+        widget.setCurrentIndex(ind)
     
     def fill_group(self):
         """fills group_view
@@ -699,6 +735,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         self.alsoNoCatData()
         self.fill('cat')
+        self.fill('split')
         self.view.new_cat_name.blockSignals(False)
 
     def fill_tree(self):
@@ -852,6 +889,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
                     if i in [self.db.OPER, self.db.COL_NAME, self.db.FILTER]]):
             if not self.db.cat.add(fltr=fltr):
                 self.curCat = cfg.GRANDPA # something went wrong
+
             if self.curCat != cfg.GRANDPA:
                 self.view.also_not_cat.setChecked(False)
                 self.fill_tree()
@@ -900,6 +938,50 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         self.db.cat.mov(oper_n=row_n, new_oper_n=new_row_n)
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+
+    def addSplit(self):
+        fltr = self.__getFltrWidgets__(self.view.split_view)
+        
+        # def category
+        # if curCat == grandpa, take category from new_cat_name or filter or "new category"
+        if self.curCat == cfg.GRANDPA:
+            cat = self.view.new_cat_name.text() or 'split' + fltr[self.db.CATEGORY] or 'new actegory'
+            self.view.new_cat_name.setText(cat)
+            self.curCat = cat
+
+        if all([fltr[i] for i in fltr
+                            if i in [self.db.COL_NAME, self.db.FILTER]]):
+            self.db.split.add(fltr)
+            
+            if self.curCat != cfg.GRANDPA:
+                self.view.also_not_cat.setChecked(False)
+                self.fill_tree()
+            else:
+                self.fill('split')
+                # enable radio button allowing show all data
+                # and un check
+                self.view.also_not_cat.setEnabled(True)
+                self.view.also_not_cat.setChecked(False)
+                self.fill_DB(self.db.op.get(self.curCat))
+
+    def modSplit(self, oper: "edit|remove"):
+        if not self.view.split_view.currentItem(): return
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        row_n = self.view.split_view.currentItem().row()
+        col_n = cfg.split_col.index(self.db.SPLIT_N)
+        oper_n = self.view.split_view.item(row_n, col_n).text()
+
+        self.db.split.rm(oper_n)
+
+        if oper == 'edit':
+            fltr = {}
+            for i in range(len(cfg.split_col)):
+                fltr[cfg.split_col[i]] = self.view.split_view.item(row_n, i).text()
+
+        self.fill_tree()
+
+        if oper == 'edit':
+            self.__setFltrWidgets__(fltr, self.view.split_view)
 
     def __getFltrWidgets__(self, source: QtWidgets.QTableWidget) -> dict:
         """collects text from first row widgets in cat or trans table
@@ -1013,9 +1095,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
     def save_asDB(self):
         self.db.write_db(self.fs.getDB())
 
-    def exit(self):
-        pass
-
     def imp(self, bank):
         file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose Excell file',
                                                                 directory='',
@@ -1027,7 +1106,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.fs.setIMP(path)
         else:  # operation canceled
             return
-        if self.db.imp_data(self.fs.getIMP(), bank):
+        if self.db.imp_data(self.fs.getIMP()):
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             #self.disp_statusbar('openDB')
             self.fill('trans')
@@ -1107,6 +1186,19 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 mod.sourceModel().markBlueAddRows(None)
                 self.search()
                 self.fill_group()
+
+    def showCalendar(self):
+        """show calendar widget when date column clicked
+        """
+        it = self.view.split_view.currentIndex()
+        widget = self.view.split_view.focusWidget()
+        if not it or not isinstance(widget, QtWidgets.QLineEdit):
+            return
+        
+        if cfg.split_col_type[it.column()] == 'TIMESTAMP' and it.row() == 0:
+            cal = GUICalendar()
+            if cal.exec_():
+                widget.setText(cal.dat.toString())
 
     def readStat(self) -> {}:
         """read gui status

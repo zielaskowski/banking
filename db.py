@@ -118,9 +118,9 @@ class OP(COMMON):
         """
         if self.op.empty:
             return ['empty']
-        # do not categorize numbers or dates
+        # categorize only strrings
         dtName = self.op[col].dtypes.name
-        if dtName == 'datetime64[ns]' or dtName == 'float64':
+        if dtName != 'string':
             return ['n/a']
         # take data
         temp_op = self.get(category=category)
@@ -211,18 +211,19 @@ class OP(COMMON):
         if otherCat:
             self.parent.msg = f'Unselected rows belonging to other categories: {otherCat}'
 
-    def __updateSplit__(self, change: [{}]) -> dict:
+    def __updateSplit__(self, change: [{}], parent=cfg.GRANDPA) -> dict:
         """split selected rows\n
         change can be one or more rows from split db\n
         1) hash new rows\n
         2) add "split:" to category name if != grandpa and return input for cat.add
             {col_name: col_name, function: 'txt_match' , filter: filter, oper: 'add'}
         """
-        catAdd = []
+        treeAdd = []
         colKwota = self.sum_data()[0]
 
         for ch in change:
             ch = pandas.Series(ch)
+            ch[self.CATEGORY] = 'split:' + ch[self.CATEGORY]
             if ch[self.COL_NAME] != self.HASH:
                 # make sure we have proper data types
                 try:
@@ -231,41 +232,43 @@ class OP(COMMON):
                     ch[self.VAL1] = float(ch[self.VAL1])
                     ch[self.DAYS] = float(ch[self.DAYS])
                 except:
-                    return catAdd
+                    return treeAdd
 
-            #get op rows
-            start = self.op.loc[:, self.DATA_OP] > ch[self.START]
-            end = self.op.loc[:, self.DATA_OP] < ch[self.END]
-            days_n = (ch[self.END] - ch[self.START]) // ch[self.DAYS]
-            cat = self.op.loc[:, ch[self.COL_NAME]] == ch[self.FILTER]
-            rows = self.op.loc[start & end & cat, :].copy()
-            
-            if abs(rows.loc[:, colKwota].sum()) < abs(days_n.days * ch[self.VAL1]):
-                return catAdd
+                #get op rows
+                start = self.op.loc[:, self.DATA_OP] > ch[self.START]
+                end = self.op.loc[:, self.DATA_OP] < ch[self.END]
+                days = (ch[self.END] - ch[self.START]) // ch[self.DAYS]
+                days_n = days.days
+                cat = self.op.loc[:, ch[self.COL_NAME]] == ch[self.FILTER]
+                rows = self.op.loc[start & end & cat, :].copy()
+                
+                if abs(rows.loc[:, colKwota].sum()) < abs(days_n * ch[self.VAL1]):
+                    return treeAdd
+                newKwota = rows.loc[:, colKwota].apply(lambda x: x - (ch[self.VAL1] * days_n) / len(rows))
+                rows.loc[:, colKwota] = newKwota    
+                
+                self.op.drop(rows.index, inplace=True)
 
-            self.op.drop(rows.index, inplace=True)
+                # add new rows
+                for i in range(days_n):
+                    row = rows.iloc[0,:].to_dict()
+                    row[self.DATA_OP] = ch[self.START] + pandas.Timedelta(ch[self.DAYS] * i, unit='D')
+                    row[self.CATEGORY] = ch[self.CATEGORY]
+                    row[colKwota] = ch[self.VAL1]
+                    hashRow = pandas.DataFrame(row, columns=list(row.keys()), index=[0])
+                    hashRow = hashRow.drop([self.HASH, self.CATEGORY], axis=1)
+                    row[self.HASH] = pandas.util.hash_pandas_object(hashRow, index=False).to_string(index=False).strip()
+                    rows = rows.append(row, ignore_index=True)
 
-            newKwota = rows.loc[:, colKwota].apply(lambda x: x - (ch[self.VAL1] * days_n.days) / len(rows))
-            rows.loc[:, colKwota] = newKwota
+                self.op = self.op.append(rows, ignore_index=True)
 
-            # add new rows
-            for i in range(days_n.days):
-                row = rows.iloc[0,:].to_dict()
-                row[self.DATA_OP] = ch[self.START] + pandas.Timedelta(ch[self.DAYS] * i, unit='D')
-                row[self.CATEGORY] = 'split:' + ch[self.FILTER]
-                row[colKwota] = ch[self.VAL1]
-                hashRow = pandas.DataFrame(row, columns=list(row.keys()), index=[0])
-                hashRow = hashRow.drop([self.HASH, self.CATEGORY], axis=1)
-                row[self.HASH] = pandas.util.hash_pandas_object(hashRow, index=False).to_string(index=False).strip()
-                rows = rows.append(row, ignore_index=True)
-
-            self.op = self.op.append(rows, ignore_index=True)
-            catAdd.append({self.COL_NAME: ch[self.COL_NAME], 
-                            self.SEL: 'txt_match',
-                            self.FILTER: 'split:' + ch[self.FILTER],
-                            self.OPER: 'add',
-                            self.CATEGORY: 'split:' + ch[self.FILTER]})
-        return catAdd
+            else:  # find hash only and change category
+                hashRow = self.op.loc[:, self.HASH] == ch[self.FILTER]
+                self.op.loc[hashRow, self.CATEGORY] = ch[self.CATEGORY]
+                
+            treeAdd.append({'parent': parent, 
+                            'child':  ch[self.CATEGORY]})
+        return treeAdd
 
 
     def __rmCat__(self, category='', **kwargs):
@@ -506,6 +509,7 @@ class CAT(COMMON):
                                     fromDB='cat',
                                     **kwargs)
     
+    @staticmethod
     def __addAbove__(x, filter_n):
         if x >= filter_n:
             return x + 1
@@ -863,6 +867,8 @@ class SPLIT(COMMON):
         super().__init__()
         self.parent = parent
         self.split = pandas.DataFrame(columns=cfg.split_col)
+        self.curSplit = cfg.GRANDPA
+        self.splitRows = False * len(self.split)
     
     def __len__(self):
         return len(self.split)
@@ -870,9 +876,23 @@ class SPLIT(COMMON):
     def __getitem__(self, *args) -> str:
         """equivalent of pandas.iloc\n
         """
-        return str(self.split.loc[args[0]])
+        it = self.split.loc[self.splitRows,:].reset_index().loc[args[0]]
+        return str(it)
 
-    def add(self, split: "dict|list(dict)"):
+    def setSplit(self, category:str):
+        """set curent category so other methods work only on sel cat\n
+        if cat=grandpa return null\n
+        if cat='*' return all\n
+        """
+        self.curSplit = category
+        if category == cfg.GRANDPA:
+            self.splitRows = [False] * len(self.split)
+        elif category == '*':
+            self.splitRows = [True] * len(self.split)
+        else:
+            self.splitRows = self.split.loc[:, self.CATEGORY] == category
+    
+    def add(self, split: "dict|list(dict)", parent=cfg.GRANDPA):
         """add new split, can be also used for replacement when split_n provided\n
         also possible to pass multiple dicts in list\n
         minimum input: {start_date: date, end_date: date, col_name: str, fltr: str, val: float, day: int}\n
@@ -894,14 +914,51 @@ class SPLIT(COMMON):
             valSplit = self.__validate__(self.split.append(spl, ignore_index=True))
             if not valSplit.empty:
                 self.split = valSplit.copy()
-                self.parent.__update__(change = self.__to_dict__(), fromDB='split')
+                self.parent.__update__(change = self.__to_dict__(), fromDB='split', parent=parent)
 
-    def rm(self, split_n: int):
+    def rm(self, oper_n=0, category='', **kwargs):
         """remove split row
         """
-        splitRow = self.split.loc[:, self.SPLIT_N] == split_n
+        #define categories
+        if category:
+            self.setSplit(category)
+        if self.curSplit in [cfg.GRANDPA, '*']:
+            self.parent.msg = f'split.rm: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.'
+            return
+
+        if not kwargs:
+            # kwargs present only if coming from other DB, so no need to call back
+            kwargs = {'op': 'rm', 'child': self.curSplit}
+        else:
+            kwargs = {}
+
+        splitRow = self.split.loc[:, self.SPLIT_N] == oper_n
         self.split.drop(self.split.loc[splitRow].index(), inplace = True)
-        self.parent.__update__(fromDB='restore_all')
+        self.parent.__update__(change=self.__to_dict__(),
+                                fromDB='split',
+                                **wrags)
+
+    def ren(self, new_category:str, category='', **kwargs):
+        #define categories
+        if category:
+            self.setSplit(category)
+    
+        if self.curSplit in [cfg.GRANDPA, '*']:
+            self.parent.msg = f'split.ren: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.'
+            return
+        
+        self.split.loc[self.splitRows, self.CATEGORY] = new_category
+        self.setSplit(new_category)
+        
+        if not kwargs:
+            # kwargs present only if coming from other DB, so no need to call back
+            kwargs = {'op': 'ren', 'category': category, 'new_category': new_category}
+        else:
+            kwargs = {}
+        
+        self.parent.__update__(change=self.__to_dict__(),
+                                fromDB='split',
+                                **kwargs)
 
     def __validate__(self, db) -> pandas:
         """validate split DB. returns DB if ok or empty (when found duplicates)
@@ -982,8 +1039,6 @@ class DB(COMMON):
         self.tree = TREE(self)
         self.imp = IMP(self)
         self.split = SPLIT(self)
-
-        self.noOPupdate = False
         
         # during import set status and save all db until commit
         self.imp_status = False
@@ -1015,8 +1070,9 @@ class DB(COMMON):
 
             self.op.__updateTrans__(change)
             self.cat.__update__(change)
-            cat = self.op.__updateSplit__(change = self.split.__to_dict__())
-            if cat: self.cat.add(cat)
+            tree = self.op.__updateSplit__(change = self.split.__to_dict__())
+            for i in tree:
+                self.tree.add(**i)
             # cat.update will call self.update again with fromDB='cat'
             # so op.updateCat will update with new filters
         if fromDB.lower() == 'cat':
@@ -1028,21 +1084,18 @@ class DB(COMMON):
                     # when altering only one category, 
                     # starting from Grandpa, will claer all categories in op
                     self.op.__rmCat__(**kwargs)
-            if not self.noOPupdate:
-                self.op.__updateCat__(change)
-            else:
-                self.noOPupdate = False
         if fromDB.lower() == 'tree':
-            # when renaming or removing in tree, cat shall be also updated
+            # when renaming or removing in tree, cat and split shall be also updated
             # but first remove cat from op
             if kwargs:
                 if kwargs['op'] == 'ren':
                     self.op.__rmCat__(**kwargs)
                 exec(f"self.cat.{kwargs['op']}(**{kwargs})")
+                exec(f"self.split.{kwargs['op']}(**{kwargs})")
         if fromDB.lower() == 'split':
-            self.noOPupdate = True
-            cat = self.op.__updateSplit__(change)
-            if cat: self.cat.add(cat)
+            tree = self.op.__updateSplit__(change, **kwargs)
+            for i in tree:
+                self.tree.add(**i)
 
     def connect(self, parent):
         """refrence to caller class.\n
@@ -1094,13 +1147,29 @@ class DB(COMMON):
         else:
             return bank + str(n + 1)
 
-    def imp_data(self, file, bank):
+    def __checkBank__(self, cols: list) -> str:
+        """check if cols exist in cfg file
+        return bank name for cols
+        """
+        for bank in cfg.bank.keys():
+            # check if ALL cols element are in bank cols
+            raw_bank = [i for i in cfg.raw_bank[bank] if i]
+            matchCols = [i for i in raw_bank if i in cols]
+            if len(matchCols) == len(raw_bank):
+                return bank
+        
+        self.msg = 'file from unknown bank'
+        return None
+
+    def imp_data(self, file):
         """import excell file, does not commit!\n
         this means creating op_before_imp for current data until commit decision
         """
         self.imp_status = True
 
         xls = pandas.read_excel(file)
+        bank = self.__checkBank__(list(xls.columns))
+        if not bank: return
         xls = xls.reindex(columns=cfg.bank[bank])
         xls.columns = cfg.op_col
         # set bank name
@@ -1120,7 +1189,7 @@ class DB(COMMON):
         self.imp.ins(bank=bank, db=xls.copy())
         
         self.__update__(fromDB='restore_all')
-        self.msg = f'Iported data. Review and confirm import.'
+        self.msg = f'Iported data from {bank} bank. Review and confirm import.'
         return True
 
     def __correct_col_types__(self, df):

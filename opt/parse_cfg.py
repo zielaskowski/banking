@@ -99,6 +99,7 @@ DB_tabs = ['op', 'cat', 'trans', 'tree', 'split']
 op_col = data_cfg.op_col
 op_col_type = data_cfg.op_col_type
 
+raw_bank = data_cfg.bank.copy()
 # map banks col names to operation DB col names
 bank = map_bank(data_cfg.bank)
 
@@ -128,8 +129,8 @@ tree_col = [f'{category}', 'parent']
 tree_col_type = ["TEXT", "TEXT"]
 
 # DB used to split operations
-split_col = ['start_date', 'end_date', f'{col_name}', f'{fltr}', f'{val1}', 'days', 'split_n']
-split_col_type = ['TIMESTAMP', 'TIMESTAMP', 'TEXT', 'TEXT', 'TEXT', 'INT', 'INT']
+split_col = ['start_date', 'end_date', f'{col_name}', f'{fltr}', f'{val1}', 'days', 'split_n', f'{category}']
+split_col_type = ['TIMESTAMP', 'TIMESTAMP', 'TEXT', 'TEXT', 'TEXT', 'INT', 'INT', 'TEXT']
 
 # create SQL query for tables
 op_col_sql = sql_table(op_col, op_col_type)
