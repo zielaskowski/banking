@@ -9,13 +9,13 @@ import opt.parse_cfg as cfg
 class GUICalendar(QtWidgets.QDialog, Ui_calendar):
     def __init__(self):
         super().__init__()
+
         self.setupUi(self)
         self.calendarWidget.clicked.connect(self.accepted)
 
     def accepted(self, data):
         self.dat = data
         self.accept()
-
 
 
 class GUIMainWin(QtWidgets.QMainWindow, Ui_banking):
@@ -34,10 +34,10 @@ class DBmodel(QtCore.QAbstractTableModel):
         self.fltr = ''
         self.fltrCol = ''
         self.markRows = []
-    
-    def markBlueAddRows(self,db):
-        #append db, mark blue background color what already in model
-        #id db=None, remove coloring and added data
+
+    def markBlueAddRows(self, db):
+        # append db, mark blue background color what already in model
+        # id db=None, remove coloring and added data
         self.layoutAboutToBeChanged.emit()
         if db is not None:
             self.backgroundColor = [True] * self.rowCount(None)
@@ -45,7 +45,7 @@ class DBmodel(QtCore.QAbstractTableModel):
             self.backgroundColor.extend([False] * len(db))
         else:
             if any(self.backgroundColor):
-                self.db = self.db.loc[self.backgroundColor,:].copy()
+                self.db = self.db.loc[self.backgroundColor, :].copy()
                 self.backgroundColor = [False] * self.rowCount(None)
         self.layoutChanged.emit()
 
@@ -55,18 +55,18 @@ class DBmodel(QtCore.QAbstractTableModel):
             self.fltr = fltr
             self.fltrCol = fltrCol
             self.layoutChanged.emit()
-    
+
     def findRows(self, search):
         self.layoutAboutToBeChanged.emit()
         self.markRows = []
         if search:
             flags = QtCore.Qt.MatchContains | QtCore.Qt.MatchWrap
             for i in range(len(self.columns)):
-                ind = self.match(self.createIndex(0,i),
-                                QtCore.Qt.DisplayRole,
-                                search,
-                                hits=-1,
-                                flags=flags)
+                ind = self.match(self.createIndex(0, i),
+                                 QtCore.Qt.DisplayRole,
+                                 search,
+                                 hits=-1,
+                                 flags=flags)
                 [self.markRows.append(i.row()) for i in ind]
         self.layoutChanged.emit()
         return len(self.markRows)
@@ -74,15 +74,15 @@ class DBmodel(QtCore.QAbstractTableModel):
     def rowCount(self, parent):
         # required by QAbstractTableModel
         return len(self.db)
-    
+
     def columnCount(self, parent):
         # required by QAbstractTableModel
         return len(self.columns)
-    
+
     def data(self, index, role):
         # required by QAbstractTableModel
         nas = ['None', '<NA>', 'NaT', 'nan']
-        #can display only strings??, so convert numbers to string
+        # can display only strings??, so convert numbers to string
         txt = self.db.loc[index.row(), self.columns[index.column()]]
         if type(txt).__name__ == 'Timestamp':
             txt = txt.date()
@@ -110,34 +110,34 @@ class DBmodel(QtCore.QAbstractTableModel):
                 if re.findall(self.fltr, txt, re.IGNORECASE):
                     color = QtGui.QBrush(QtGui.QColor(255, 226, 79))
             return color
-        
+
         # set tool tip
         if role == QtCore.Qt.ToolTipRole:
-            if not(txt in nas):
+            if not (txt in nas):
                 return txt
-    
+
     def headerData(self, section, orientation, role):
         # required by QAbstractTableModel
         if role == QtCore.Qt.DisplayRole and orientation == QtCore.Qt.Horizontal:
             return self.columns[section]
-   
+
 
 class DBmodelProxy(QtCore.QSortFilterProxyModel):
-    #extends model by sorting and filtering
+    # extends model by sorting and filtering
     def __init__(self, db):
         super().__init__()
         self.setSourceModel(DBmodel(db))
-    
+
     def lessThan(self, left, right):
         # sorting for float
         # make sure empty rows stay at end when sorted (in any order)
         # make sure collored cells will stay on topwhen sorted (in any order)
-        
+
         lDat = self.sourceModel().data(left, QtCore.Qt.DisplayRole)
         rDat = self.sourceModel().data(right, QtCore.Qt.DisplayRole)
         lColor = self.sourceModel().data(left, QtCore.Qt.BackgroundRole)
         rColor = self.sourceModel().data(right, QtCore.Qt.BackgroundRole)
-        #trying to convert
+        # trying to convert
         try:
             lDat = float(lDat)
             rDat = float(rDat)
@@ -172,9 +172,9 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.db = DB()
         self.db.connect(parent=self.showMsg)
         self.fs = FileSystem()
-        #connect signals
+        # connect signals
         self.connect_signals()
-        #hide import widgets
+        # hide import widgets
         self.view.import_info.hide()
         self.view.import_status_btn.hide()
         # controling context menu
@@ -204,8 +204,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.save_asDB_btn.clicked.connect(self.save_asDB)
         self.view.imp_btn.clicked.connect(self.imp)
         self.view.export_btn.clicked.connect(self.exp)
-        
-        #buttons
+
+        # buttons
         self.view.addFltr_btn.clicked.connect(self.addFltr)
         self.view.edFltr_btn.clicked.connect(lambda: self.modFltr('edit'))
         self.view.upFltr_btn.clicked.connect(lambda: self.mvFltr(direction='up'))
@@ -224,13 +224,12 @@ class GUIMainWin_ctrl(QtCore.QObject):
         # radio buttons
         self.view.also_not_cat.toggled.connect(self.alsoNoCatData)
         self.view.markGrp.toggled.connect(self.markFltrColors)
-        #text widgets
-        self.view.new_cat_name.editingFinished.connect(self.addFltr)
+        # text widgets
         self.view.search.textChanged.connect(lambda: self.callDelay(self.search, 800))
-        
+
         # cat_view
         self.view.cat_view.itemSelectionChanged.connect(self.markFltrColors)
-        # split calendar widget
+        # split - calendar widget
         self.view.split_view.itemSelectionChanged.connect(self.showCalendar)
         # win layout change
         self.view.splitter_2.splitterMoved.connect(lambda: self.callDelay(self.headerSize, 200))
@@ -249,8 +248,10 @@ class GUIMainWin_ctrl(QtCore.QObject):
         # QTreeWidget context menu
         self.view.tree_db.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.view.tree_db.customContextMenuRequested.connect(self.TreeContextMenu)
+        # tab changed
+        self.view.tabMenu.currentChanged.connect(self.DBforTab)
 
-    def connectTreeWidget(self, txt):    
+    def connectTreeWidget(self, txt):
         self.summCol = txt
         self.fill_tree()
 
@@ -259,23 +260,25 @@ class GUIMainWin_ctrl(QtCore.QObject):
         - if user closed the window\n
         - if user resize the window\n
         """
-        #exit
+        # exit
         if event.type() == QtCore.QEvent.Close:
             self.save_asDB()
             self.fs.writeOpt(op='visColumns', val=self.visCol)
             self.exit()
-        #win resize
+        # win resize
         elif event.type() == QtCore.QEvent.Resize:
             if source.__class__ is self.view.__class__:
                 self.callDelay(self.headerSize, 200)
         return False
 
     def callDelay(self, method, delay):
-        #called when you want delay signal
+        # called when you want delay signal
         self.timer.stop()
-        try: self.timer.timeout.disconnect(method)
-        except: pass
-    
+        try:
+            self.timer.timeout.disconnect(method)
+        except:
+            pass
+
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(method)
         self.timer.start(delay)
@@ -299,12 +302,12 @@ class GUIMainWin_ctrl(QtCore.QObject):
         elif self.view.tabMenu.currentIndex() == 3:  # split
             oper = ['sel row']
             txt = 'add split: '
-        
+
         menu = QtWidgets.QMenu()
-        
+
         for op in oper:
             widgets[op] = menu.addAction(f'{txt} {op}')
-            
+
         act = menu.exec(source.mapToGlobal(position))
 
         indexProxy = source.selectionModel().currentIndex()
@@ -312,7 +315,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         model = source.model().sourceModel()
 
         txt = model.data(indexModel, QtCore.Qt.DisplayRole)
-        col = model.headerData(indexModel.column(),QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole)
+        col = model.headerData(indexModel.column(), QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole)
         bankIndex = model.createIndex(indexModel.row(), cfg.op_col.index(self.db.BANK))
         hashIndex = model.createIndex(indexModel.row(), cfg.op_col.index(self.db.HASH))
         bank = model.data(bankIndex, QtCore.Qt.DisplayRole)
@@ -326,7 +329,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 if op == 'sel row':
                     fltr[self.db.COL_NAME] = self.db.HASH
                     fltr[self.db.FILTER] = hashRow
-                    fltr[self.db.CATEGORY] = self.curCat
                 else:
                     fltr[self.db.COL_NAME] = col
                     fltr[self.db.FILTER] = txt
@@ -347,7 +349,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             all_widgets = {}
             menu = QtWidgets.QMenu()
             for i in cfg.op_col:
-                widget = QtWidgets.QAction(i,menu)
+                widget = QtWidgets.QAction(i, menu)
                 widget.setCheckable(True)
                 if i in self.visCol:
                     widget.setChecked(True)
@@ -366,11 +368,11 @@ class GUIMainWin_ctrl(QtCore.QObject):
                     self.visCol.append(col)
             if act == apply:
                 self.fs.writeOpt(op='visColumns', val=self.visCol)
-                self.fill_DB(self.db.op.get(''))
+                self.fill_DB(self.db.op.get(''))  # will return empty DB, so fill_DB() will not affect the model
                 break
             else:
                 if prevCols == self.visCol:
-                # nothing changed so exit
+                    # nothing changed so exit
                     return
 
     def TreeContextMenu(self, position):
@@ -392,17 +394,17 @@ class GUIMainWin_ctrl(QtCore.QObject):
         [cat.remove(i) for i in kids]
 
         menu = QtWidgets.QMenu()
-        add = menu.addAction("add actegory")
+        add = menu.addAction("add category")
         ren = menu.addAction("rename category")
         mer = menu.addMenu("merge category")
+        spl = menu.addAction("split category")
         for i in it_names:
             mer.addAction(i)
         mov = menu.addMenu("move category")
         for i in cat:
             mov.addAction(i)
         rem = menu.addAction("remove category")
-        
- 
+
         if len(it) != 1:
             add.setEnabled(False)
             ren.setEnabled(False)
@@ -418,16 +420,16 @@ class GUIMainWin_ctrl(QtCore.QObject):
         if act == add:
             self.contextFunc = 'add'
             self.view.tree_db.blockSignals(True)
-            #create kid under selected item
+            # create kid under selected item
             it_kid = QtWidgets.QTreeWidgetItem(it[0], ['', ''])
             flag = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
             it_kid.setFlags(flag)
-            #clear all selection
+            # clear all selection
             self.view.tree_db.selectionModel().clear()
             # select only kid
             it_kid.setSelected(True)
             self.view.tree_db.blockSignals(False)
-            #edit name
+            # edit name
             self.view.tree_db.editItem(it_kid)
             # itemChanged signal will be cathced by self.treeEdited
         # rename existing category
@@ -442,19 +444,34 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 # tree will handle children and data inside cat
                 # move children to Grandpa
                 # move data to grandpa
-                self.db.tree.rm(child=i)
+                self.db.treeRm(child=i)
             self.fill_tree()
+        elif act == spl:
+            # set split tab
+            self.view.tabMenu.setCurrentIndex(3)
+            # set current cat (right click on tree doesnot do that)
+            self.con_tree()
+            catData = self.db.op.get(self.curCat)
+            # min date
+            minDate = catData.loc[:, self.db.DATA_OP].min()
+            # max date
+            maxDate = catData.loc[:, self.db.DATA_OP].max()
+            fltr = {self.db.START: str(minDate.date()),
+                    self.db.END: str(maxDate.date()),
+                    self.db.COL_NAME: self.db.CATEGORY,
+                    self.db.FILTER: self.curCat}
+            self.__setFltrWidgets__(fltr, self.view.split_view)
         # merge selected categories
         elif act:
-            if act.text() in it_names: # merge
+            if act.text() in it_names:  # merge
                 it_names.remove(act.text())
                 for i in it_names:
-                    self.db.cat.ren(new_category=act.text(), category=i)
+                    self.db.treeRen(new_category=act.text(), category=i)
                 self.fill_tree()
             # move selected categories
-            elif act.text() in cat: # move
+            elif act.text() in cat:  # move
                 for i in it_names:
-                    self.db.tree.mov(new_parent=act.text(), child=i)
+                    self.db.treeMov(new_parent=act.text(), child=i)
                 self.fill_tree()
 
     def treeItemActivated(self, it):
@@ -473,14 +490,14 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """
         it = self.view.tree_db.selectedItems()
         if self.contextFunc == 'ren':
-            self.db.tree.ren(category=self.before_edit, new_category=it[0].text(0))
+            self.db.treeRen(category=self.before_edit, new_category=it[0].text(0))
             self.setCatInput()
 
         elif self.contextFunc == 'add':
             it_parent = it[0].parent()
-            self.db.tree.add(parent=it_parent.text(0), child=it[0].text(0))
+            self.db.treeAdd(parent=it_parent.text(0), child=it[0].text(0))
             self.setCatInput()
-        
+
         self.before_edit = ''
         self.contextFunc = ''
         self.curCat = it[0].text(0)
@@ -491,6 +508,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """gets table name and col id, call appropriate function and return QtWidget\n
         table names: ['op', 'cat', 'trans', 'tree', 'split']
         """
+
         def trans0():
             # QtWidget:combo, col_name:BANK
             colWidget = QtWidgets.QComboBox()
@@ -499,6 +517,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
+
         def trans1():
             # QtWidget:combo, col_name:COL_NAME
             colWidget = QtWidgets.QComboBox()
@@ -509,6 +528,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
+
         def trans2():
             # QtWidget:combo, col_name:OPER
             colWidget = QtWidgets.QComboBox()
@@ -516,16 +536,20 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
+
         def trans3():
             # QtWidget:lineEdit, col_name:val1
             colWidget = QtWidgets.QLineEdit()
             return colWidget
+
         def trans4():
             # QtWidget:lineEdit, col_name:val2
             return trans3()
+
         def trans5():
             # QtWidget:lineEdit, col_name:trans_n
             return trans3()
+
         def cat0():
             # QtWidget:combo, col_name:col_name
             colWidget = QtWidgets.QComboBox()
@@ -533,6 +557,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
+
         def cat1():
             # QtWidget:lineEdit, col_name:selector
             colWidget = QtWidgets.QComboBox()
@@ -540,13 +565,16 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
+
         def cat2():
             # QtWidget:combo, col_name:filter
             colWidget = QtWidgets.QLineEdit()
             return colWidget
+
         def cat3():
             # filter_n
             return cat2()
+
         def cat4():
             # QtWidget:combo, col_name:oper
             colWidget = QtWidgets.QComboBox()
@@ -554,12 +582,15 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
+
         def cat5():
             # oper_n
             return cat2()
+
         def cat6():
             # QtWidget:lineEdit, col_name:category
             return cat2()
+
         def DB():
             if self.view.also_not_cat.isChecked() or not self.view.also_not_cat.isEnabled():
                 cat = cfg.GRANDPA
@@ -567,24 +598,28 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 cat = self.curCat
             data = self.db.op.group_data(col=self.visCol[col_n], category=cat)
             colWidget = QtWidgets.QComboBox()
-            colWidget.insertItems(-1,data)
+            colWidget.insertItems(-1, data)
             colWidget.setEditable(False)
             colWidget.textActivated.connect(self.addFltr_fromGR)
             return colWidget
+
         def tree1():
             # widget for column header in tree
             colWidget = QtWidgets.QComboBox()
             colWidget.insertItems(-1, self.db.op.sum_data())
             colWidget.setEditable(False)
             return colWidget
+
         def split0():
             # QLineEdit start date
             colWidget = QtWidgets.QLineEdit()
             return colWidget
+
         def split1():
             # QLineEdit end date
             colWidget = QtWidgets.QLineEdit()
             return colWidget
+
         def split2():
             # QComboWidget col_name
             colWidget = QtWidgets.QComboBox()
@@ -592,21 +627,27 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
+
         def split3():
             # QLineEdit filter
             return split1()
+
         def split4():
             # QLineEdit value
             return split1()
+
         def split5():
             # QLineEdit days
             return split1()
+
         def split6():
             # QLineEdit split_n
             return split1()
+
         def split7():
             # QLineEdit split_n
             return split1()
+
         # common stuff
         if tabName == 'DB':
             # for DB all widgets are the same
@@ -622,9 +663,10 @@ class GUIMainWin_ctrl(QtCore.QObject):
         return colWidget
 
     def fill(self, dbTxt: str):
-        '''Fill widget filters table
-        '''
+        """Fill widget filters table
+        """
         db = eval(f'self.db.{dbTxt}')
+        # if not len(self.db.op.op): return  # only if db exists
         widget = eval(f'self.view.{dbTxt}_view')
         cols = eval(f'cfg.{dbTxt}_col')
 
@@ -636,10 +678,10 @@ class GUIMainWin_ctrl(QtCore.QObject):
         elif dbTxt == 'split':
             db.setSplit(self.curCat)
             hideCols = [self.db.SPLIT_N, self.db.CATEGORY]
-        
+
         rows_n = len(db)
         widget.setColumnCount(len(cols))
-        widget.setRowCount(0) # reset table size
+        widget.setRowCount(0)  # reset table size
         widget.setRowCount(rows_n + 1)
         # set column labels
         widget.setHorizontalHeaderLabels(cols)
@@ -650,25 +692,25 @@ class GUIMainWin_ctrl(QtCore.QObject):
             widget.setCellWidget(0, x_n, self.__viewWidget__(dbTxt, x_n))
             # and the other
             for y in range(rows_n):
-                cell = QtWidgets.QTableWidgetItem(db[y, x])
+                cell = QtWidgets.QTableWidgetItem(str(db[y, x]))
                 widget.setItem(y + 1, x_n, cell)
-        
+
         # hide some columns and resize    
         [widget.setColumnHidden(cols.index(i), True)
-            for i in hideCols]
+         for i in hideCols]
         col = widget.horizontalHeader()
         col.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         # select col_name column (anything but date in the split)
         ind = widget.model().index(0, cols.index(self.db.COL_NAME))
         widget.setCurrentIndex(ind)
-    
+
     def fill_group(self):
         """fills group_view
         """
-        self.view.group_view.setSortingEnabled(False) # otherway we end up with mess
+        self.view.group_view.setSortingEnabled(False)  # otherway we end up with mess
         row_n = 1
         self.view.group_view.setColumnCount(len(self.visCol))
-        self.view.group_view.setRowCount(0) # reset table
+        self.view.group_view.setRowCount(0)  # reset table
         self.view.group_view.setRowCount(row_n)
         # hide column and row header
         head = self.view.group_view.horizontalHeader()
@@ -686,6 +728,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """fills DB tableView\n
         using op DB\n
         - if db not empty, will set new data in view model
+        - if db.empty, will adjust columns only, used by when changing cols visibility to speed up
         - hide/show columns based on self.visCol
         - resize columns
         - fill groups widgets
@@ -697,11 +740,11 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         # hide some columns and resize
         [widget.setColumnHidden(cfg.op_col.index(i), i not in self.visCol)
-            for i in cfg.op_col]
+         for i in cfg.op_col]
 
         self.headerSize()
 
-        #update grouping table
+        # update grouping table
         self.fill_group()
 
     def con_tree(self):
@@ -717,6 +760,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         if cfg.GRANDPA in itText:
             self.curCat = cfg.GRANDPA
             # don't mess up with GRANDPA
+            self.view.also_not_cat.setChecked(False)
             self.view.also_not_cat.setDisabled(True)
             self.view.tree_db.clearSelection()
             self.view.tree_db.setCurrentItem(self.view.tree_db.topLevelItem(1))
@@ -734,8 +778,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.view.label_3.hide()
 
         self.alsoNoCatData()
-        self.fill('cat')
-        self.fill('split')
+
+        self.DBforTab()
         self.view.new_cat_name.blockSignals(False)
 
     def fill_tree(self):
@@ -744,31 +788,31 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.tree_db.clear()
         # allow multiselection (it's limited for Grandpa in self.con_tree())
         self.view.tree_db.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        
+
         # first row is combo box to choose summation column
-        comboRow = QtWidgets.QTreeWidgetItem([self.db.CATEGORY,''])
+        comboRow = QtWidgets.QTreeWidgetItem([self.db.CATEGORY, ''])
         comboRow.setFlags(comboRow.flags() & ~QtCore.Qt.ItemIsSelectable)
         comboRow.setBackground(0, QtGui.QColor(26, 255, 14))
-        
+
         # add combo box
         colWidget = self.__viewWidget__(tabName='tree', col_n=1)
         colWidget.setCurrentText(self.summCol)
         colWidget.currentIndexChanged.connect(lambda: self.connectTreeWidget(colWidget.currentText()))
         self.view.tree_db.addTopLevelItem(comboRow)
-        self.view.tree_db.setItemWidget(comboRow,1,colWidget)
-        
+        self.view.tree_db.setItemWidget(comboRow, 1, colWidget)
+
         # hide columns
         self.view.tree_db.setHeaderHidden(True)
 
         cats = self.db.tree.allChild()
         cats = list(cats.keys())
         cats.remove(cfg.GRANDPA)
-  
+
         # second row is Grandpa
         summ = self.db.op.sum_data(op=colWidget.currentText(), category=cfg.GRANDPA)
         grandpa = QtWidgets.QTreeWidgetItem(self.view.tree_db, [cfg.GRANDPA, summ])
         self.view.tree_db.addTopLevelItem(grandpa)
-  
+
         # than other
         match = QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive
         for cat in cats:
@@ -777,11 +821,11 @@ class GUIMainWin_ctrl(QtCore.QObject):
             it = QtWidgets.QTreeWidgetItem(parent[0], [cat, summ])
             flag = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
             it.setFlags(flag)
-        
+
         # expand and resize
         self.view.tree_db.expandAll()
         self.view.tree_db.resizeColumnToContents(0)
-        
+
         # select curIt in the tree
         it = self.view.tree_db.findItems(self.curCat, match)
         if not it:
@@ -789,11 +833,11 @@ class GUIMainWin_ctrl(QtCore.QObject):
             it = self.view.tree_db.findItems(self.curCat, match)
         self.view.tree_db.setCurrentItem(it[0])
 
-        self.con_tree() # and adjust tables
+        self.con_tree()  # and adjust tables
         self.view.tree_db.blockSignals(False)
         self.setCatInput()
 
-    #categorizing
+    # categorizing
     def setCatInput(self):
         # fill category completer for search QlineEdit
         cats = self.db.tree.allChild()
@@ -801,22 +845,22 @@ class GUIMainWin_ctrl(QtCore.QObject):
         completer = QtWidgets.QCompleter(cats)
         completer.setCaseSensitivity(False)
         self.view.new_cat_name.setCompleter(completer)
-   
+
     def addFltr_fromGR(self, txt):
         fltr = {}
         col_i = self.view.group_view.currentColumn()
-        txt = re.split(r'x\d+:\s+', txt)[-1] # remove no of occurence, leave only sentence
+        txt = re.split(r'x\d+:\s+', txt)[-1]  # remove no of occurence, leave only sentence
         fltr[self.db.COL_NAME] = self.visCol[col_i]
         fltr[self.db.FILTER] = txt
         self.__setFltrWidgets__(fltr, self.view.cat_view)
-        self.view.tabMenu.setCurrentIndex(2) # categorize tab
- 
+        self.view.tabMenu.setCurrentIndex(2)  # categorize tab
+
     def addTrans(self):
         """triggered when trans add btn clicked\n
         """
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         fltr = self.__getFltrWidgets__(self.view.trans_view)
-        self.db.trans.add(fltr=fltr)
+        self.db.transAdd(fltr=fltr)
         self.fill('trans')
         self.fill_DB(self.db.op.get(self.curCat))
         self.fill_tree()
@@ -830,16 +874,16 @@ class GUIMainWin_ctrl(QtCore.QObject):
         col_n = cfg.trans_col.index(self.db.TRANS_N)
         trans_n = self.view.trans_view.item(row_n, col_n).text()
 
-        self.db.trans.rm(trans_n=trans_n)
+        self.db.transRm(trans_n=trans_n)
         if oper == 'edit':
             fltr = {}
             for col in range(self.view.trans_view.columnCount()):
                 fltr[cfg.trans_col[col]] = self.view.trans_view.item(row_n, col).text()
-            
-        #refresh views
+
+        # refresh views
         self.fill('trans')
         self.fill_DB(self.db.op.get(self.curCat))
-        self.fill_tree() # will set top item and filter tables accordingly
+        self.fill_tree()  # will set top item and filter tables accordingly
         self.setCatInput()
 
         # fill_tree() will reset cat view, so only after we can set widgets
@@ -855,23 +899,23 @@ class GUIMainWin_ctrl(QtCore.QObject):
         row_n = self.view.trans_view.currentItem().row()
 
         if direction == 'up':
-            new_row_n = row_n -1
+            new_row_n = row_n - 1
         else:
             new_row_n = row_n + 1
-        self.db.trans.mov(trans_n=row_n, new_trans_n=new_row_n)
+        self.db.transMov(trans_n=row_n, new_trans_n=new_row_n)
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
-        #refresh views
+        # refresh views
         self.fill('trans')
-        self.fill_tree() # will set top item and filter tables accordingly
+        self.fill_tree()  # will set top item and filter tables accordingly
         self.fill_DB(self.db.op.get(self.curCat))
         self.setCatInput()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def addFltr(self):
-        """triggered when cat add btn clicked or edit finished on new_category QEditLine\n
+        """triggered when cat add btn clicked 
         """
-        #clear search QEditLine
+        # clear search QEditLine
         self.view.search.setText('')
 
         # read new filter
@@ -885,10 +929,10 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.curCat = cat
 
         fltr[self.db.CATEGORY] = self.curCat
-        if all([fltr[i] for i in fltr 
-                    if i in [self.db.OPER, self.db.COL_NAME, self.db.FILTER]]):
-            if not self.db.cat.add(fltr=fltr):
-                self.curCat = cfg.GRANDPA # something went wrong
+        if all([fltr[i] for i in fltr
+                if i in [self.db.OPER, self.db.COL_NAME, self.db.FILTER]]):
+            if not self.db.catAdd(fltr=fltr):
+                self.curCat = cfg.GRANDPA  # something went wrong
 
             if self.curCat != cfg.GRANDPA:
                 self.view.also_not_cat.setChecked(False)
@@ -908,11 +952,11 @@ class GUIMainWin_ctrl(QtCore.QObject):
         row_n = self.view.cat_view.currentItem().row()
         col_n = cfg.cat_col.index(self.db.OPER_N)
         oper_n = self.view.cat_view.item(row_n, col_n).text()
-        
+
         parent = self.db.tree.parent(self.curCat)
-        self.db.cat.rm(oper_n=oper_n, category=self.curCat)
+        self.db.catRm(oper_n=oper_n, category=self.curCat)
         # may happen that we removed category, so create new
-        self.db.tree.add(parent=parent, child=self.curCat)
+        self.db.treeAdd(parent=parent, child=self.curCat)
 
         if oper == 'edit':
             fltr = {}
@@ -932,27 +976,31 @@ class GUIMainWin_ctrl(QtCore.QObject):
         row_n = self.view.cat_view.currentItem().row()
 
         if direction == 'up':
-            new_row_n = row_n -1
+            new_row_n = row_n - 1
         else:
             new_row_n = row_n + 1
 
-        self.db.cat.mov(oper_n=row_n, new_oper_n=new_row_n)
+        self.db.catMov(oper_n=row_n, new_oper_n=new_row_n, category=self.curCat)
+
+        self.fill('cat')
+        self.fill_DB(self.db.op.get(self.curCat))
+        self.setCatInput()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def addSplit(self):
         fltr = self.__getFltrWidgets__(self.view.split_view)
-        
-        # def category
-        # if curCat == grandpa, take category from new_cat_name or filter or "new category"
-        if self.curCat == cfg.GRANDPA:
-            cat = self.view.new_cat_name.text() or 'split' + fltr[self.db.CATEGORY] or 'new actegory'
-            self.view.new_cat_name.setText(cat)
-            self.curCat = cat
+
+        parent = self.curCat
+        # take category from new_cat_name or "new category"
+        self.curCat = self.view.new_cat_name.text() or 'new category'
+        self.view.new_cat_name.setText(self.curCat)
+        fltr[self.db.CATEGORY] = self.curCat
 
         if all([fltr[i] for i in fltr
-                            if i in [self.db.COL_NAME, self.db.FILTER]]):
-            self.db.split.add(fltr)
-            
+                if i in [self.db.COL_NAME, self.db.FILTER, self.db.CATEGORY]]):
+
+            self.db.splitAdd(fltr, parent)
+
             if self.curCat != cfg.GRANDPA:
                 self.view.also_not_cat.setChecked(False)
                 self.fill_tree()
@@ -971,7 +1019,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         col_n = cfg.split_col.index(self.db.SPLIT_N)
         oper_n = self.view.split_view.item(row_n, col_n).text()
 
-        self.db.split.rm(oper_n)
+        self.db.splitRm(oper_n)
 
         if oper == 'edit':
             fltr = {}
@@ -982,13 +1030,14 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         if oper == 'edit':
             self.__setFltrWidgets__(fltr, self.view.split_view)
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def __getFltrWidgets__(self, source: QtWidgets.QTableWidget) -> dict:
         """collects text from first row widgets in cat or trans table
         """
         fltr = {}
         for col_i in range(source.columnCount()):
-            widget = source.cellWidget(0,col_i)
+            widget = source.cellWidget(0, col_i)
             if isinstance(widget, QtWidgets.QComboBox):
                 widget_txt = widget.currentText()
             elif isinstance(widget, QtWidgets.QLineEdit):
@@ -1005,7 +1054,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         for col_i in range(source.columnCount()):
             widget_name = source.horizontalHeaderItem(col_i).text()
             if widget_name in fltr.keys():
-                widget = source.cellWidget(0,col_i)
+                widget = source.cellWidget(0, col_i)
                 if isinstance(widget, QtWidgets.QComboBox):
                     widget.setCurrentText(fltr[widget_name])
                 elif isinstance(widget, QtWidgets.QLineEdit):
@@ -1030,10 +1079,11 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 txt = it.text()
                 if self.view.cat_view.horizontalHeaderItem(col_i).text() == self.db.FILTER:
                     mod.sourceModel().markFltr(txt, colTxt.text())
-                else: mod.sourceModel().markFltr()
+                else:
+                    mod.sourceModel().markFltr()
             else:
                 mod.sourceModel().markFltr()
-        
+
     def search(self):
         # mark search result with color
         # make sure we already have model in view
@@ -1045,14 +1095,14 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 self.view.search.setStyleSheet("background-color: rgb(255, 140, 0); ")
             else:
                 self.view.search.setStyleSheet("background-color: rgb(255, 255, 255); ")
-            mod.sort(0,QtCore.Qt.AscendingOrder)
-  
+            mod.sort(0, QtCore.Qt.AscendingOrder)
+
     # file operations
     def openDB(self, file=''):
         if not file:
             file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose SQlite3 file',
-                                                                    directory='',
-                                                                    filter=self.fs.getDB(ext=True))
+                                                         directory='',
+                                                         filter=self.fs.getDB(ext=True))
             # Qt lib returning always / as path separator
             # we need system specific, couse we are checking for file existence
             path = QtCore.QDir.toNativeSeparators(file[0])
@@ -1064,21 +1114,20 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.fs.setDB(file)
         if self.db.open_db(self.fs.getDB()):  # return False if fail
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-            #self.disp_statusbar('openDB')
+            # self.disp_statusbar('openDB')
             self.fs.writeOpt("LastDB", self.fs.getDB())
             self.fill('trans')
             self.fill('split')
-            self.fill_tree() # will set top item and filter tables accordingly
-            self.fill_DB(self.db.op.get(self.curCat))
+            self.fill_tree()  # will set top item and filter tables accordingly
             self.setCatInput()
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-    
+
     def newDB(self):
         file = QtWidgets.QFileDialog.getSaveFileName(self.view, caption='Choose name for new SQlite3 file',
-                                                                directory='',
-                                                                filter=self.fs.getDB(ext=True))
+                                                     directory='',
+                                                     filter=self.fs.getDB(ext=True))
         # Qt lib returning always / as path separator
-        # we need system specific, couse we are checking for file existence
+        # we need system specific, because we are checking for file existence
         path = QtCore.QDir.toNativeSeparators(file[0])
         if path:
             self.fs.setDB(path)
@@ -1086,10 +1135,13 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return
         self.fs.writeOpt("LastDB", self.fs.getDB())
         self.db = DB()
+        # need to reset DB view model manually because
+        # empty DB is ignored by fill_DB()
+        self.view.DB_view.setModel(DBmodelProxy(self.db.op.get(category=cfg.GRANDPA)))
+        self.curCat = cfg.GRANDPA
         self.fill('trans')
         self.fill('split')
-        self.fill_tree() # will set top item and filter tables accordingly
-        self.fill_DB(self.db.op.get(self.curCat))
+        self.fill_tree()  # will set top item and filter tables accordingly
         self.setCatInput()
 
     def save_asDB(self):
@@ -1097,8 +1149,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def imp(self, bank):
         file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose Excell file',
-                                                                directory='',
-                                                                filter=self.fs.getIMP(ext=True))
+                                                     directory='',
+                                                     filter=self.fs.getIMP(ext=True))
         # Qt lib returning always / as path separator
         # we need system specific, couse we are checking for file existence
         path = QtCore.QDir.toNativeSeparators(file[0])
@@ -1108,10 +1160,10 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return
         if self.db.imp_data(self.fs.getIMP()):
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-            #self.disp_statusbar('openDB')
+            # self.disp_statusbar('openDB')
             self.fill('trans')
             self.fill('split')
-            self.fill_tree() # will set top item and filter tables accordingly
+            self.fill_tree()  # will set top item and filter tables accordingly
             self.fill_DB(self.db.op.get(self.curCat))
             self.setCatInput()
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -1124,18 +1176,18 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.view.save_asDB_btn.setDisabled(True)
 
     def imp_commit(self, sig):
-        #hide import widgets
+        # hide import widgets
         self.view.import_info.hide()
         self.view.import_status_btn.hide()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.db.imp_commit(sig)
-        #refresh views
+        # refresh views
         self.fill('trans')
         self.fill('split')
-        self.fill_tree() # will set top item and filter tables accordingly
+        self.fill_tree()  # will set top item and filter tables accordingly
         self.fill_DB(self.db.op.get(self.curCat))
         self.setCatInput()
-    
+
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         # self enable DB (open, save, new) btns
         self.view.openDB_btn.setDisabled(False)
@@ -1157,6 +1209,30 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 size = header.sectionSize(i)
                 header.setDefaultSectionSize(size)
         header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
+
+    def DBforTab(self):
+        """adjust filter view according to active tab\n
+        also show "new category" name QLineEdit only for proper tabs
+        called by signal when tab changed
+        """
+        tabs = {0: 'data',
+                1: 'trans',
+                2: 'cat',
+                3: 'split'}
+        tab = self.view.tabMenu.currentIndex()
+
+        self.view.new_cat_name.blockSignals(True)
+        if tabs[tab] in ['cat', 'split']:  # show QlineEdit
+            self.view.new_cat_name.show()
+            self.view.new_cat_name.setText('')
+            self.view.label_3.show()
+        else:
+            self.view.new_cat_name.hide()
+            self.view.label_3.hide()
+
+        if tabs[tab] in ['cat', 'split', 'trans']:
+            self.fill(dbTxt=tabs[tab])
+        self.view.new_cat_name.blockSignals(False)
 
     def setStatusBar(self):
         # add text messages
@@ -1194,7 +1270,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         widget = self.view.split_view.focusWidget()
         if not it or not isinstance(widget, QtWidgets.QLineEdit):
             return
-        
+
         if cfg.split_col_type[it.column()] == 'TIMESTAMP' and it.row() == 0:
             cal = GUICalendar()
             if cal.exec_():
@@ -1208,10 +1284,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def setStat(self):
         """set gui status
-        """        
+        """
         self.visCol = self.fs.getOpt('visColumns')
         if not self.visCol:
             self.visCol = cfg.op_col
             self.fs.writeOpt(op='visColumns', val=self.visCol)
-        
-        
