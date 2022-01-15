@@ -33,6 +33,7 @@ bank files translation <dictionary>
     Each list will be mapped against operation DB op_col
 """
 
+
 def map_bank(bank):
     """
     Map bank col names to operation_DB col names.
@@ -45,13 +46,14 @@ def map_bank(bank):
     n_col = len(op_col)
     for key in bank.keys():
         cols = []
-        for i in range(n_col):           ## wstawia nazwy do brakujacych kolumn dla wybranego banku
-            col_name = bank[key][i]      ## podmienia None na nazwy kolumn z glownej bazy
-            if col_name is None:         ## ale moze zamieniac na dowolny string
+        for i in range(n_col):  ## wstawia nazwy do brakujacych kolumn dla wybranego banku
+            col_name = bank[key][i]  ## podmienia None na nazwy kolumn z glownej bazy
+            if col_name is None:  ## ale moze zamieniac na dowolny string
                 col_name = op_col[i]
             cols.append(col_name)
         bank[key] = cols
     return bank
+
 
 def add_extra_col(extra_cols: list, dest: "list|dict") -> list:
     """
@@ -66,6 +68,7 @@ def add_extra_col(extra_cols: list, dest: "list|dict") -> list:
             key = list(dest.keys())
             dest[key[i]] = i_list
     return dest
+
 
 def sql_table(col_names, types=''):
     """
@@ -113,12 +116,14 @@ bank = add_extra_col(extra_col, bank)
 
 # DB used for categorize
 # oper col_name must be the same name for both cat & trans
-cat_col = ["col_name", 'function', f"{fltr}", 'filter_n', f'{oper}', "oper_n", f'{category}']
-cat_col_type = ["TEXT", "TEXT", 'INT',  "TEXT", "TEXT", "INT", "TEXT", "TEXT"]
+# transform operations change fltr column, 
+# we need fltr_orig to be able to restore when removing or editing trans
+cat_col = ["col_name", 'function', f"{fltr}", 'filter_n', f'{oper}', "oper_n", f'{category}', 'filter_orig']
+cat_col_type = ["TEXT", "TEXT", 'INT', "TEXT", "TEXT", "INT", "TEXT", "TEXT", "TEXT"]
 
 # allowed columns for filtering cat_col[col_name]
-#op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja", 'bank', 'hash', 'kategoria']
-cat_col_names = [op_col[i] for i in [2,3,6,7,8,9,10,11,12, 13]]
+# op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja", 'bank', 'hash', 'kategoria']
+cat_col_names = [op_col[i] for i in [2, 3, 6, 7, 8, 9, 10, 11, 12, 13]]
 
 # DB used for transform operations
 trans_col = [f'{bank_col}', f"{col_name}", f'{oper}', f'{val1}', "val2", "trans_n"]

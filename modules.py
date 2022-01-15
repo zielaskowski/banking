@@ -1,14 +1,21 @@
-import os, sys, json
-import pandas as pd
+"""
+various modules
+class FileSystem manage writing, savin, import and export of data
+"""
+import os
+import sys
+import json
+
 
 class FileSystem:
     """Handles all file system stuff
 
     Define file path and names. For each type stores as list of path, name and extensions:\n
-    -imported XLS file:          self._fileXLS, access through self.getIMP and self.setIMP\n
+    -imported XLS file:          self._fileIMP, access through self.getIMP and self.setIMP\n
     -DB file:                    self._fileDB, access through self.getDB and self.setDB\n
     -aplication location:        self._fileAPP, access through self.getAPP\n
     -configuration file:         self._fileCONF, access to options through self.getOpt and self.writeOpt\n
+    -csv export file:            slf._fileCSV, access to options through self.getCSV and self.writeCSV\n
 
     Handles expected type of file: SQlite3, TXT used as parameter for QtFileDialog
     """
@@ -20,6 +27,7 @@ class FileSystem:
 
     def __init__(self):
         self._fileIMP = ['', '', '']
+        self._fileCSV = ['', '', '']
         self._fileDB = ['', '', '']
         self._fileAPP = ['', '', '']
         self._fileCONF = ['opt', 'conf', '.txt']  # Configuration file. name is constant
@@ -29,6 +37,7 @@ class FileSystem:
                        "winSize": ''}
         self.typeIMP = ['excel', '*.xls *.xlsx']
         self.typeDB = ['SQlite3', '.s3db']
+        self.typeCSV = ['CSV file', '.csv']
 
         self.setAPP()
 
@@ -82,6 +91,35 @@ class FileSystem:
         if not path and not file and not ext:  # all: path+name+ext
             fp = self._fileDB[self._PATH] + self._fileDB[self._NAME] + self._fileDB[self._EXT]
         return fp
+    
+    def setCSV(self, path: str, check=False):
+            """set path and filename for DB. \n
+            checks if file exist if requested, useful for reading config (lastDB)
+            """
+            if check and not os.path.isfile(path):
+                # file is missing
+                self._fileDB = ['', '', '']
+                return
+            # override file extension. No other than s3db can be opened
+            self._fileCSV = self._split_path(path)
+            self._fileCSV[self._EXT] = self.typeCSV[1]
+
+    def getCSV(self, path=False, file=False, ext=False):
+            """ext=True: input typical for QtFileDialog: ('CSV file (*.csv)') \n
+            all False: path+file+ext
+            """
+            if not ext and not self._fileCSV[0]:
+                return ''
+            fp = ''
+            if path:
+                fp += self._fileCSV[self._PATH]
+            if file:
+                fp += self._fileCSV[self._NAME] + self._fileCSV[self._EXT]
+            if ext:  # 'CSV file (*.csv)'
+                fp += self.typeCSV[0] + ' (*' + self.typeCSV[1] + ')'
+            if not path and not file and not ext:  # all: path+name+ext
+                fp = self._fileCSV[self._PATH] + self._fileCSV[self._NAME] + self._fileCSV[self._EXT]
+            return fp
 
     def setAPP(self):
         if getattr(sys, 'frozen', False):  # exe file
@@ -193,64 +231,3 @@ class FileSystem:
         for i in li:
             str += i + sep
         return str
-
-
-class Panply():
-    def __init__(self, *args, **kwargs):
-        self.db = pd.DataFrame(*args, **kwargs)
-        self.cols = []
-        self.val = 0
-        self.oper = ''
-        self.row = -1
-
-    def __ne__(self, *args, **kwargs):
-        self.oper = 'ne'
-        self.filter()
-
-    def __eq__(self, other):
-        self.oper = 'eq'
-        self.filter()
-
-    def __iter__(self):
-        self.row = -1
-        return self
-
-    def __next__(self):
-        self.row += 1
-        if self.row >= len(self.db) or self.db.empty:
-            raise StopIteration
-        return self.db.iloc[self.row,:]
-    
-    def __len__(self):
-        return len(self.db)
-
-    def __getitem__(self, *args):
-        if len(args) == 1:
-            return self.db.iloc[args[0]]
-        return self.db.iloc[args[0], args[1]]
-
-    def c(self,*args):
-        self.cols = args[0]
-        return self
-    
-    def v(self, *args):
-        self.val = args[0]
-        return self
-
-    def filter(self, *args, **kwargs):
-        if not self.cols or not self.val:
-            return
-        def eq():
-            rows = self.db.loc[:, self.cols] == self.val
-            self.db = self.db.loc[rows,:]
-            return
-        def ne():
-            rows = self.db.loc[:, self.cols] != self.val
-            self.db = self.db.loc[rows,:]
-            return
-        exec(f'{self.oper}()')
-    
-
-
-
-

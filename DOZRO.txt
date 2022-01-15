@@ -1,3 +1,41 @@
+write full path in category column in all dbs
+
+save db when import confirmed
+when start empty, create DB
+file operation are enigmatic at best
+BIG ONE: move from file aproach to user aproach with one db for different users
+give information what db is opened
+remember last open file location
+
+
+SPLIT:
+- ask to confirm when removeing cat referenced by split
+- remove split from context menu on grandpa
+- when spliting with cost higher than some operations inside cat....do something?
+\/ problem when spliting cat with kids
+\/ allow empty dates
+\/ renaming categories, rename also split (also filters)
+\/ adding filter to split category....
+\/ removing parent cat, remove also split (split ref to cat)
+- format numbers in DBmodel (after spliting cost is not nice)
+\/ most commont items dissapear after split (splitting somewhere change op col types to objects, strings are excepted group_data())
+- spliting single operation is completely not clear
+
+cfg.split_col is missing CATEGORY column? line 963 in db.py probably lost when writing db
+
+
+check integrity (cat categories vs. tree categories)
+
+
+
+
+add log list when clicked on message area
+
+
+2 progress bar
+
+3 plot .....
+
 1.SAVE state
 Saving the user's main window settings begins with some familiar code for restoring the window's size and position and the state of any toolbars and dock windows it may have. Splitters too have a state, and this is restored and saved in the same way as the main window's state.
 def closeEvent(self, event):
@@ -10,6 +48,8 @@ def closeEvent(self, event):
         settings.setValue("MainSplitter", QVariant(self.mainSplitter.saveState()))
 
 
-4. DB_view column widget to search and grouping by count
+2. personal account numbers db (account number formatted in different ways: 12345678... or 1234 5678...)
+3. messages blink red and fade away after some time
+
 
 

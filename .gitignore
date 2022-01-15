@@ -3,5 +3,6 @@
 /__pycache__
 /opt/__pycache__
 /qt_gui/__pycache__
-/bank.s3db
+/qt_gui/design/__pycache__
+/bank*.s3db
 /testing
