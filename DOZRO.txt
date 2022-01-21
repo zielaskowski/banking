@@ -1,5 +1,11 @@
 write full path in category column in all dbs
 
+
+create events (like trips)
+
+merging category keep cat in place (do not move to grandpa)
+
+
 save db when import confirmed
 when start empty, create DB
 file operation are enigmatic at best
@@ -8,16 +14,17 @@ give information what db is opened
 remember last open file location
 
 
+
+
 SPLIT:
 - ask to confirm when removeing cat referenced by split
-- remove split from context menu on grandpa
-- when spliting with cost higher than some operations inside cat....do something?
+- remove split from context menu on grandpa??
+\/ when spliting with cost higher than some operations inside cat....do something?
 \/ problem when spliting cat with kids
 \/ allow empty dates
 \/ renaming categories, rename also split (also filters)
 \/ adding filter to split category....
 \/ removing parent cat, remove also split (split ref to cat)
-- format numbers in DBmodel (after spliting cost is not nice)
 \/ most commont items dissapear after split (splitting somewhere change op col types to objects, strings are excepted group_data())
 - spliting single operation is completely not clear
 
@@ -49,7 +56,7 @@ def closeEvent(self, event):
 
 
 2. personal account numbers db (account number formatted in different ways: 12345678... or 1234 5678...)
-3. messages blink red and fade away after some time
+
 
 
 

@@ -2,6 +2,7 @@
 controls GUI windows
 """
 import re
+from wsgiref.validate import validator
 from PyQt5 import QtCore, QtGui, QtWidgets
 from db import DB
 from modules import FileSystem
@@ -83,7 +84,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         # text widgets
         self.view.search.textChanged.connect(
             lambda: self.callDelay(self.search, 800))
-        self.view.new_cat_name.returnPressed.connect(self.addFltr)
+        self.view.new_cat_name.returnPressed.connect(self.catORsplit)
         # cat_view
         self.view.cat_view.itemSelectionChanged.connect(self.markFltrColors)
         # split - calendar widget
@@ -137,7 +138,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         try:
             self.timer.timeout.disconnect(method)
-        except:
+        except TypeError:
             pass
 
         self.timer.setSingleShot(True)
@@ -282,6 +283,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             rem.setEnabled(False)
 
         act = menu.exec_(self.view.tree_db.mapToGlobal(position))
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         # adding empty category
         if act == add:
             self.contextFunc = 'add'
@@ -346,6 +348,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
                 for i in it_names:
                     self.db.treeMov(new_parent=act.text(), child=i)
                 self.fill_tree()
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def treeItemActivated(self, it):
         """called by double clicked, when editing tree item\n
@@ -361,6 +364,9 @@ class GUIMainWin_ctrl(QtCore.QObject):
         - can be edited "by hand", equal to ren
         when redrawing the tree also can be triggered, so important to block signals
         """
+        if self.contextFunc == '':
+            return
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         it = self.view.tree_db.selectedItems()
         if self.contextFunc == 'ren':
             self.db.treeRen(category=self.before_edit,
@@ -376,6 +382,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.contextFunc = ''
         self.curCat = it[0].text(0)
         self.fill_tree()
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     # fill tables
     def __viewWidget__(self, tabName, col_n):
@@ -400,7 +407,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             if self.db.CATEGORY in it:
                 it.remove(self.db.CATEGORY)
             # add ALL column names
-            it.append('ALL')
+            it.append('ANY')
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
@@ -431,7 +438,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget = QtWidgets.QComboBox()
             it = cfg.cat_col_names.copy()
             # add ALL column names
-            it.append('ALL')
+            it.append('ANY')
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
@@ -495,6 +502,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         def split0():
             # QLineEdit start date
             colWidget = QtWidgets.QLineEdit()
+            colWidget.setText('-')
             colWidget.setReadOnly(True)
             return colWidget
 
@@ -512,21 +520,35 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def split3():
             # QLineEdit filter
-            # QLineEdit start date
-            colWidget = QtWidgets.QLineEdit()
+            colWidget = QtWidgets.QComboBox()
+            it = self.db.tree.allChild().keys()
+            colWidget.insertItems(-1, it)
+            colWidget.setEditable(False)
             return colWidget
 
         def split4():
             # QLineEdit value
-            return split3()
+            colWidget = QtWidgets.QLineEdit()
+            colWidget.setValidator(QtGui.QDoubleValidator(top=0, decimals=2))
+            return colWidget
 
         def split5():
             # QLineEdit days
-            return split4()
+            colWidget = QtWidgets.QLineEdit()
+            if self.db.op.op.empty:
+                totDays = 0
+            else:
+                totDays = self.db.op.op.loc[:, self.db.DATA_OP].max() \
+                    - self.db.op.op.loc[:, self.db.DATA_OP].min()
+                totDays = totDays.days
+            colWidget.setValidator(QtGui.QDoubleValidator(
+                bottom=0, top=totDays, decimals=0))
+            return colWidget
 
         def split6():
             # QLineEdit split_n
-            return split5()
+            colWidget = QtWidgets.QLineEdit()
+            return colWidget
 
         def split7():
             # QLineEdit split_n
@@ -587,7 +609,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.__setFltrWidgets__(fltr, widget)
         # hide some columns and resize
         [widget.setColumnHidden(cols.index(i), True)
-         for i in hideCols]
+            for i in hideCols]
         col = widget.horizontalHeader()
         col.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         # select col_name column (anything but date in the split)
@@ -669,14 +691,14 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def fill_tree(self):
         # DEBUG
-        # print(self.db.op.op)
         print(self.db.trans.trans)
         print(self.db.cat.cat)
         print(self.db.split.split)
         print(self.db.tree.tree)
-        # print(self.db.imp.imp)
+        print(self.db.op.op.loc[self.db.op.op.loc[:, self.db.CATEGORY]
+              != cfg.GRANDPA, self.db.CATEGORY].unique())
         #####
-
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.view.tree_db.blockSignals(True)
         # reset the tree
         self.view.tree_db.clear()
@@ -736,6 +758,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.con_tree()  # and adjust tables
         self.view.tree_db.blockSignals(False)
         self.setCatInput()
+        self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     # categorizing
     def setCatInput(self):
@@ -762,6 +785,21 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.search.setText(txt)
         self.view.search.blockSignals(False)
         self.search()
+
+    def catORsplit(self):
+        '''
+        triggered by enter in category name QLineEdit
+        based on current tab will choose addCat or addSplit
+        '''
+        tabs = {0: 'data',
+                1: 'trans',
+                2: 'cat',
+                3: 'split'}
+        tab = self.view.tabMenu.currentIndex()
+        if tabs[tab] == 'cat':
+            self.addFltr()
+        if tabs[tab] == 'split':
+            self.addSplit()
 
     def addTrans(self):
         """triggered when trans add btn clicked\n
@@ -830,17 +868,19 @@ class GUIMainWin_ctrl(QtCore.QObject):
     def addFltr(self):
         """triggered when cat add btn clicked 
         """
-        # clear search QEditLine
-        self.view.search.setText('')
-
         # read new filter
         fltr = self.__getFltrWidgets__(self.view.cat_view)
-
+        if fltr == {}:
+            return
+        
+        # clear search QEditLine
+        self.view.search.setText('')
+        
         # def category
         # if curCat == grandpa, take category from new_cat_name or filter or "new category"
         if self.curCat == cfg.GRANDPA:
             cat = self.view.new_cat_name.text()\
-                or fltr[self.db.FILTER]\
+                or fltr[self.db.FILTER].strip()\
                 or self.db.tree.new_cat()
             self.view.new_cat_name.setText(cat)
             self.curCat = cat
@@ -863,7 +903,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
                     for split in self.tmpSplit:
                         self.db.splitAdd(split, parent=parent)
                     self.tmpSplit = []
-                
+
             if self.curCat != cfg.GRANDPA:
                 self.view.also_not_cat.setChecked(False)
                 self.fill_tree()
@@ -887,6 +927,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         oper_n = self.view.cat_view.item(row_n, col_n).text()
 
         self.tmpSplit = self.db.catRm(oper_n=oper_n, category=self.curCat)
+        self.tmpSplit[self.db.FILTER_ORIG] = ''
 
         if oper == 'edit':
             fltr = {}
@@ -924,7 +965,9 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def addSplit(self):
         fltr = self.__getFltrWidgets__(self.view.split_view)
-
+        if fltr == {}:
+            return
+        
         parent = self.curCat
         # take category from new_cat_name or "new category"
         self.curCat = self.view.new_cat_name.text() or self.db.tree.new_cat()
@@ -975,15 +1018,27 @@ class GUIMainWin_ctrl(QtCore.QObject):
         """collects text from first row widgets in cat or trans table
         """
         fltr = {}
+        msg = ''
         for col_i in range(source.columnCount()):
             widget = source.cellWidget(0, col_i)
+            widget_name = source.horizontalHeaderItem(col_i).text()
+
             if isinstance(widget, QtWidgets.QComboBox):
                 widget_txt = widget.currentText()
             elif isinstance(widget, QtWidgets.QLineEdit):
-                widget_txt = widget.text()
+                if widget.hasAcceptableInput() or widget.text() == '':
+                    widget_txt = widget.text()
+                else:
+                    widget_txt = ''
+                    msg = (f'shall have value between {widget.validator().bottom()} ' +
+                           f'and {widget.validator().top()} ' +
+                           f'with maximum {widget.validator().decimals()} decimals')
+                    msgBox = QtWidgets.QMessageBox()
+                    msgBox.setText(f'<b>column {widget_name}</b> ' + msg)
+                    msgBox.exec()
+                    return {}
             else:
                 widget_txt = ''
-            widget_name = source.horizontalHeaderItem(col_i).text()
             fltr[widget_name] = widget_txt
         return fltr
 
@@ -1016,15 +1071,21 @@ class GUIMainWin_ctrl(QtCore.QObject):
                     mod.sourceModel().markFltr()
                     return
 
-                col_i = it.column()
                 row_i = it.row()
+
                 colTxt = self.view.cat_view.item(
-                    row_i, cfg.cat_col.index(self.db.COL_NAME))
-                txt = it.text()
-                if self.view.cat_view.horizontalHeaderItem(col_i).text() == self.db.FILTER:
-                    mod.sourceModel().markFltr(txt, colTxt.text())
+                    row_i, cfg.cat_col.index(self.db.COL_NAME)).text()
+                # iterate through all columns or chosen only
+                if colTxt in cfg.cat_col_names:  # chosen column name
+                    colTxt = [colTxt]
                 else:
-                    mod.sourceModel().markFltr()
+                    colTxt = cfg.cat_col_names  # we search in ALL columns
+
+                txt = self.view.cat_view.item(
+                    row_i, cfg.cat_col.index(self.db.FILTER)).text()
+
+                mod.sourceModel().markFltr(txt, colTxt)
+
             else:
                 mod.sourceModel().markFltr()
 
@@ -1182,7 +1243,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         tab = self.view.tabMenu.currentIndex()
 
         self.view.new_cat_name.blockSignals(True)
-        if tabs[tab] in ['cat', 'split'] and self.curCat == cfg.GRANDPA:  # show QLineEdit
+        if tabs[tab] == 'cat' and self.curCat == cfg.GRANDPA or tabs[tab] == 'split':  # show QLineEdit
             self.view.new_cat_name.show()
             self.view.new_cat_name.setText('')
             self.view.label_3.show()

@@ -13,12 +13,12 @@ class DBmodel(QtCore.QAbstractTableModel):
         self.columns.remove('index')
         self.backgroundColor = [False] * self.rowCount(None)
         self.fltr = ''
-        self.fltrCol = ''
+        self.fltrCol = []
         self.markRows = []
 
     def markBlueAddRows(self, db):
         # append db, mark blue background color what already in model
-        # id db=None, remove coloring and added data
+        # if db=None, remove coloring and added data
         self.layoutAboutToBeChanged.emit()
         if db is not None:
             self.backgroundColor = [True] * self.rowCount(None)
@@ -30,7 +30,7 @@ class DBmodel(QtCore.QAbstractTableModel):
                 self.backgroundColor = [False] * self.rowCount(None)
         self.layoutChanged.emit()
 
-    def markFltr(self, fltr='', fltrCol=''):
+    def markFltr(self, fltr='', fltrCol=[]):
         if fltr != self.fltr:
             self.layoutAboutToBeChanged.emit()
             self.fltr = fltr
@@ -67,9 +67,13 @@ class DBmodel(QtCore.QAbstractTableModel):
         txt = self.db.loc[index.row(), self.columns[index.column()]]
         if type(txt).__name__ == 'Timestamp':
             txt = txt.date()
+        try:
+            txt = round(txt,2)
+        except:
+            pass
         txt = str(txt)
-
         # set text
+
         if role == QtCore.Qt.DisplayRole:
             if txt in nas:
                 txt = ''
@@ -78,6 +82,7 @@ class DBmodel(QtCore.QAbstractTableModel):
         # set background collors
         # green for search
         # blue when not categorized data requested
+        # orange for filter marking
         if role == QtCore.Qt.BackgroundRole:
             color = None
             # blue
@@ -87,7 +92,7 @@ class DBmodel(QtCore.QAbstractTableModel):
             if index.row() in self.markRows:
                 color = QtGui.QBrush(QtGui.QColor(26, 255, 14))
             # orange filter
-            if self.fltr and self.columns[index.column()] == self.fltrCol:
+            if self.fltr and self.columns[index.column()] in self.fltrCol:
                 if re.findall(self.fltr, txt, re.IGNORECASE):
                     color = QtGui.QBrush(QtGui.QColor(255, 226, 79))
             return color
@@ -122,7 +127,7 @@ class DBmodelProxy(QtCore.QSortFilterProxyModel):
         try:
             lDat = float(lDat)
             rDat = float(rDat)
-        except:
+        except ValueError:
             pass
         # both  must be the same type to compare
         if type(lDat) != type(rDat):

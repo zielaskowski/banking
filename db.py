@@ -74,24 +74,34 @@ class COMMON:
         def catRem(rows: 'list(bool)', vec: 'list(bool)') -> list:
             return list(np.array(vec) & ~np.array(rows))
 
-        def fltrMa(vec_all: 'list(str)', fltr: str) -> list:
+        def fltrMa(self, vec_all: 'list(str)', fltr: str) -> list:
             rows = [re.findall(fltr, str(i), re.IGNORECASE) for i in vec_all]
             rows = [bool(i) for i in rows]
             return rows
 
-        def fltrGt(vec_all: 'list(str)', fltr: str) -> list:
+        def fltrGt(self, vec_all: 'list(str)', fltr: str) -> list:
             try:
                 fltr = float(fltr)
-            except:
+                return vec_all > fltr
+            except Exception as error:
+                self.parent.msg = type(error).__name__ + ': ' + str(error)
                 return [False] * len(vec_all)
-            return vec_all > fltr
 
-        def fltrLt(vec_all: 'list(str)', fltr: str) -> list:
+        def fltrLt(self, vec_all: 'list(str)', fltr: str) -> list:
             try:
                 fltr = float(fltr)
-            except:
+                return vec_all < fltr
+            except Exception as error:
+                self.parent.msg = type(error).__name__ + ': ' + str(error)
                 return [False] * len(vec_all)
-            return vec_all < fltr
+
+        def fltrEq(self, vec_all: 'list(str)', fltr: str) -> list:
+            try:
+                fltr = float(fltr)
+                return vec_all == fltr
+            except Exception as error:
+                self.parent.msg = type(error).__name__ + ': ' + str(error)
+                return [False] * len(vec_all)
 
         # transform and category filtering operations
         self.transOps = {'*': transMultiply,
@@ -101,7 +111,8 @@ class COMMON:
                        'rem': catRem}
         self.catFltrs = {'txt_match': fltrMa,
                          'greater >': fltrGt,
-                         'smaller <': fltrLt}
+                         'smaller <': fltrLt,
+                         'equal': fltrEq}
 
     def str2int(self, n: str):
         try:
@@ -136,11 +147,13 @@ class OP(COMMON):
         self.op = pandas.DataFrame(columns=cfg.op_col)  # table of operations
         self.parent = parent
 
-    def get(self, category: str) -> pandas:
+    def get(self, category: [str]) -> pandas:
         """returns pandas db for category\n
         """
         # stores list of bools for rows assigned to curCat
-        catRows = self.op.loc[:, self.CATEGORY] == category
+        if isinstance(category, str):
+            category = [category]
+        catRows = self.op.loc[:, self.CATEGORY].isin(category)
         return self.op.loc[catRows, :].copy().reset_index()
 
     def ins(self, db):
@@ -185,12 +198,15 @@ class OP(COMMON):
     def sum_data(self, op='', category='') -> 'str(int)':
         """sum whole category\n
         if op == count: return number of rows
+        if op == cumSum: return cumulative sum of kids
         if op == col_name: return sum of col_name for category
         if op == '' return possible op
         """
         ops = [cfg.op_col[i] for i in range(len(cfg.op_col_type))
                if cfg.op_col_type[i] in ['INT', 'REAL']]
         ops.append('count')
+        ops.append('cumSum')
+
         if not op:
             return ops
         if op in ops:
@@ -198,6 +214,12 @@ class OP(COMMON):
             if op == 'count':
                 return str(len(db))
             else:
+                if op == 'cumSum':
+                    op = ops[0]
+                    kids = self.parent.tree.allChild(catStart=category)
+                    category = kids.keys()
+
+                db = self.get(category=category)
                 summ = int(db[op].sum())
                 if summ == 0:
                     return ''
@@ -266,7 +288,8 @@ class OP(COMMON):
             rows = [False] * len(self.op)
             for col in cols:
                 ser_all = self.op.loc[:, col]
-                row = self.catFltrs[fltr[self.SEL]](ser_all, fltr[self.FILTER])
+                row = self.catFltrs[fltr[self.SEL]](
+                    self, ser_all, fltr[self.FILTER])
                 rows = list(np.array(rows) | np.array(row))
             ser = self.catOps[fltr[self.OPER]](rows, ser)
 
@@ -274,7 +297,7 @@ class OP(COMMON):
         self.op.loc[ser & grandpas(), self.CATEGORY] = cat
 
         if otherCat:
-            self.parent.msg = f'Unselected rows belonging to other categories: {otherCat}'
+            self.parent.msg = f'When setting {cat}, unselected rows belonging to other categories: {otherCat}'
 
     def __updateSplit__(self, change: [{}]):
         """split selected rows\n
@@ -287,9 +310,9 @@ class OP(COMMON):
         for ch in change:
             ch = pandas.Series(ch)
             if ch[self.COL_NAME] != self.HASH:
-                if ch[self.START] == '-':
+                if ch[self.START] in ["-",""]:
                     ch[self.START] = self.op.loc[:, self.DATA_OP].min()
-                if ch[self.END] == '-':
+                if ch[self.END] in ["-",""]:
                     ch[self.END] = self.op.loc[:, self.DATA_OP].max()
 
                 # make sure we have proper data types
@@ -316,11 +339,24 @@ class OP(COMMON):
                 if abs(rows.loc[:, colKwota].sum()) < abs(days_n * ch[self.VAL1]):
                     self.parent.msg = '__updateSplit__: Not enough cash in selected category'
                     return False
-                newAmount = rows.loc[:, colKwota].apply(
-                    lambda x: x - (ch[self.VAL1] * days_n) / len(rows))
-                rows.loc[:, colKwota] = newAmount
 
                 self.op.drop(rows.index, inplace=True)
+
+                def substract(amount):
+                    newAmount = rows\
+                        .loc[:, colKwota]\
+                        .apply(lambda x: x - amount)
+                    return newAmount
+
+                rows.loc[:, colKwota] = substract(
+                    ch[self.VAL1] * days_n / len(rows))
+                # some amounts may be less then substract
+                smallRows = rows.loc[:, colKwota] > 0
+                while any(smallRows):
+                    newAmount = sum(rows.loc[smallRows, colKwota]) * -1
+                    rows.drop(rows.loc[smallRows].index, inplace=True)
+                    rows.loc[:, colKwota] = substract(newAmount / len(rows))
+                    smallRows = rows.loc[:, colKwota] > 0
 
                 # add new rows
                 for i in range(int(days_n)):
@@ -818,7 +854,7 @@ class TREE(COMMON):
         if len([i for i in parentRow if i]) > 1:
             self.par.msg = f'doubled category names: {child}'
             return cfg.GRANDPA  # this will stop infinite loop of allChildren()
-        return self.tree.loc[parentRow, self.CAT_PARENT].to_string(index=False).strip()
+        return self.tree.loc[parentRow, self.CAT_PARENT].to_list()[0]
 
     def allChild(self, catStart=cfg.GRANDPA) -> dict:
         """return list of all children (categories)
@@ -1009,7 +1045,8 @@ class SPLIT(COMMON):
     def __getitem__(self, *args) -> str:
         """equivalent of pandas.iloc\n
         """
-        return self.split.loc[args[0]]
+        it = self.split.loc[self.splitRows, :].reset_index().loc[args[0]]
+        return it
 
     def setSplit(self, category='', filter='', oper_n=0):
         """set curent category so other methods work only on sel cat\n
@@ -1017,8 +1054,9 @@ class SPLIT(COMMON):
         if cat='*' return all\n
         """
         if oper_n != 0:
-            operRows = self.split.loc[:, self.SPLIT_N] == oper_n
-            category = self.split.loc[operRows, self.CATEGORY].iloc[0]
+            self.splitRows = self.split.loc[:, self.SPLIT_N] == oper_n
+            self.curSplit = self.split.loc[self.splitRows, self.CATEGORY].iloc[0]
+            return
 
         self.curSplit = category
         if category == '*':
@@ -1061,7 +1099,7 @@ class SPLIT(COMMON):
         if not confirmed just return part of split where filter=filterreturn and stop.
         Confirm to actually remove.
         """
-        self.setSplit(filter=filter)
+        self.setSplit(filter=filter, oper_n=oper_n, category=category)
         fltrSplit = self.__to_dict__()
         if not confirm:
             return fltrSplit
@@ -1204,7 +1242,15 @@ class DB(COMMON):
         if parent provided new category in tree is created under parent\n
         split = {start_date: date, end_date: date, col_name: str, fltr: str, val: float, day: int}\n
         """
-        # add category to tree so we stop if cat already exist
+        if split[self.COL_NAME] != self.CATEGORY:
+            self.msg = 'spliting single items not implemented yet'
+            return False
+
+        if split[self.FILTER] == split[self.CATEGORY]:
+            self.msg = f"can't add split to category which you split"
+            return False
+
+        # add split category to tree so we stop if parent is missing
         if not self.tree.add(parent, child=split[self.CATEGORY]):
             return False  # probably missing parent
 
@@ -1230,18 +1276,11 @@ class DB(COMMON):
         if self.split.splitRows.empty:
             return
 
-        #child = self.split[oper_n - 1, self.CATEGORY]
         changeSplit = self.split.rm(oper_n=oper_n, category=category)
         if not changeSplit:
             # may be error, but also may be empty split DB
             if len(self.split) != 0:
                 return False
-
-        # category may have children in cat or split DB
-        # so move to grandpa
-        # kids = self.tree.child(parent=child)
-        # for i in kids:
-            self.tree.mov(new_parent=cfg.GRANDPA, child=i)
 
         self.tree.rm(category)
         # if split taken from cat, restore cat
@@ -1269,7 +1308,6 @@ class DB(COMMON):
             return False
 
         rmSplit = self.split.rm(filter=child, confirm=False)
-        # self.op.__updateCat__(change)
         self.restoreAll(block=['op', 'trans', 'split'], change_split=rmSplit)
         return True
 
@@ -1287,7 +1325,7 @@ class DB(COMMON):
 
         rmCat = self.cat.rm(category, oper_n)
         self.op.__rmCat__(category)  # this way we avoid restoring all data
-        
+
         rmSplit = self.split.rm(filter=category, confirm=False)
         # really remove only if completely removed cat
         if rmCat:
@@ -1383,6 +1421,9 @@ class DB(COMMON):
         self.cat.rm(category=child)
         self.op.__rmCat__(category=child)
         self.tree.rm(child, force=True)
+        # remove also kids
+        for split in splitChange:
+            self.tree.rm(split[self.CATEGORY], force=False)
         self.restoreAll(block=['op', 'trans', 'split'],
                         change_split=splitChange)
         return True
@@ -1428,7 +1469,7 @@ class DB(COMMON):
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
         if name == 'msg' and self.msg_emit:
-            self.parent(self.msg)
+            self.parent(str(self.msg))
 
     def imp_commit(self, decision):
         if decision == 'ok':
