@@ -1,9 +1,31 @@
-write full path in category column in all dbs
+wrangling doesn't restore all (splits remain empty (not updated))
+
+see all data when on grandpa and "show all data" clicked
+
+add number of operations to stat window table
+
+
+reverse log and pretify
+
+add statistics on front tab
+
+possible to manipulate categories (rm, mov, treeRm) only on selected and following.
+No need to rebuild before cat?
+
+
+what to do with short filters (add (?!<=[:alphanumeric:]))?
+
+warn when closing without commited import
+
+
+
+when importing wrong bank file (csv), imp_status is not updated (remains like in import mode)
+
+write full path in category column in all dbs???
 
 
 create events (like trips)
 
-merging category keep cat in place (do not move to grandpa)
 
 
 save db when import confirmed
@@ -28,18 +50,13 @@ SPLIT:
 \/ most commont items dissapear after split (splitting somewhere change op col types to objects, strings are excepted group_data())
 - spliting single operation is completely not clear
 
-cfg.split_col is missing CATEGORY column? line 963 in db.py probably lost when writing db
 
-
-check integrity (cat categories vs. tree categories)
-
+check integrity (cat categories vs. tree categories)???
 
 
 
-add log list when clicked on message area
 
 
-2 progress bar
 
 3 plot .....
 

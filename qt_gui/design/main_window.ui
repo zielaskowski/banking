@@ -32,7 +32,7 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout_6">
         <item>
          <widget class="QTreeWidget" name="tree_db">
@@ -105,7 +105,7 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>2</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="data">
          <property name="sizePolicy">
@@ -145,10 +145,47 @@
               <item>
                <widget class="QPushButton" name="save_asDB_btn">
                 <property name="statusTip">
-                 <string>save opened DB under new name and opens it</string>
+                 <string>save opened DB</string>
                 </property>
                 <property name="text">
-                 <string>save as DB</string>
+                 <string>save DB</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="importTrans_btn">
+                <property name="text">
+                 <string>Import categories and transforms</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="stat_btn">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Statistics</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <item>
+               <widget class="QPushButton" name="imp_btn">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>import history of oprations</string>
                 </property>
                </widget>
               </item>
@@ -165,17 +202,6 @@
              </layout>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_2">
-              <item>
-               <widget class="QPushButton" name="imp_btn">
-                <property name="text">
-                 <string>import history of oprations</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
              <widget class="QLabel" name="db_stat_txt">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -184,7 +210,7 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;dates from dd/mm/yyyy to dd/mm/yyyy&lt;/p&gt;&lt;p&gt;banks: ipko, raifaisen raifaisen_kredyt&lt;/p&gt;&lt;p&gt;number of rows: 1000&lt;/p&gt;&lt;p&gt;number of categorized rows: 300(30%)&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;dates from dd/mm/yyyy to dd/mm/yyyy&lt;/p&gt;&lt;p&gt;banks: ipko, raifaisen raifaisen_kredyt&lt;/p&gt;&lt;p&gt;number of rows: 1000&lt;/p&gt;&lt;p&gt;number of categorized rows: 300(30%)&lt;/p&gt;&lt;p&gt;current db: /home/mi/blabla.db&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
              </widget>
             </item>

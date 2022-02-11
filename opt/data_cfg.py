@@ -19,6 +19,9 @@ if column not present in file from bank put None
 11       Adres odbiorcy		none	                   adres_odbiorcy
 12      Opis transakcji		Opis                  	   opis_transakcji
 13          Unnamed: 13		none					   lokalizacja
+14          Unnamed: 14		none					   data_czas
+15          Unnamed: 15		none					   originalna_kwota
+16          Unnamed: 16		none					   nr_karty
 
 operations DB
     stores all operation imported from banks
@@ -31,11 +34,12 @@ bank files translation <dictionary>
 """
 
 # first column MUST be a date!
-op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja"]
-op_col_type = ["TIMESTAMP", "TIMESTAMP", "TEXT", "REAL", "TEXT", "REAL", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
+op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja", 'data_czas', 'originalna_kwota', 'nr_karty']
+op_col_type = ["TIMESTAMP", "TIMESTAMP", "TEXT", "REAL", "TEXT", "REAL", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "TEXT"]
 bank = {
-    'ipko': ['Data operacji', 'Data waluty', 'Typ transakcji', 'Kwota', 'Waluta', 'Saldo po transakcji', 'Rachunek nadawcy', 'Nazwa nadawcy', 'Adres nadawcy', 'Rachunek odbiorcy', 'Nazwa odbiorcy', 'Adres odbiorcy', 'Opis transakcji', 'Unnamed: 13'],
-    'bnp': ['Data zlecenia operacji', 'Data realizacji', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', 'Nadawca / odbiorca', None, None, None, None, 'Opis', None]
+    'ipko': ['Data operacji', 'Data waluty', 'Typ transakcji', 'Kwota', 'Waluta', 'Saldo po transakcji', 'Rachunek nadawcy', 'Nazwa nadawcy', 'Adres nadawcy', 'Rachunek odbiorcy', 'Nazwa odbiorcy', 'Adres odbiorcy', 'Opis transakcji', 'Unnamed: 13', 'Unnamed: 14', 'Unnamed: 15', 'Unnamed: 16'],
+    'bnp': ['Data zlecenia operacji', 'Data realizacji', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', 'Nadawca / odbiorca', None, None, None, None, 'Opis', None, None, None, None],
+    'paribas': ['Data transakcji', 'Data zaksięgowania', 'Typ transakcji', 'Kwota', 'Waluta', None, 'Produkt', 'Nadawca / odbiorca', None, None, None, None, 'Opis', None, None, None, None]
 }
 
 if __name__ == '__main__':

@@ -4,5 +4,7 @@
 /home/mi/.backup/venv/banking/bin/pyuic5 calendar.ui -o calendar.py --import-from=qt_gui.design
 /home/mi/.backup/venv/banking/bin/pyuic5 split.ui -o split.py --import-from=qt_gui.design
 /home/mi/.backup/venv/banking/bin/pyuic5 plot.ui -o plot.py --import-from=qt_gui.design
+/home/mi/.backup/venv/banking/bin/pyuic5 stat.ui -o stat.py --import-from=qt_gui.design
+/home/mi/.backup/venv/banking/bin/pyuic5 log.ui -o log.py --import-from=qt_gui.design
 
 /home/mi/.backup/venv/banking/bin/pyrcc5 res.qrc -o res_rc.py 

@@ -34,7 +34,7 @@ bank files translation <dictionary>
 """
 
 
-def map_bank(bank):
+def map_bank(bank) -> dict:
     """
     Map bank col names to operation_DB col names.
     Into empty cols(None) insert op_col name. DataFrame.reindex will fill these cols with NaN.
@@ -122,8 +122,9 @@ cat_col = ["col_name", 'function', f"{fltr}", 'filter_n', f'{oper}', "oper_n", f
 cat_col_type = ["TEXT", "TEXT", 'INT', "TEXT", "TEXT", "INT", "TEXT", "TEXT", "TEXT"]
 
 # allowed columns for filtering cat_col[col_name]
-# op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja", 'bank', 'hash', 'kategoria']
-cat_col_names = [op_col[i] for i in [2, 3, 6, 7, 8, 9, 10, 11, 12, 13]]
+# op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja",'data_czas', 'originalna_kwota', 'nr_karty', 'bank', 'hash', 'kategoria']
+cat_col_names = [op_col[i] for i in range(len(op_col)) if i not in [0,1,4,5]]
+cat_col_names=  cat_col_names[0:-2] # drop hash and category
 
 # DB used for transform operations
 trans_col = [f'{bank_col}', f"{col_name}", f'{oper}', f'{val1}', "val2", "trans_n"]

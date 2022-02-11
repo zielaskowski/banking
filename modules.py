@@ -5,6 +5,7 @@ class FileSystem manage writing, savin, import and export of data
 import os
 import sys
 import json
+import datetime as dt
 
 
 class FileSystem:
@@ -15,9 +16,13 @@ class FileSystem:
     -DB file:                    self._fileDB, access through self.getDB and self.setDB\n
     -aplication location:        self._fileAPP, access through self.getAPP\n
     -configuration file:         self._fileCONF, access to options through self.getOpt and self.writeOpt\n
-    -csv export file:            slf._fileCSV, access to options through self.getCSV and self.writeCSV\n
+    -csv export file:            self._fileCSV, access through self.getCSV and self.setCSV\n
+    -log file:                   self._fileLOG, access through self.getLog(last|all) and self.writeLog\n
 
-    Handles expected type of file: SQlite3, TXT used as parameter for QtFileDialog
+    Handles expected type of file: SQlite3, TXT, XLS used as parameter for QtFileDialog\n
+
+    attach msg output with self.connect() to print new message when arrive
+
     """
 
     _PS = os.path.sep  # / for linux; \\ for win
@@ -26,11 +31,16 @@ class FileSystem:
     _EXT = 2  # location of extension in self._fileXXX list
 
     def __init__(self):
+        self.printMsg = object
         self._fileIMP = ['', '', '']
         self._fileCSV = ['', '', '']
         self._fileDB = ['', '', '']
+        self._fileIMPDB = ['', '', '']
         self._fileAPP = ['', '', '']
-        self._fileCONF = ['opt', 'conf', '.txt']  # Configuration file. name is constant
+        # Configuration file. name is constant
+        self._fileCONF = ['opt', 'conf', '.txt']
+        # Log file. name is constant. csv format
+        self._fileLOG = ['opt', 'log', '.txt']
         self.option = {"LastDB": '',
                        "welcome": "Write welcome message into ./opt/conf.txt...",
                        "visColumns": [],
@@ -41,9 +51,16 @@ class FileSystem:
 
         self.setAPP()
 
-        self._fileCONF[self._PATH] = self._fileAPP[self._PATH] + self._fileCONF[self._PATH] + self._PS
+        self._fileCONF[self._PATH] = self._fileAPP[self._PATH] + \
+            self._fileCONF[self._PATH] + self._PS
+        self._fileLOG[self._PATH] = self._fileAPP[self._PATH] + \
+            self._fileLOG[self._PATH] + self._PS
         self._checkCONF()
+        self._checkLOG()
         self.setDB(self.getOpt('LastDB'), check=True)
+
+    def connect(self, parent: object):
+        self.printMsg = parent
 
     def setIMP(self, path: str):
         self._fileIMP = self._split_path(path)
@@ -59,7 +76,33 @@ class FileSystem:
         if ext:  # 'text (*.txt)'
             fp += self.typeIMP[0] + ' (' + self.typeIMP[1] + ')'
         if not path and not file and not ext:  # all: path+name+ext
-            fp = self._fileIMP[self._PATH] + self._fileIMP[self._NAME] + self._fileIMP[self._EXT]
+            fp = self._fileIMP[self._PATH] + \
+                self._fileIMP[self._NAME] + self._fileIMP[self._EXT]
+        return fp
+
+    def setIMPDB(self, path: str):
+        """set path and filename for DB for importing cats and trans. \n
+        """
+        # override file extension. No other than s3db can be opened
+        self._fileIMPDB = self._split_path(path)
+        self._fileIMPDB[self._EXT] = self.typeDB[1]
+
+    def getIMPDB(self, path=False, file=False, ext=False):
+        """ext=True: input typical for QtFileDialog: ('SQlite3 (*.s3db)') \n
+        all False: path+file+ext
+        """
+        if not ext and not self._fileIMPDB[0]:
+            return ''
+        fp = ''
+        if path:
+            fp += self._fileIMPDB[self._PATH]
+        if file:
+            fp += self._fileIMPDB[self._NAME] + self._fileIMPDB[self._EXT]
+        if ext:  # 'SQlite (*.s3db)'
+            fp += self.typeDB[0] + ' (*' + self.typeDB[1] + ')'
+        if not path and not file and not ext:  # all: path+name+ext
+            fp = self._fileIMPDB[self._PATH] + \
+                self._fileIMPDB[self._NAME] + self._fileIMPDB[self._EXT]
         return fp
 
     def setDB(self, path: str, check=False):
@@ -89,37 +132,39 @@ class FileSystem:
         if ext:  # 'SQlite (*.s3db)'
             fp += self.typeDB[0] + ' (*' + self.typeDB[1] + ')'
         if not path and not file and not ext:  # all: path+name+ext
-            fp = self._fileDB[self._PATH] + self._fileDB[self._NAME] + self._fileDB[self._EXT]
+            fp = self._fileDB[self._PATH] + \
+                self._fileDB[self._NAME] + self._fileDB[self._EXT]
         return fp
-    
+
     def setCSV(self, path: str, check=False):
-            """set path and filename for DB. \n
-            checks if file exist if requested, useful for reading config (lastDB)
-            """
-            if check and not os.path.isfile(path):
-                # file is missing
-                self._fileDB = ['', '', '']
-                return
-            # override file extension. No other than s3db can be opened
-            self._fileCSV = self._split_path(path)
-            self._fileCSV[self._EXT] = self.typeCSV[1]
+        """set path and filename for DB. \n
+        checks if file exist if requested, useful for reading config (lastDB)
+        """
+        if check and not os.path.isfile(path):
+            # file is missing
+            self._fileDB = ['', '', '']
+            return
+        # override file extension. No other than s3db can be opened
+        self._fileCSV = self._split_path(path)
+        self._fileCSV[self._EXT] = self.typeCSV[1]
 
     def getCSV(self, path=False, file=False, ext=False):
-            """ext=True: input typical for QtFileDialog: ('CSV file (*.csv)') \n
-            all False: path+file+ext
-            """
-            if not ext and not self._fileCSV[0]:
-                return ''
-            fp = ''
-            if path:
-                fp += self._fileCSV[self._PATH]
-            if file:
-                fp += self._fileCSV[self._NAME] + self._fileCSV[self._EXT]
-            if ext:  # 'CSV file (*.csv)'
-                fp += self.typeCSV[0] + ' (*' + self.typeCSV[1] + ')'
-            if not path and not file and not ext:  # all: path+name+ext
-                fp = self._fileCSV[self._PATH] + self._fileCSV[self._NAME] + self._fileCSV[self._EXT]
-            return fp
+        """ext=True: input typical for QtFileDialog: ('CSV file (*.csv)') \n
+        all False: path+file+ext
+        """
+        if not ext and not self._fileCSV[0]:
+            return ''
+        fp = ''
+        if path:
+            fp += self._fileCSV[self._PATH]
+        if file:
+            fp += self._fileCSV[self._NAME] + self._fileCSV[self._EXT]
+        if ext:  # 'CSV file (*.csv)'
+            fp += self.typeCSV[0] + ' (*' + self.typeCSV[1] + ')'
+        if not path and not file and not ext:  # all: path+name+ext
+            fp = self._fileCSV[self._PATH] + \
+                self._fileCSV[self._NAME] + self._fileCSV[self._EXT]
+        return fp
 
     def setAPP(self):
         if getattr(sys, 'frozen', False):  # exe file
@@ -138,7 +183,7 @@ class FileSystem:
         - name of DB file when exited last time /n
         - welcome text/n
         If appropraite option is given,
-        can return only path or only filename
+        can return only path or only filename, or both if none given
         """
         fp = ''
         if path:
@@ -146,8 +191,47 @@ class FileSystem:
         if file:
             fp += self._fileCONF[self._NAME] + self._fileCONF[self._EXT]
         if not path and not file:  # all: path+name+ext
-            fp = self._fileCONF[self._PATH] + self._fileCONF[self._NAME] + self._fileCONF[self._EXT]
+            fp = self._fileCONF[self._PATH] + \
+                self._fileCONF[self._NAME] + self._fileCONF[self._EXT]
         return fp
+
+    def getLOG(self, path=False, file=False):
+        """Return file path (including filename) to log file.
+        If appropraite option is given,
+        can return only path or only filename, or both if none given
+        """
+        fp = ''
+        if path:
+            fp += self._fileLOG[self._PATH]
+        if file:
+            fp += self._fileLOG[self._NAME] + self._fileLOG[self._EXT]
+        if not path and not file:  # all: path+name+ext
+            fp = self._fileLOG[self._PATH] + \
+                self._fileLOG[self._NAME] + self._fileLOG[self._EXT]
+        return fp
+
+    def writeMsg(self, msg: str):
+        """
+        add message to end of log file, also add date
+        If connected to output object, call it
+        """
+        now = dt.datetime.now()
+        with open(self.getLOG(), 'a+') as file:
+            file.write(msg + ',' + now.strftime('%d %b %Y %H:%M') + '\n')
+        self.printMsg(msg)
+
+    def getMsg(self, all=False):
+        """
+        return log 
+        return all with all=True
+        or only last line with all=False
+        """
+        with open(self.getLOG(), 'r') as file:
+            msgs = file.readlines()
+        if all:
+            return '\n'.join(msgs[:])
+        else:
+            return msgs[-1]
 
     def writeOpt(self, op, val):
         """write new value for option
@@ -178,20 +262,18 @@ class FileSystem:
         else:
             return ""
 
+    def _checkLOG(self):
+        """Will create a file if not exists
+        TODO: need some cleaning mechanism (size?)
+        """
+        self._readFile(self.getLOG())
+
     def _checkCONF(self):
         """Make sure the config file exists and has proper content.
         Removes wrong entries, add entries if missing
         """
         ref_conf = {}
-        with open(self.getCONF(), 'a+') as file:  # will create file if not exist
-            try:
-                # on WIN 'r+' is not creating new file! why??
-                # a+ is working fine, but set the cursor to eof
-                # so need to move back to the begining
-                file.seek(0)
-                conf = json.load(file)
-            except:
-                conf = {'new conf tbc': ''}  # empty file
+        conf = self._readFile(self.getCONF())
         for op in self.option:  # check here for known options
             if op not in conf:
                 ref_conf[op] = self.option[op]
@@ -199,6 +281,18 @@ class FileSystem:
                 ref_conf[op] = conf[op]
         if ref_conf != conf:
             self._repairCONF(ref_conf)
+
+    def _readFile(self, fileName) -> dict:
+        with open(fileName, 'a+') as file:  # will create file if not exist
+            try:
+                # on WIN 'r+' is not creating new file! why??
+                # a+ is working fine, but set the cursor to eof
+                # so need to move back to the begining
+                file.seek(0)
+                conf = json.load(file)
+            except:
+                conf = {}  # empty file
+        return conf
 
     def _repairCONF(self, conf: dict):
         """create new fresh conf file
@@ -212,7 +306,8 @@ class FileSystem:
         """
 
         path = ''
-        file = file.split(self._PS)  # path separator is system specific (/ for linux, \ for win)
+        # path separator is system specific (/ for linux, \ for win)
+        file = file.split(self._PS)
         name = file.pop()
         path = self.list2str(file, self._PS)
         name = name.split('.')

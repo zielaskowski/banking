@@ -8,20 +8,23 @@ from db import DB
 from modules import FileSystem
 from models import DBmodelProxy
 import opt.parse_cfg as cfg
-from qt_gui.gui_classes import GUIMainWin
+from qt_gui.gui_classes import GUIMainWin, statusQLabel
 from qt_gui.ctrl_plot import GUIPlot_ctrl
 from qt_gui.gui_classes import GUICalendar
+from qt_gui.ctrl_stats import GUIStats_ctrl
+from qt_gui.gui_classes import statusQLabel
+from qt_gui.gui_classes import moduleDelay
 
 
-class GUIMainWin_ctrl(QtCore.QObject):
+class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
     def __init__(self):
         self.view = GUIMainWin()
         super().__init__(self.view)
         self.view.show()
         self.db = DB()
         self.tmpSplit = []
-        self.db.connect(parent=self.showMsg)
         self.fs = FileSystem()
+        self.db.connect(parent=self.fs.writeMsg)
         # connect signals
         self.connect_signals()
         # hide import widgets
@@ -30,12 +33,10 @@ class GUIMainWin_ctrl(QtCore.QObject):
         # controling context menu
         self.before_edit = ''
         self.contextFunc = ''
-        # timer to delay execution, i.e. textChnaged in QlineEdit
-        self.timer = QtCore.QTimer()
         # set status bar
         self.setStatusBar()
         # stores curent category selected
-        self.curCat = cfg.GRANDPA
+        self.curCat = [cfg.GRANDPA]
         # store tree summary column
         self.summCol = ''
         # read options
@@ -54,6 +55,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.save_asDB_btn.clicked.connect(self.save_asDB)
         self.view.imp_btn.clicked.connect(self.imp)
         self.view.export_btn.clicked.connect(self.exp)
+        self.view.importTrans_btn.clicked.connect(self.impCatsAndTrans)
 
         # buttons
         self.view.addFltr_btn.clicked.connect(self.addFltr)
@@ -78,12 +80,13 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.import_status_btn.rejected.connect(
             lambda: self.imp_commit('no'))
         self.view.plot_btn.clicked.connect(self.plot)
+        self.view.stat_btn.clicked.connect(self.stats)
         # radio buttons
         self.view.also_not_cat.toggled.connect(self.alsoNoCatData)
         self.view.markGrp.toggled.connect(self.markFltrColors)
         # text widgets
         self.view.search.textChanged.connect(
-            lambda: self.callDelay(self.search, 800))
+            lambda: self.setDelay(self.search, 800))
         self.view.new_cat_name.returnPressed.connect(self.catORsplit)
         # cat_view
         self.view.cat_view.itemSelectionChanged.connect(self.markFltrColors)
@@ -91,7 +94,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.split_view.itemSelectionChanged.connect(self.showCalendar)
         # win layout change
         self.view.splitter_2.splitterMoved.connect(
-            lambda: self.callDelay(self.headerSize, 200))
+            lambda: self.setDelay(self.headerSize, 200))
         # QTreeWidget
         self.view.tree_db.clicked.connect(self.con_tree)
         self.view.tree_db.itemChanged.connect(self.tree_edited)
@@ -129,24 +132,10 @@ class GUIMainWin_ctrl(QtCore.QObject):
         # win resize
         elif event.type() == QtCore.QEvent.Resize:
             if source.__class__ is self.view.__class__:
-                self.callDelay(self.headerSize, 200)
+                self.setDelay(self.headerSize, 200)
         return False
 
-    def callDelay(self, method, delay):
-        # called when you want delay signal
-        # can be one timer only :(
-
-        try:
-            self.timer.timeout.disconnect(method)
-        except TypeError:
-            pass
-
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(method)
-        self.timer.start(delay)
-
     # context menus and tree selection
-
     def DB_ContextMenu(self, position):
         """trigered by context menu in DB_view
         adds new filter based on selection
@@ -271,6 +260,9 @@ class GUIMainWin_ctrl(QtCore.QObject):
         for i in cat:
             mov.addAction(i)
         rem = menu.addAction("remove category")
+        arr = menu.addMenu("shift category")
+        arr.addAction('up')
+        arr.addAction('down')
 
         if len(it) != 1:
             add.setEnabled(False)
@@ -334,8 +326,12 @@ class GUIMainWin_ctrl(QtCore.QObject):
             fltr = {self.db.START: str(minDate.date()),
                     self.db.END: str(maxDate.date()),
                     self.db.COL_NAME: self.db.CATEGORY,
-                    self.db.FILTER: self.curCat}
+                    self.db.FILTER: self.curCat[-1]}
             self.__setFltrWidgets__(fltr, self.view.split_view)
+        # rearrange category (shift)
+        elif act in arr.children():
+            self.db.treeArrange(category=it_names[0], dir=act.text())
+            self.fill_tree()
         # merge selected categories
         elif act:
             if act.text() in it_names:  # merge
@@ -380,7 +376,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         self.before_edit = ''
         self.contextFunc = ''
-        self.curCat = it[0].text(0)
+        self.curCat = [it[0].text(0)]
         self.fill_tree()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
@@ -672,7 +668,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         # limit views to selected category
         if cfg.GRANDPA in itText:
-            self.curCat = cfg.GRANDPA
+            self.curCat = [cfg.GRANDPA]
             # don't mess up with GRANDPA
             self.view.also_not_cat.setChecked(False)
             self.view.also_not_cat.setDisabled(True)
@@ -680,7 +676,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             self.view.tree_db.setCurrentItem(self.view.tree_db.topLevelItem(1))
             self.fill_DB(self.db.op.get(category=cfg.GRANDPA))
         elif itText:
-            self.curCat = itText[-1]
+            self.curCat = itText  # [-1]
             self.view.also_not_cat.setDisabled(False)
             self.fill_DB(self.db.op.get(category=self.curCat))
 
@@ -690,14 +686,14 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.new_cat_name.blockSignals(False)
 
     def fill_tree(self):
-        # DEBUG
-        print(self.db.trans.trans)
-        print(self.db.cat.cat)
-        print(self.db.split.split)
-        print(self.db.tree.tree)
-        print(self.db.op.op.loc[self.db.op.op.loc[:, self.db.CATEGORY]
-              != cfg.GRANDPA, self.db.CATEGORY].unique())
-        #####
+        # # DEBUG
+        # print(self.db.trans.trans)
+        # print(self.db.cat.cat)
+        # print(self.db.split.split)
+        # print(self.db.tree.tree)
+        # print(self.db.op.op.loc[self.db.op.op.loc[:, self.db.CATEGORY]
+        #       != cfg.GRANDPA, self.db.CATEGORY].unique())
+        # #####
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.view.tree_db.blockSignals(True)
         # reset the tree
@@ -749,16 +745,18 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.tree_db.resizeColumnToContents(0)
 
         # select curIt in the tree
-        it = self.view.tree_db.findItems(self.curCat, match)
+        it = self.view.tree_db.findItems(self.curCat[-1], match)
         if not it:
-            self.curCat = cfg.GRANDPA
-            it = self.view.tree_db.findItems(self.curCat, match)
+            self.curCat = [cfg.GRANDPA]
+            it = self.view.tree_db.findItems(self.curCat[-1], match)
         self.view.tree_db.setCurrentItem(it[0])
 
         self.con_tree()  # and adjust tables
         self.view.tree_db.blockSignals(False)
         self.setCatInput()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        # update progress bar
+        self.view.prog.setValue(self.db.dataRows()[1] * 100)
 
     # categorizing
     def setCatInput(self):
@@ -872,39 +870,39 @@ class GUIMainWin_ctrl(QtCore.QObject):
         fltr = self.__getFltrWidgets__(self.view.cat_view)
         if fltr == {}:
             return
-        
+
         # clear search QEditLine
         self.view.search.setText('')
-        
+
         # def category
         # if curCat == grandpa, take category from new_cat_name or filter or "new category"
-        if self.curCat == cfg.GRANDPA:
+        if cfg.GRANDPA in self.curCat:
             cat = self.view.new_cat_name.text()\
                 or fltr[self.db.FILTER].strip()\
                 or self.db.tree.new_cat()
             self.view.new_cat_name.setText(cat)
-            self.curCat = cat
+            self.curCat = [cat]
 
         # def parent
-        parent = self.db.tree.parent(self.curCat)
+        parent = self.db.tree.parent(self.curCat[-1])
         if not parent:
             parent = cfg.GRANDPA
 
-        fltr[self.db.CATEGORY] = self.curCat
+        fltr[self.db.CATEGORY] = self.curCat[-1]
         if all([fltr[i] for i in fltr
                 if i in [self.db.OPER, self.db.COL_NAME, self.db.FILTER]]):
             if not self.db.catAdd(fltr=fltr, parent=parent):
-                self.curCat = cfg.GRANDPA  # something went wrong
+                self.curCat = [cfg.GRANDPA]  # something went wrong
                 self.view.tree_db.selectionModel().clear()
                 self.view.tree_db.topLevelItem(1).setSelected(True)
             else:
                 # restore split if removed during edit
                 if self.tmpSplit != []:
                     for split in self.tmpSplit:
-                        self.db.splitAdd(split, parent=parent)
+                        self.db.splitAdd(split)
                     self.tmpSplit = []
 
-            if self.curCat != cfg.GRANDPA:
+            if cfg.GRANDPA not in self.curCat:
                 self.view.also_not_cat.setChecked(False)
                 self.fill_tree()
             else:
@@ -926,14 +924,15 @@ class GUIMainWin_ctrl(QtCore.QObject):
         col_n = cfg.cat_col.index(self.db.OPER_N)
         oper_n = self.view.cat_view.item(row_n, col_n).text()
 
-        self.tmpSplit = self.db.catRm(oper_n=oper_n, category=self.curCat)
-        self.tmpSplit[self.db.FILTER_ORIG] = ''
+        self.tmpSplit = self.db.catRm(oper_n=oper_n, category=self.curCat[-1])
 
         if oper == 'edit':
             fltr = {}
             for col in range(self.view.cat_view.columnCount()):
                 fltr[cfg.cat_col[col]] = self.view.cat_view.item(
                     row_n, col).text()
+            # need to reset orig filter, otherway db rebuild will revert back just edited filter
+            fltr[self.db.FILTER_ORIG] = ''
         else:
             self.tmpSplit = []
 
@@ -956,7 +955,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             new_row_n = row_n + 1
 
         self.db.catMov(oper_n=row_n, new_oper_n=new_row_n,
-                       category=self.curCat)
+                       category=self.curCat[-1])
 
         self.fill('cat')
         self.fill_DB(self.db.op.get(self.curCat))
@@ -967,29 +966,25 @@ class GUIMainWin_ctrl(QtCore.QObject):
         fltr = self.__getFltrWidgets__(self.view.split_view)
         if fltr == {}:
             return
-        
-        parent = self.curCat
+
         # take category from new_cat_name or "new category"
-        self.curCat = self.view.new_cat_name.text() or self.db.tree.new_cat()
-        self.view.new_cat_name.setText(self.curCat)
-        fltr[self.db.CATEGORY] = self.curCat
+        # or from selected cat in tree, only if different from filter
+        selCat = self.view.tree_db.selectedItems()[0].text(0)
+        if selCat == fltr[self.db.FILTER]:
+            selCat = ''
+        self.curCat = [self.view.new_cat_name.text() or
+                       selCat or
+                       self.db.tree.new_cat()]
+        self.view.new_cat_name.setText(self.curCat[-1])
+        fltr[self.db.CATEGORY] = self.curCat[-1]
 
         if all([fltr[i] for i in fltr
                 if i in [self.db.COL_NAME, self.db.FILTER, self.db.CATEGORY]]):
 
-            self.db.splitAdd(fltr, parent)
+            self.db.splitAdd(fltr)
 
-            if self.curCat != cfg.GRANDPA:
-                self.view.also_not_cat.setChecked(False)
-                self.fill_tree()
-            else:
-                self.fill('split')
-                # enable radio button allowing show all data
-                # and un check
-                self.view.also_not_cat.setEnabled(True)
-                self.view.also_not_cat.setChecked(False)
-                self.fill_DB(self.db.op.get(self.curCat))
-            # reset filters
+            self.view.also_not_cat.setChecked(False)
+            self.fill_tree()
             self.__setFltrWidgets__({}, self.view.split_view)
 
     def modSplit(self, oper: "edit|remove"):
@@ -1143,16 +1138,17 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return
         self.fs.writeOpt("LastDB", self.fs.getDB())
         self.db = DB()
+        self.save_asDB()
         # need to reset DB view model manually because
         # empty DB is ignored by fill_DB()
         self.view.DB_view.setModel(DBmodelProxy(
             self.db.op.get(category=cfg.GRANDPA)))
-        self.curCat = cfg.GRANDPA
+        self.curCat = [cfg.GRANDPA]
         self.fill('trans')
         self.fill('split')
         self.fill_tree()  # will set top item and filter tables accordingly
         self.setCatInput()
-        self.showMsg('Created new empty DB')
+        self.fs.writeMsg('Created new empty DB')
 
     def save_asDB(self):
         self.db.write_db(self.fs.getDB())
@@ -1170,7 +1166,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return
         if self.db.imp_data(self.fs.getIMP()):
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-            # self.disp_statusbar('openDB')
             self.fill('trans')
             self.fill('split')
             self.fill_tree()  # will set top item and filter tables accordingly
@@ -1219,6 +1214,26 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return
         self.db.exportCSV(self.fs.getCSV())
 
+    def impCatsAndTrans(self):
+        file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose DB file',
+                                                     directory='',
+                                                     filter=self.fs.getIMPDB(ext=True))
+        # Qt lib returning always / as path separator
+        # we need system specific, couse we are checking for file existence
+        path = QtCore.QDir.toNativeSeparators(file[0])
+        if path:
+            self.fs.setIMPDB(path)
+        else:  # operation canceled
+            return
+        if self.db.open_db(self.fs.getIMPDB(), onlyTrans=True):
+            self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            self.fill('trans')
+            self.fill('split')
+            self.fill_tree()  # will set top item and filter tables accordingly
+            self.fill_DB(self.db.op.get(self.curCat))
+            self.setCatInput()
+            self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+
     # GUI
     def headerSize(self, tab_i=''):
         # spread the columns, get the size, change to interactive mode and set size manualy
@@ -1243,7 +1258,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         tab = self.view.tabMenu.currentIndex()
 
         self.view.new_cat_name.blockSignals(True)
-        if tabs[tab] == 'cat' and self.curCat == cfg.GRANDPA or tabs[tab] == 'split':  # show QLineEdit
+        if tabs[tab] == 'cat' and cfg.GRANDPA in self.curCat or tabs[tab] == 'split':  # show QLineEdit
             self.view.new_cat_name.show()
             self.view.new_cat_name.setText('')
             self.view.label_3.show()
@@ -1257,9 +1272,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def setStatusBar(self):
         # add text messages
-        self.view.msg = QtWidgets.QLabel()
-        self.view.msg.setStyleSheet(
-            "background-color: rgb(255,202,11);")  # orangish
+        self.view.msg = statusQLabel(self.fs)
+        self.fs.connect(self.view.msg.setMsg)
         self.view.statusbar.addWidget(self.view.msg)
         # add progress meter
         self.view.prog = QtWidgets.QProgressBar()
@@ -1269,15 +1283,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
         self.view.prog.setMinimumSize(QtCore.QSize(20, 10))
         self.view.prog.setRange(0, 100)
         self.view.statusbar.addPermanentWidget(self.view.prog)
-
-    def showMsg(self, msg):
-        # messages from DB
-        if msg:
-            self.view.msg.setText(msg)
-            self.callDelay(self.resetMsg, 30000)
-
-    def resetMsg(self):
-        self.view.msg.setText('')
 
     def alsoNoCatData(self):
         mod = self.view.DB_view.model() or None
@@ -1304,7 +1309,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             if cal.exec_():
                 widget.setText(cal.dat)
 
-    def readStat(self) -> {}:
+    def readStat(self) -> dict:
         """read gui status
         """
         self.fs.writeOpt(op='visColumns', val=self.visCol)
@@ -1320,3 +1325,9 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
     def plot(self):
         GUIPlot_ctrl(self.db)
+
+    def stats(self):
+        stat = GUIStats_ctrl(self.db)
+        stat.view.exec_()
+        if stat.redraw:
+            self.fill_tree()

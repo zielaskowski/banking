@@ -1,15 +1,15 @@
 """
 manage database logic, defines all operations
 """
-import pandas
-import numpy as np
-import sqlite3
-import os
-import re
-
-from pandas.core.dtypes.missing import isnull
-
+from sqlalchemy import null
 import opt.parse_cfg as cfg
+from pandas.core.dtypes.missing import isnull
+import re
+import os
+import sqlite3
+import numpy as np
+import pandas
+pandas.options.plotting.backend = 'plotly'
 
 
 class COMMON:
@@ -57,10 +57,11 @@ class COMMON:
             vec = vec.to_list()
             new_vec = []
             for i in vec:
-                if type(i) == str:  # work only with string (no int or NULL)
+                if isinstance(i, str):  # work only with string (no int or NULL)
                     # removing \n: search WHOLE string
-                    new_vec.append(re.sub(x, y, i.replace('\n', ''),
-                                          flags=re.IGNORECASE))
+                    new_vec.append(re.sub(x, y,
+                                          i.replace('\n', ''),
+                                          flags=re.IGNORECASE).strip())
                 else:
                     new_vec.append(i)
             return new_vec
@@ -75,8 +76,13 @@ class COMMON:
             return list(np.array(vec) & ~np.array(rows))
 
         def fltrMa(self, vec_all: 'list(str)', fltr: str) -> list:
-            rows = [re.findall(fltr, str(i), re.IGNORECASE) for i in vec_all]
-            rows = [bool(i) for i in rows]
+            rows = vec_all\
+                .astype('string')\
+                .str.contains(fltr,
+                              case=False,
+                              flags=re.IGNORECASE,
+                              regex=True,
+                              na=False)
             return rows
 
         def fltrGt(self, vec_all: 'list(str)', fltr: str) -> list:
@@ -131,7 +137,7 @@ class COMMON:
         try:
             re.compile(regEx)
             return ''
-        except ValueError:
+        except:
             return f'Wrong filter regExp: {regEx}'
 
 
@@ -164,7 +170,7 @@ class OP(COMMON):
         pandas.DataFrame.drop_duplicates(
             self.op, subset=self.HASH, inplace=True, ignore_index=True)
 
-    def group_data(self, col: str, category=cfg.GRANDPA) -> list:
+    def group_data(self, col: str, category=[cfg.GRANDPA]) -> list:
         """Grupuje wartości w kazdej kolumnie i pokazuje licznosc dla nie pogrupownych danych:\n
         Przyklad:\n
         typ_transakcji              count\n
@@ -252,52 +258,48 @@ class OP(COMMON):
         change can be one or more rows from cat DB
         """
 
-        def grandpas():
-            # set rows belong to grandpa
-            # store categories or rows not belonging to grandpa
-            # modify only rows belong to Grandpa for add oper
-            if fltr[self.OPER] == 'add':
-                grandpas = self.op.loc[:, self.CATEGORY] == cfg.GRANDPA
-            else:
-                grandpas = pandas.Series([True] * len(self.op))
-            otherCat.extend(
-                list(set(self.op.loc[ser & ~grandpas, self.CATEGORY].to_list())))
+        def otherCats():
+            otherCat = set(self.op.loc[ser & ~grandpas,
+                                       self.CATEGORY])
             if cat in otherCat:
                 otherCat.remove(cat)
-            return grandpas
+            return otherCat
 
-        cat = ''
-        otherCat = []
-        ser = [False] * len(self.op)
-        for fltr in change:
-            # iterate through all columns or chosen only
-            if fltr[self.COL_NAME] in cfg.cat_col_names:  # chosen column name
-                cols = [fltr[self.COL_NAME]]
-            else:
-                cols = cfg.cat_col_names  # we search in ALL columns
-            if cat != fltr[self.CATEGORY]:
-                self.op.loc[ser & grandpas(), self.CATEGORY] = cat
+        cats = set([c[self.CATEGORY]
+                    for c in change])
 
-                cat = fltr[self.CATEGORY]
-                if cat == cfg.GRANDPA:
-                    self.__rmCat__()
+        # arrange by filter_n !!!!
+        cats = sorted(cats, key=lambda x: [int(f[self.FILTER_N])
+                                           for f in change
+                                           if f[self.CATEGORY] == x])
+        self.__rmCat__(cats)
+
+        for cat in cats:
+            ser = [False] * len(self.op)
+
+            for fltr in [c for c in change
+                         if c[self.CATEGORY] == cat]:
+                # iterate through all columns or chosen only
+                if fltr[self.COL_NAME] in cfg.cat_col_names:  # chosen column name
+                    cols = [fltr[self.COL_NAME]]
                 else:
-                    self.__rmCat__(cat)
-                ser = [False] * len(self.op)
+                    cols = cfg.cat_col_names  # we search in ALL columns
 
-            rows = [False] * len(self.op)
-            for col in cols:
-                ser_all = self.op.loc[:, col]
-                row = self.catFltrs[fltr[self.SEL]](
-                    self, ser_all, fltr[self.FILTER])
-                rows = list(np.array(rows) | np.array(row))
-            ser = self.catOps[fltr[self.OPER]](rows, ser)
+                # combine all fitting rows for all filters in category
+                rows = [False] * len(self.op)
+                for col in cols:
+                    ser_all = self.op.loc[:, col]
+                    row = self.catFltrs[fltr[self.SEL]](
+                        self, ser_all, fltr[self.FILTER])
+                    rows = list(np.array(rows) | np.array(row))
+                ser = self.catOps[fltr[self.OPER]](rows, ser)
 
-        # modify only rows belong to Grandpa for add oper
-        self.op.loc[ser & grandpas(), self.CATEGORY] = cat
+            # we completed category, write selected rows and check for overlaps
+            grandpas = self.op.loc[:, self.CATEGORY] == cfg.GRANDPA
+            if otherCats():  # mark overlaping cats
+                self.parent.msg = f'When setting {cat}, could not get rows belonging already to other categories: {otherCats()}'
 
-        if otherCat:
-            self.parent.msg = f'When setting {cat}, unselected rows belonging to other categories: {otherCat}'
+            self.op.loc[ser & grandpas, self.CATEGORY] = cat
 
     def __updateSplit__(self, change: [{}]):
         """split selected rows\n
@@ -310,9 +312,9 @@ class OP(COMMON):
         for ch in change:
             ch = pandas.Series(ch)
             if ch[self.COL_NAME] != self.HASH:
-                if ch[self.START] in ["-",""]:
+                if ch[self.START] in ["-", ""]:
                     ch[self.START] = self.op.loc[:, self.DATA_OP].min()
-                if ch[self.END] in ["-",""]:
+                if ch[self.END] in ["-", ""]:
                     ch[self.END] = self.op.loc[:, self.DATA_OP].max()
 
                 # make sure we have proper data types
@@ -336,8 +338,9 @@ class OP(COMMON):
                 cat = self.op.loc[:, ch[self.COL_NAME]] == ch[self.FILTER]
                 rows = self.op.loc[start & end & cat, :].copy()
 
-                if abs(rows.loc[:, colKwota].sum()) < abs(days_n * ch[self.VAL1]):
-                    self.parent.msg = '__updateSplit__: Not enough cash in selected category'
+                availCash = rows.loc[:, colKwota].sum()
+                if abs(availCash) < abs(days_n * ch[self.VAL1]):
+                    self.parent.msg = f'Not enough cash in selected category: {round(availCash,2)} is less than {days_n * ch[self.VAL1]}'
                     return False
 
                 self.op.drop(rows.index, inplace=True)
@@ -373,7 +376,7 @@ class OP(COMMON):
                     rows = rows.append(row, ignore_index=True)
 
                 self.op = self.op.append(rows, ignore_index=True)
-                self.parent.__correct_col_types__(self.op)
+                self.op = self.parent.__correct_col_types__(self.op)
 
             else:  # find hash only and change category
                 hashRow = self.op.loc[:, self.HASH] == ch[self.FILTER]
@@ -381,16 +384,17 @@ class OP(COMMON):
 
         return True
 
-    def __rmCat__(self, category='', **kwargs):
+    def __rmCat__(self, category=[cfg.GRANDPA]):
         """change category=cat to grandpa\n
         if empty category, change all
         """
-        # stores list of bools for rows assigned to curCat
-        if not category:
-            catRows = [True] * len(self.op)
-        else:
-            catRows = self.op.loc[:, self.CATEGORY] == category
-        self.op.loc[catRows, self.CATEGORY] = cfg.GRANDPA
+        if cfg.GRANDPA in category:
+            self.op.loc[:, self.CATEGORY] = cfg.GRANDPA
+            return
+        for c in category:
+            catRows = self.op.loc[:, self.CATEGORY] == c
+            self.op.loc[catRows, self.CATEGORY] = cfg.GRANDPA
+        return
 
 
 class CAT(COMMON):
@@ -411,18 +415,20 @@ class CAT(COMMON):
         self.catRows = pandas.DataFrame
         self.setCat(self.curCat)
 
-    def setCat(self, category: str):
+    def setCat(self, category: [str]):
         """set curent category so other methods work only on sel cat\n
         if cat=grandpa return null\n
         if cat='*' return all\n
         """
+        if isinstance(category, str):
+            category = [category]
         self.curCat = category
-        if category == cfg.GRANDPA:
+        if cfg.GRANDPA in category:
             self.catRows = [False] * len(self.cat)
-        elif category == '*':
+        elif '*' in category:
             self.catRows = [True] * len(self.cat)
         else:
-            self.catRows = self.cat.loc[:, self.CATEGORY] == category
+            self.catRows = self.cat.loc[:, self.CATEGORY].isin(category)
 
     def __getitem__(self, *args) -> str:
         """equivalent of pandas.loc\n
@@ -431,7 +437,7 @@ class CAT(COMMON):
         it = self.cat.loc[self.catRows, :].reset_index().loc[args[0]]
         return it
 
-    def __to_dict__(self, category='') -> [{}]:
+    def __to_dict__(self, category=[]) -> [{}]:
         """return list of rows, each row as dic\n
         if cat not provided will use self.curCat (set by setCat())\n
         category='*' for all db
@@ -536,7 +542,7 @@ class CAT(COMMON):
         if not valid_cat.empty:
             self.cat = valid_cat
             self.setCat(self.curCat)  # to have the same number of rows
-            return self.__to_dict__()
+            return self.curCat
         else:
             return False
 
@@ -627,6 +633,15 @@ class CAT(COMMON):
             self.setCat(category)
             return None
 
+    def arrange(self, categories: str):
+        db = pandas.DataFrame()
+        for cat in categories:
+            cat_rows = self.cat.loc[:, self.CATEGORY] == cat
+            self.cat.loc[cat_rows, self.FILTER_N] = list(categories).index(cat)
+            db = db.append(self.cat.loc[cat_rows, :], ignore_index=True)
+        self.cat = db.copy(deep=True)
+        return
+
     @staticmethod
     def __addAbove__(x, filter_n):
         if x >= filter_n:
@@ -647,7 +662,7 @@ class CAT(COMMON):
         else:
             return max(self.cat.loc[self.catRows, column], default=0)
 
-    def __validate__(self, db: "pandas") -> "Null or pandas":
+    def __validate__(self, db: pandas) -> None or pandas:
         """ cleaning of self.cat
         1) concate FILTER_N for CATEGORY
         2) first oper in cat must be add which is not allowed to remove
@@ -656,7 +671,7 @@ class CAT(COMMON):
         """
         db.sort_values(by=[self.FILTER_N, self.OPER_N],
                        ignore_index=True, inplace=True)
-        catRows = db.loc[:, self.CATEGORY] == self.curCat
+        catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
         # 1) align filter_n among category
         # only if we have curent category (not after remove)
         if any(catRows):
@@ -664,7 +679,7 @@ class CAT(COMMON):
             db.loc[catRows, self.FILTER_N] = fltr_n
             db.sort_values(by=[self.FILTER_N, self.OPER_N],
                            ignore_index=True, inplace=True)
-            catRows = db.loc[:, self.CATEGORY] == self.curCat
+            catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
 
         # 2) check first row in cat
         if any(catRows):
@@ -856,41 +871,29 @@ class TREE(COMMON):
             return cfg.GRANDPA  # this will stop infinite loop of allChildren()
         return self.tree.loc[parentRow, self.CAT_PARENT].to_list()[0]
 
+    def path(self, category: str) -> list:
+        """return path for category
+        """
+        path = [category]
+        while path[-1] != cfg.GRANDPA:
+            parent = self.parent(path[-1])
+            path.append(parent)
+        path.reverse()
+        return path
+
     def allChild(self, catStart=cfg.GRANDPA) -> dict:
         """return list of all children (categories)
         starting from category = catStart
+        for each cat return also level
+        return child in correct order
         """
-        # if tree db empty (strange), reset all db
-        if self.tree.empty:
-            self.par.restoreAll()
-        # protect GRANDPA
-        childLev = {cfg.GRANDPA: 0}
-        childrenAll = self.tree.loc[:, self.CATEGORY].to_list()
-        childrenAll = list(set(childrenAll))
-        childrenAll.remove(cfg.GRANDPA)
+        childLev = {}
+        lev = len(self.path(catStart))
+        childLev[catStart] = lev - 1
 
-        for i in childrenAll:
-            lev = 1
-            parent = self.parent(i)
-            while parent != cfg.GRANDPA:
-                parent = self.parent(parent)
-                lev += 1
-            childLev[i] = lev
-
-        # children only below catStart, including catStart
-        def childRec(kid: str):
-            for i in self.child(parent=kid):
-                children.append(i)
-                childRec(i)
-
-        if catStart == cfg.GRANDPA:
-            children = list(childLev.keys())
-        else:
-            children = [catStart]
-            childRec(catStart)
-
-        childLev = {key: value for key, value in sorted(childLev.items(), key=lambda item: item[1])
-                    if key in children}
+        kids = self.child(parent=catStart)
+        for i in kids:
+            childLev.update(self.allChild(catStart=i))
 
         return childLev
 
@@ -905,7 +908,7 @@ class TREE(COMMON):
         self.tree = self.tree.append(
             {self.CATEGORY: child, self.CAT_PARENT: parent}, ignore_index=True)
         self.tree.drop_duplicates(
-            subset=self.CATEGORY, keep='last', inplace=True)
+            subset=self.CATEGORY, keep='first', inplace=True)
         return True
 
     def ren(self, category: str, new_category: str):
@@ -927,7 +930,9 @@ class TREE(COMMON):
 
         catRows = self.tree.loc[:, self.CATEGORY] == category
         parRows = self.tree.loc[:, self.CAT_PARENT] == category
+        newParent = self.parent(new_category)
         self.tree.loc[catRows, self.CATEGORY] = new_category
+        self.tree.loc[catRows, self.CAT_PARENT] = newParent
         self.tree.loc[parRows, self.CAT_PARENT] = new_category
         # remove duplicates
         self.tree.drop_duplicates(
@@ -967,6 +972,29 @@ class TREE(COMMON):
 
         return True
 
+    def arrange(self, category: str, dir: "up|down") -> list:
+        """Move category in tree
+        dir is direction in which to move
+        move on the same level only
+        return list of categories in order
+        """
+        parent = self.parent(child=category)
+        siblings = self.child(parent=parent)
+        cat_i = siblings.index(category)
+        if dir == "up":
+            cat_i -= 1
+        else:
+            cat_i += 1
+        if cat_i < 0 or cat_i > len(siblings):
+            self.par.msg = f'Can not move {dir}. Already on edge.'
+            return []
+        sib_row = self.tree.loc[:, self.CATEGORY] == siblings[cat_i]
+        cat_row = self.tree.loc[:, self.CATEGORY] == category
+        self.tree.loc[cat_row, :] = self.tree.loc[sib_row, :].to_numpy()
+        self.tree.loc[sib_row, :] = [category, parent]
+
+        return self.allChild().keys()
+
 
 class IMP:
     def __init__(self, parent):
@@ -1003,11 +1031,15 @@ class IMP:
         # we can add one bank per commit
         self.scope = [bank]
 
-    def pop(self):
+    def pop(self, bank=''):
         """remove last import
+        if given bank name, remove bank
         """
-        for i in self.scope:
-            self.imp.pop(i)
+        if bank != '':
+            self.imp.pop(bank)
+        else:
+            for i in self.scope:
+                self.imp.pop(i)
         self.scope = list(self.imp.keys())
         return
 
@@ -1019,8 +1051,13 @@ class IMP:
         return bankn, with n=len(bank) + 1
         """
         bnks_all = list(self.imp.keys())
-        bnks = [bnk for bnk in bnks_all if re.match(f'{bank}\d+', bnk)]
-        n = len(bnks)
+        bnks = [int(re.findall('\d+$', bnk)[0])
+                for bnk in bnks_all
+                if re.match(f'{bank}\d+', bnk)]
+        if not bnks:
+            n = 1
+        else:
+            n = max(bnks)
         return bank + str(n + 1)
 
     def __bank__(self, bank: str) -> str:
@@ -1048,21 +1085,25 @@ class SPLIT(COMMON):
         it = self.split.loc[self.splitRows, :].reset_index().loc[args[0]]
         return it
 
-    def setSplit(self, category='', filter='', oper_n=0):
+    def setSplit(self, category=[], filter='', oper_n=0):
         """set curent category so other methods work only on sel cat\n
+        multiple categories in list is rather unpredictible
         can select based on category , filter or oper_n, ignore opr_n if ==0
         if cat='*' return all\n
         """
         if oper_n != 0:
             self.splitRows = self.split.loc[:, self.SPLIT_N] == oper_n
-            self.curSplit = self.split.loc[self.splitRows, self.CATEGORY].iloc[0]
+            self.curSplit = self.split.loc[self.splitRows,
+                                           self.CATEGORY].iloc[0]
             return
+        if isinstance(category, str):
+            category = [category]
 
         self.curSplit = category
-        if category == '*':
+        if '*' in category:
             self.splitRows = [True] * len(self.split)
         else:
-            catRows = self.split.loc[:, self.CATEGORY] == category
+            catRows = self.split.loc[:, self.CATEGORY].isin(category)
             fltrRows = self.split.loc[:, self.FILTER] == filter
             self.splitRows = catRows | fltrRows
 
@@ -1139,7 +1180,26 @@ class SPLIT(COMMON):
         self.setSplit(category=new_category, filter=new_category)
         return self.__to_dict__()
 
-    def __validate__(self, db) -> pandas:
+    def merge(self, db: pandas):
+        """
+        used during import new data
+        split very likely will be unintentionaly removed
+        (due to insuficient funds)
+        so we need to merge with orginal
+        """
+        self.split = self.split.append(db, ignore_index=True)
+        validSplit = self.__validate__(self.split, dupComplain=False)
+        if isinstance(validSplit, pandas.DataFrame):
+            self.split = validSplit
+            self.setSplit('*')
+            return
+        else:
+            self.parent.msg = 'not possible to merge split database. Restoring orginal one'
+            self.split = db.copy()
+            self.setSplit('*')
+            return
+
+    def __validate__(self, db, dupComplain=True) -> pandas:
         """validate split DB. returns DB if ok or empty (when found duplicates)
         1) remove duplicates
         2) renumber split_n to remove holes
@@ -1149,8 +1209,11 @@ class SPLIT(COMMON):
         dup = db.duplicated(subset=[self.START, self.END, self.COL_NAME, self.FILTER, self.VAL1, self.DAYS],
                             keep='first')
         if any(dup.to_list()):
-            self.parent.msg = f'split.__validate__: transformation already exist'
-            return None
+            if dupComplain:
+                self.parent.msg = f'split.__validate__: transformation already exist'
+                return None
+            else:
+                db = db.loc[pandas.np.invert(dup),:]
         # renumber split_n
         db.sort_values(by=self.SPLIT_N, ignore_index=True, inplace=True)
         split_max = len(db) + 1
@@ -1237,11 +1300,12 @@ class DB(COMMON):
         if file:
             self.open_db(file)
 
-    def splitAdd(self, split: dict, parent=cfg.GRANDPA):
+    def splitAdd(self, split: dict):
         """add split filter, also add category in tree\n
         if parent provided new category in tree is created under parent\n
         split = {start_date: date, end_date: date, col_name: str, fltr: str, val: float, day: int}\n
         """
+        parent = cfg.GRANDPA
         if split[self.COL_NAME] != self.CATEGORY:
             self.msg = 'spliting single items not implemented yet'
             return False
@@ -1250,18 +1314,22 @@ class DB(COMMON):
             self.msg = f"can't add split to category which you split"
             return False
 
+        # if category already exists change parent to parent of existing category
+        if split[self.CATEGORY] in self.tree.allChild().keys():
+            parent = self.tree.parent(split[self.CATEGORY])
+
         # add split category to tree so we stop if parent is missing
         if not self.tree.add(parent, child=split[self.CATEGORY]):
             return False  # probably missing parent
 
         change = self.split.add(split)
         if not change:  # probably duplicate
-            self.tree.rm(child=split[self.CATEGORY])
+            self.tree.rm(child=split[self.CATEGORY], force=False)
             return False
 
         if not self.op.__updateSplit__(change):
             # something went wrong: too high amount or not enough days...
-            self.tree.rm(child=split[self.CATEGORY])
+            self.tree.rm(child=split[self.CATEGORY], force=False)
             self.split.rm(category=split[self.CATEGORY])
             return False
 
@@ -1308,7 +1376,9 @@ class DB(COMMON):
             return False
 
         rmSplit = self.split.rm(filter=child, confirm=False)
-        self.restoreAll(block=['op', 'trans', 'split'], change_split=rmSplit)
+        self.restoreAll(block=['op', 'trans', 'split'],
+                        change_split=rmSplit,
+                        change_cat=change)
         return True
 
     def catRm(self, category: str, oper_n=0):
@@ -1324,7 +1394,6 @@ class DB(COMMON):
             return
 
         rmCat = self.cat.rm(category, oper_n)
-        self.op.__rmCat__(category)  # this way we avoid restoring all data
 
         rmSplit = self.split.rm(filter=category, confirm=False)
         # really remove only if completely removed cat
@@ -1332,8 +1401,10 @@ class DB(COMMON):
             rmSplit = self.split.rm(filter=category, confirm=True)
             for row in rmSplit:
                 self.tree.rm(child=row[self.CATEGORY], force=False)
+            category = '*'  # this way we rebuild all cats
 
-        self.restoreAll(block=['op', 'trans', 'split'], change_split=rmSplit)
+        self.restoreAll(block=['op', 'trans', 'split'],
+                        change_split=rmSplit)
         return rmSplit
 
     def catMov(self, oper_n: int, new_oper_n: int, category: str):
@@ -1343,7 +1414,6 @@ class DB(COMMON):
         if not change:
             return
 
-        self.op.__rmCat__(child=category)
         self.op.__updateCat__(change)
         return True
 
@@ -1394,7 +1464,6 @@ class DB(COMMON):
         change_split = self.split.ren(new_category, category)
         self.cat.ren(new_category, category)
 
-        self.op.__rmCat__(category)
         self.restoreAll(block=['op', 'trans', 'split'],
                         change_split=change_split)
         return True
@@ -1402,6 +1471,18 @@ class DB(COMMON):
     def treeAdd(self, parent: str, child: str):
         self.tree.add(parent, child)
         return True
+
+    def treeArrange(self, category: str, dir: str):
+        """Move category in tree
+        dir is direction in which to move
+        move on the same level only
+        then rearange the categories in cat
+        """
+        categories = self.tree.arrange(category=category, dir=dir)
+        if categories:
+            self.cat.arrange(categories=categories)
+        self.restoreAll(block=['op', 'trans', 'split'])
+        return
 
     def treeMov(self, new_parent: str, child: str):
         self.tree.mov(new_parent, child)
@@ -1419,7 +1500,6 @@ class DB(COMMON):
             return splitChange
 
         self.cat.rm(category=child)
-        self.op.__rmCat__(category=child)
         self.tree.rm(child, force=True)
         # remove also kids
         for split in splitChange:
@@ -1428,7 +1508,13 @@ class DB(COMMON):
                         change_split=splitChange)
         return True
 
-    def restoreAll(self, block=[], change_split=[]):
+    def impRm(self, bank: str):
+        """remove data from imp db
+        """
+        self.imp.pop(bank)
+        self.restoreAll()
+
+    def restoreAll(self, block=[], change_split=[], change_cat=['*']):
         """restore all DB, if nothing indicated restore all filters
         to block filters in some DB, put into list block. Add 'op' to not reset op DB
         When only cat removed, block all but cat so litle faster
@@ -1448,7 +1534,7 @@ class DB(COMMON):
             self.cat.__update__(change_trans)
             self.op.__updateTrans__(change_trans)
         if 'cat' not in block:
-            change_cat = self.cat.__to_dict__('*')
+            change_cat = self.cat.__to_dict__(change_cat)
             self.op.__updateCat__(change_cat)
         if 'split' not in block:
             # always change whole db
@@ -1474,6 +1560,10 @@ class DB(COMMON):
     def imp_commit(self, decision):
         if decision == 'ok':
             self.imp.commit()
+            # split very likely will be unintentionaly removed
+            # (due to insuficient funds)
+            # so we need to merge with orginal
+            self.split.merge(self.split_before_imp)
             self.restoreAll()
             self.msg = 'Data added to DB'
 
@@ -1494,19 +1584,6 @@ class DB(COMMON):
         self.tree_before_imp = pandas.DataFrame()
         self.split_before_imp = pandas.DataFrame()
         self.imp_status = False
-
-    def __impDB_bnkName__(self, op, bank):
-        """return bank name apropriate for imp db ( with added number)
-        - op='rm': return bankn, with n=len(bank)
-        - op='add': return bankn, with n=len(bank) + 1
-        """
-        bnks_all = list(self.imp.keys())
-        bnks = [bnk for bnk in bnks_all if re.match(f'{bank}\d+', bnk)]
-        n = len(bnks)
-        if op == 'rm':
-            return bank + str(n)
-        else:
-            return bank + str(n + 1)
 
     def __checkBank__(self, cols: list) -> str:
         """check if cols exist in cfg file
@@ -1541,7 +1618,7 @@ class DB(COMMON):
 
         # remove cells with whitespaces
         xls.replace(r'^\s+$', np.nan, regex=True, inplace=True)
-        self.__correct_col_types__(xls)
+        xls = self.__correct_col_types__(xls)
 
         self.op_before_imp = self.op.op.copy()
         self.cat_before_imp = self.cat.cat.copy()
@@ -1555,19 +1632,25 @@ class DB(COMMON):
         self.msg = f'Iported data from {bank} bank. Review and confirm import.'
         return True
 
-    def __correct_col_types__(self, df):
-        if df.empty:
-            return
-        n_col = len(df.columns)
+    def __correct_col_types__(self, df) -> pandas:
+        df_new = pandas.DataFrame()
+        n_col = len(cfg.op_col_type)
         for i in range(n_col):
             num_type = cfg.op_col_type[i]
+            col_name = cfg.op_col[i]
+            if col_name in df.columns:
+                df_new.loc[:, col_name] = df.loc[:, col_name]
+            else:
+                df_new.loc[:, col_name] = [None] * len(df)
+
             if num_type in ['INT', 'REAL']:
-                df.iloc[:, i] = self.__str2num__(df.iloc[:, i], num_type)
+                df_new.iloc[:, i] = self.__str2num__(
+                    df_new.iloc[:, i], num_type)
             elif num_type == 'TEXT':
-                df.iloc[:, i] = df.iloc[:, i].astype('string')
+                df_new.iloc[:, i] = df_new.iloc[:, i].astype('string')
             elif num_type == 'TIMESTAMP':
-                df.iloc[:, i] = pandas.to_datetime(df.iloc[:, i])
-        return
+                df_new.iloc[:, i] = pandas.to_datetime(df_new.iloc[:, i])
+        return df_new
 
     @staticmethod
     def __str2num__(col, num_type):
@@ -1592,30 +1675,40 @@ class DB(COMMON):
                     col_digit.append(i)
         return pandas.Series(col_digit)
 
-    def open_db(self, file):
+    def open_db(self, file, onlyTrans=False):
         # not allowed when in import mode
         if self.imp_status:
             self.msg = 'finish importing before opening another DB'
             return
         engine = sqlite3.connect(file)
+        tabs = cfg.DB_tabs.copy()
+        if onlyTrans:
+            tabs.remove('op')
         try:
-            for tab in cfg.DB_tabs:
+            for tab in tabs:
                 query = f'SELECT * FROM {tab}'
                 exec(f'self.{tab}.{tab} = pandas.read_sql(query, engine)')
-            self.__correct_col_types__(self.op.op)
-            cur = engine.cursor()
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
-            bnks = cur.fetchall()
-            bnks = [i[0] for i in bnks
-                    if i[0] not in cfg.DB_tabs]
-            for bnk in bnks:
-                query = f'SELECT * FROM {bnk}'
-                exec(f'self.imp.imp["{bnk}"] = pandas.read_sql(query, engine)')
-                exec(f'self.__correct_col_types__(self.imp.imp["{bnk}"])')
-            self.imp.commit()
+            if not onlyTrans:
+                self.op.op = self.__correct_col_types__(self.op.op)
+                cur = engine.cursor()
+                cur.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'")
+                bnks = cur.fetchall()
+                bnks = [i[0] for i in bnks
+                        if i[0] not in cfg.DB_tabs]
+                for bnk in bnks:
+                    query = f'SELECT * FROM {bnk}'
+                    exec(
+                        f'self.imp.imp["{bnk}"] = pandas.read_sql(query, engine)')
+                    exec(
+                        f'self.imp.imp["{bnk}"] = self.__correct_col_types__(self.imp.imp["{bnk}"])')
+            if onlyTrans:
+                self.imp_commit(decision='ok')
+            else:
+                self.imp.commit()
         except:
             engine.close()
-            self.msg = 'Not correct DB <DB.__open_db__>'
+            self.msg = f'DB.__open_db__: Not correct DB: {file}'
             self.op = OP(self)
             self.cat = CAT(self)
             self.trans = TRANS(self)
@@ -1639,6 +1732,7 @@ class DB(COMMON):
         for bnk in self.imp.imp.keys():
             db.execute(f'''CREATE TABLE {bnk} ({cfg.op_col_sql})''')
             db_file.commit()
+        db_file.close()
 
     def write_db(self, file=''):
         # not allowed when in import mode
@@ -1662,12 +1756,50 @@ class DB(COMMON):
                     f'''self.imp.imp['{bnk}'].to_sql('{bnk}', engine, if_exists='replace', index=False)''')
         except:
             self.msg = 'write failed'
+        engine.close()
         return
 
     def exportCSV(self, file):
         colNames = self.op.op.columns.values.tolist()
         colNames.remove(self.HASH)
-        self.op.op.to_csv(path_or_buf=file,
-                          columns=colNames,
-                          index=False)
+        db = self.op.op.copy(deep=True)
+        path = ['/'.join(self.tree.path(cat))
+                for cat in db[self.CATEGORY]]
+        db[self.CATEGORY] = path
+        db.to_csv(path_or_buf=file,
+                  columns=colNames,
+                  index=False)
         self.msg = f'data exported to {file}'
+
+    def dataRange(self, bank='') -> list:
+        """return data range for selected bank
+        if bank not selected check min max among all banks
+        return list [start_dat, end_date]
+        """
+        datMin = self.imp.imp[bank][self.DATA_OP].min()
+        datMax = self.imp.imp[bank][self.DATA_OP].max()
+        return [datMin, datMax]
+
+    def dataBanks(self) -> list:
+        """return available banks imported"""
+        return self.imp.scope
+
+    def dataRows(self) -> []:
+        """return #rows in db and percent of categorized rows
+        """
+        if isinstance(self.op.op, pandas.DataFrame):
+            catRows = self.op.op.loc[:, self.CATEGORY] != cfg.GRANDPA
+            rows = len(self.op.op.loc[catRows, :])
+            if rows == 0:
+                per = 0
+            else:
+                per = rows / len(self.op.op)
+            return [rows, per]
+        else:
+            return [0, 0]
+
+    def dataHist(self, bank: str) -> pandas:
+        """return data histogram (date vs #operations)
+        from imp db
+        """
+        return self.imp.imp[bank][self.DATA_OP].hist()

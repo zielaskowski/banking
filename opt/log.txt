@@ -1,0 +1,296 @@
+opened db: /home/mi/Dropbox/prog/python/banking/bank2.s3db,08 lut 2022 20:44
+opened db: /home/mi/Dropbox/prog/python/banking/bank2.s3db,08 lut 2022 20:49
+opened db: /home/mi/Dropbox/prog/python/banking/bank2.s3db,08 lut 2022 21:00
+opened db: /home/mi/Dropbox/prog/python/banking/bank2.s3db,08 lut 2022 21:09
+opened db: /home/mi/Dropbox/prog/python/banking/bank2.s3db,08 lut 2022 21:15
+opened db: /home/mi/Dropbox/prog/python/banking/filters.s3db,08 lut 2022 21:17
+opened db: /home/mi/Dropbox/prog/python/banking/bank2.s3db,08 lut 2022 21:17
+Created new empty DB,08 lut 2022 21:19
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 21:23
+Iported data from ipko bank. Review and confirm import.,08 lut 2022 21:23
+Data added to DB,08 lut 2022 21:24
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 21:29
+Iported data from ipko bank. Review and confirm import.,08 lut 2022 21:29
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 21:39
+Iported data from ipko bank. Review and confirm import.,08 lut 2022 21:39
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 21:43
+opened db: /home/mi/Dropbox/prog/python/banking/filters.s3db,08 lut 2022 21:43
+Iported data from ipko bank. Review and confirm import.,08 lut 2022 21:44
+Import rejected. Restored main DB,08 lut 2022 21:44
+opened db: /home/mi/Dropbox/prog/python/banking/filters.s3db,08 lut 2022 21:44
+opened db: /home/mi/Dropbox/prog/python/banking/bank2.s3db,08 lut 2022 21:44
+opened db: /home/mi/Dropbox/prog/python/banking/filters.s3db,08 lut 2022 21:45
+opened db: /home/mi/Dropbox/prog/python/banking/bank2.s3db,08 lut 2022 21:45
+written new DB: /home/mi/Dropbox/prog/python/banking/filters.s3db. File overwritten if existed,08 lut 2022 21:45
+written new DB: /home/mi/Dropbox/prog/python/banking/filters.s3db. File overwritten if existed,08 lut 2022 21:45
+When setting allegro, could not get rows belonging already to other categories: {'warsztat'},08 lut 2022 21:46
+Iported data from ipko bank. Review and confirm import.,08 lut 2022 21:46
+opened db: /home/mi/Dropbox/prog/python/banking/filters.s3db,08 lut 2022 22:03
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 22:04
+Iported data from ipko bank. Review and confirm import.,08 lut 2022 22:04
+When setting deli, could not get rows belonging already to other categories: {'car'},08 lut 2022 22:08
+finish importing before saving DB,08 lut 2022 22:18
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 22:18
+Iported data from ipko bank. Review and confirm import.,08 lut 2022 22:18
+Data added to DB,08 lut 2022 22:19
+opened db: /home/mi/Dropbox/prog/python/banking/filters.s3db,08 lut 2022 22:19
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 22:27
+Iported data from ipko bank. Review and confirm import.,08 lut 2022 22:27
+Data added to DB,08 lut 2022 22:27
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 22:28
+Data added to DB,08 lut 2022 22:28
+opened db: /home/mi/Dropbox/prog/python/banking/filters.s3db,08 lut 2022 22:28
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 22:28
+Iported data from paribas bank. Review and confirm import.,08 lut 2022 22:28
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 22:30
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 22:31
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 22:31
+Data added to DB,08 lut 2022 22:31
+written new DB: /home/mi/Dropbox/prog/python/banking/bank_test.s3db. File overwritten if existed,08 lut 2022 22:34
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 22:35
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 22:41
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 22:41
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 22:41
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 22:41
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 22:44
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 22:44
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 22:48
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 22:55
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 22:57
+When setting alimenty, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 22:59
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 22:59
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 22:59
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:01
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:01
+Wrong filter regExp: VINCENT BOULANGERIE WARSZAWA (PRA PL,08 lut 2022 23:02
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:08
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 23:08
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 23:08
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:14
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 23:14
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 23:14
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:14
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 23:14
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 23:14
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:14
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 23:14
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 23:14
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:16
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:18
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:18
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:18
+cat.__validate__: identical filter already exists in this category. Nothing done.,08 lut 2022 23:19
+cat.__validate__: identical filter already exists in this category. Nothing done.,08 lut 2022 23:20
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:20
+cat.__validate__: identical filter already exists in this category. Nothing done.,08 lut 2022 23:20
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:20
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:20
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:22
+written new DB: /home/mi/Dropbox/prog/python/banking/bank_test.s3db. File overwritten if existed,08 lut 2022 23:22
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 23:30
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:39
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 23:39
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 23:39
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 23:46
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:51
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 23:51
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 23:51
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 23:54
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},08 lut 2022 23:56
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},08 lut 2022 23:56
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},08 lut 2022 23:56
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,08 lut 2022 23:58
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:01
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},09 lut 2022 00:01
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},09 lut 2022 00:01
+doubled category names: alkohol,09 lut 2022 00:18
+doubled category names: alkohol,09 lut 2022 00:20
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 00:21
+Not enough cash in selected category: 0.0 is less than -1035.0,09 lut 2022 00:21
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:22
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:27
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},09 lut 2022 00:27
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},09 lut 2022 00:27
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:30
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},09 lut 2022 00:30
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},09 lut 2022 00:30
+written new DB: /home/mi/Dropbox/prog/python/banking/bank_test.s3db. File overwritten if existed,09 lut 2022 00:36
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 00:36
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:37
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:38
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},09 lut 2022 00:38
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},09 lut 2022 00:38
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:41
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},09 lut 2022 00:41
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},09 lut 2022 00:41
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:41
+When setting ciuchy, could not get rows belonging already to other categories: {'kredyt_zwrot'},09 lut 2022 00:41
+When setting squash, could not get rows belonging already to other categories: {'ciuchy'},09 lut 2022 00:42
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:42
+When setting ciuchy, could not get rows belonging already to other categories: {'squash'},09 lut 2022 00:43
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:43
+written new DB: /home/mi/Dropbox/prog/python/banking/bank_test.s3db. File overwritten if existed,09 lut 2022 00:45
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 00:45
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:46
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:48
+written new DB: /home/mi/Dropbox/prog/python/banking/bank_test.s3db. File overwritten if existed,09 lut 2022 00:52
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 00:54
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 00:54
+written new DB: /home/mi/Dropbox/prog/python/banking/bank_test.s3db. File overwritten if existed,09 lut 2022 00:57
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 01:03
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 01:13
+Not enough cash in selected category: -1842.88 is less than -2730.0,09 lut 2022 01:13
+Not enough cash in selected category: -50.0 is less than -800.0,09 lut 2022 01:13
+Not enough cash in selected category: -50.0 is less than -400.0,09 lut 2022 01:13
+Iported data from paribas bank. Review and confirm import.,09 lut 2022 01:13
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 01:14
+Data added to DB,09 lut 2022 01:14
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 01:45
+Iported data from ipko bank. Review and confirm import.,09 lut 2022 01:51
+Import rejected. Restored main DB,09 lut 2022 01:52
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 01:52
+Not enough cash in selected category: -583.98 is less than -975.0,09 lut 2022 01:52
+Not enough cash in selected category: -50.0 is less than -900.0,09 lut 2022 01:52
+Not enough cash in selected category: -50.0 is less than -450.0,09 lut 2022 01:52
+Iported data from paribas bank. Review and confirm import.,09 lut 2022 01:52
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 01:53
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 01:53
+Not enough cash in selected category: -583.98 is less than -975.0,09 lut 2022 01:53
+Not enough cash in selected category: -50.0 is less than -900.0,09 lut 2022 01:53
+Not enough cash in selected category: -50.0 is less than -450.0,09 lut 2022 01:53
+Iported data from paribas bank. Review and confirm import.,09 lut 2022 01:53
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 01:55
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 01:55
+Not enough cash in selected category: -583.98 is less than -975.0,09 lut 2022 01:56
+Not enough cash in selected category: -50.0 is less than -900.0,09 lut 2022 01:56
+Not enough cash in selected category: -50.0 is less than -450.0,09 lut 2022 01:56
+Iported data from paribas bank. Review and confirm import.,09 lut 2022 01:56
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 02:11
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:12
+Not enough cash in selected category: -583.98 is less than -975.0,09 lut 2022 02:12
+Not enough cash in selected category: -50.0 is less than -900.0,09 lut 2022 02:13
+Not enough cash in selected category: -50.0 is less than -450.0,09 lut 2022 02:13
+Iported data from paribas bank. Review and confirm import.,09 lut 2022 02:13
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:14
+Data added to DB,09 lut 2022 02:14
+opened db: /home/mi/Dropbox/prog/python/banking/bank_test.s3db,09 lut 2022 02:15
+opened db: /home/mi/Dropbox/prog/python/banking/bank.s3db,09 lut 2022 02:15
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:15
+Not enough cash in selected category: -1842.88 is less than -2730.0,09 lut 2022 02:15
+Not enough cash in selected category: -50.0 is less than -800.0,09 lut 2022 02:15
+Not enough cash in selected category: -50.0 is less than -400.0,09 lut 2022 02:15
+Iported data from paribas bank. Review and confirm import.,09 lut 2022 02:15
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:16
+Not enough cash in selected category: -2732.66 is less than -2850.0,09 lut 2022 02:16
+Data added to DB,09 lut 2022 02:16
+When setting iwona, could not get rows belonging already to other categories: {'taxi'},09 lut 2022 02:17
+When setting squash, could not get rows belonging already to other categories: {'własne'},09 lut 2022 02:17
+__updateSplit__: Date range shall be greater then number of days,09 lut 2022 02:17
+__updateSplit__: Date range shall be greater then number of days,09 lut 2022 02:17
+Iported data from ipko bank. Review and confirm import.,09 lut 2022 02:17
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:17
+When setting iwona, could not get rows belonging already to other categories: {'taxi'},09 lut 2022 02:17
+When setting squash, could not get rows belonging already to other categories: {'własne'},09 lut 2022 02:17
+Data added to DB,09 lut 2022 02:18
+When setting iwona, could not get rows belonging already to other categories: {'warsztat', 'taxi'},09 lut 2022 02:18
+Iported data from ipko bank. Review and confirm import.,09 lut 2022 02:18
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:18
+When setting iwona, could not get rows belonging already to other categories: {'warsztat', 'taxi'},09 lut 2022 02:18
+When setting squash, could not get rows belonging already to other categories: {'własne'},09 lut 2022 02:18
+Data added to DB,09 lut 2022 02:18
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},09 lut 2022 02:18
+Iported data from ipko bank. Review and confirm import.,09 lut 2022 02:18
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:19
+When setting iwona, could not get rows belonging already to other categories: {'warsztat', 'taxi'},09 lut 2022 02:19
+When setting squash, could not get rows belonging already to other categories: {'własne'},09 lut 2022 02:19
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},09 lut 2022 02:19
+Data added to DB,09 lut 2022 02:19
+When setting squash, could not get rows belonging already to other categories: {'iwona'},09 lut 2022 02:19
+Not enough cash in selected category: -530.0 is less than -1000.0,09 lut 2022 02:19
+Iported data from ipko bank. Review and confirm import.,09 lut 2022 02:19
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:19
+When setting iwona, could not get rows belonging already to other categories: {'warsztat', 'taxi'},09 lut 2022 02:19
+When setting squash, could not get rows belonging already to other categories: {'iwona', 'własne'},09 lut 2022 02:19
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},09 lut 2022 02:19
+Data added to DB,09 lut 2022 02:19
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:19
+Not enough cash in selected category: 0.0 is less than -500.0,09 lut 2022 02:19
+Not enough cash in selected category: 0.0 is less than -1000.0,09 lut 2022 02:19
+Iported data from paribas bank. Review and confirm import.,09 lut 2022 02:19
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},09 lut 2022 02:19
+When setting iwona, could not get rows belonging already to other categories: {'warsztat', 'taxi'},09 lut 2022 02:19
+When setting squash, could not get rows belonging already to other categories: {'iwona', 'własne'},09 lut 2022 02:19
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},09 lut 2022 02:19
+Data added to DB,09 lut 2022 02:19
+written new DB: /home/mi/Dropbox/prog/python/banking/bank.s3db. File overwritten if existed,09 lut 2022 02:20
+written new DB: /home/mi/Dropbox/prog/python/banking/bank.s3db. File overwritten if existed,09 lut 2022 02:28
+opened db: /home/mi/Dropbox/prog/python/banking/bank.s3db,10 lut 2022 23:31
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},10 lut 2022 23:35
+When setting iwona, could not get rows belonging already to other categories: {'taxi', 'warsztat'},10 lut 2022 23:35
+When setting squash, could not get rows belonging already to other categories: {'własne', 'iwona'},10 lut 2022 23:35
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:35
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},10 lut 2022 23:35
+When setting iwona, could not get rows belonging already to other categories: {'taxi', 'warsztat'},10 lut 2022 23:35
+When setting squash, could not get rows belonging already to other categories: {'własne', 'iwona'},10 lut 2022 23:35
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:35
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},10 lut 2022 23:36
+When setting iwona, could not get rows belonging already to other categories: {'taxi', 'warsztat'},10 lut 2022 23:36
+When setting squash, could not get rows belonging already to other categories: {'własne', 'iwona'},10 lut 2022 23:36
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:36
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},10 lut 2022 23:36
+When setting iwona, could not get rows belonging already to other categories: {'taxi', 'warsztat'},10 lut 2022 23:36
+When setting squash, could not get rows belonging already to other categories: {'własne', 'iwona'},10 lut 2022 23:36
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:36
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},10 lut 2022 23:37
+When setting iwona, could not get rows belonging already to other categories: {'taxi', 'warsztat'},10 lut 2022 23:37
+When setting squash, could not get rows belonging already to other categories: {'własne', 'iwona'},10 lut 2022 23:37
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:37
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:39
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:39
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:39
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},10 lut 2022 23:42
+When setting iwona, could not get rows belonging already to other categories: {'taxi', 'warsztat'},10 lut 2022 23:42
+When setting squash, could not get rows belonging already to other categories: {'własne', 'iwona'},10 lut 2022 23:42
+When setting dzieci, could not get rows belonging already to other categories: {'iwona'},10 lut 2022 23:42
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},10 lut 2022 23:44
+When setting squash, could not get rows belonging already to other categories: {'własne'},10 lut 2022 23:44
+When setting iwona, could not get rows belonging already to other categories: {'taxi', 'warsztat', 'squash', 'dzieci'},10 lut 2022 23:44
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},10 lut 2022 23:47
+When setting squash, could not get rows belonging already to other categories: {'własne'},10 lut 2022 23:47
+When setting iwona, could not get rows belonging already to other categories: {'taxi', 'warsztat', 'squash'},10 lut 2022 23:47
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:04
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:05
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:05
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},11 lut 2022 00:09
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:09
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:09
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},11 lut 2022 00:13
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:13
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:13
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},11 lut 2022 00:19
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:19
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:19
+When setting hotele, could not get rows belonging already to other categories: {'bankomat'},11 lut 2022 00:31
+When setting hotele, could not get rows belonging already to other categories: {'bankomat'},11 lut 2022 00:32
+When setting hotele, could not get rows belonging already to other categories: {'bankomat'},11 lut 2022 00:33
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},11 lut 2022 00:36
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:36
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:36
+When setting hotele, could not get rows belonging already to other categories: {'bankomat'},11 lut 2022 00:36
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},11 lut 2022 00:37
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:37
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:37
+When setting hotele, could not get rows belonging already to other categories: {'bankomat'},11 lut 2022 00:37
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},11 lut 2022 00:39
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:39
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:39
+When setting hotele, could not get rows belonging already to other categories: {'bankomat'},11 lut 2022 00:39
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},11 lut 2022 00:39
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:39
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:39
+When setting hotele, could not get rows belonging already to other categories: {'bankomat'},11 lut 2022 00:39
+When setting bank_opłaty, could not get rows belonging already to other categories: {'kredyt'},11 lut 2022 00:45
+When setting squash, could not get rows belonging already to other categories: {'własne'},11 lut 2022 00:45
+When setting talin, could not get rows belonging already to other categories: {'rejs', 'własne'},11 lut 2022 00:45
+When setting hotele, could not get rows belonging already to other categories: {'bankomat'},11 lut 2022 00:45
+written new DB: /home/mi/Dropbox/prog/python/banking/bank.s3db. File overwritten if existed,11 lut 2022 00:51
