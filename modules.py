@@ -31,7 +31,7 @@ class FileSystem:
     _EXT = 2  # location of extension in self._fileXXX list
 
     def __init__(self):
-        self.printMsg = object
+        self.printMsg = print
         self._fileIMP = ['', '', '']
         self._fileCSV = ['', '', '']
         self._fileDB = ['', '', '']
@@ -55,17 +55,24 @@ class FileSystem:
             self._fileCONF[self._PATH] + self._PS
         self._fileLOG[self._PATH] = self._fileAPP[self._PATH] + \
             self._fileLOG[self._PATH] + self._PS
-        self._checkCONF()
-        self._checkLOG()
-        self.setDB(self.getOpt('LastDB'), check=True)
+        self.__checkCONF__()
+        self.__checkLOG__()
+        self.setDB(self.getOpt('LastDB'))
 
     def connect(self, parent: object):
         self.printMsg = parent
 
     def setIMP(self, path: str):
-        self._fileIMP = self._split_path(path)
+        """set path and filename for importing excel with operations. \n
+        """
+        self._fileIMP = self.__splitPath__(path)
+        if not self.__checkFile__(self.getIMP()):
+            self._fileIMP = ['', '', '']
 
     def getIMP(self, path=False, file=False, ext=False):
+        """ext=True: input typical for QtFileDialog: ('excel (*.xls)') \n
+        all False: path+file+ext
+        """
         if not ext and not self._fileIMP[0]:
             return ''
         fp = ''
@@ -83,9 +90,12 @@ class FileSystem:
     def setIMPDB(self, path: str):
         """set path and filename for DB for importing cats and trans. \n
         """
+        self._fileIMPDB = self.__splitPath__(path)
         # override file extension. No other than s3db can be opened
-        self._fileIMPDB = self._split_path(path)
         self._fileIMPDB[self._EXT] = self.typeDB[1]
+        if not self.__checkFile__(self.getIMPDB()):  # missing file
+            self._fileIMPDB = ['', '', '']
+            return
 
     def getIMPDB(self, path=False, file=False, ext=False):
         """ext=True: input typical for QtFileDialog: ('SQlite3 (*.s3db)') \n
@@ -105,20 +115,22 @@ class FileSystem:
                 self._fileIMPDB[self._NAME] + self._fileIMPDB[self._EXT]
         return fp
 
-    def setDB(self, path: str, check=False):
+    def setDB(self, path: str):
         """set path and filename for DB. \n
         checks if file exist if requested, useful for reading config (lastDB)
         """
-        if check and not os.path.isfile(path):
-            # file is missing
-            self.writeOpt('LastDB', '')
-            self._fileDB = ['', '', '']
-            return
+        self._fileDB = self.__splitPath__(path)
         # override file extension. No other than s3db can be opened
-        self._fileDB = self._split_path(path)
         self._fileDB[self._EXT] = self.typeDB[1]
+        if not self.__checkFile__(self.getDB()):  # missing file?
+            # try to restore from options
+            if not self.__checkFile__(self.getOpt("LastDB")):
+                self._fileDB = ['', '', '']
+            else:
+                self._fileDB = self.getOpt("LastDB")
+        self.writeOpt("LastDB", self.getDB())
 
-    def getDB(self, path=False, file=False, ext=False):
+    def getDB(self, path=False, file=False, ext=False) -> str:
         """ext=True: input typical for QtFileDialog: ('SQlite3 (*.s3db)') \n
         all False: path+file+ext
         """
@@ -136,17 +148,14 @@ class FileSystem:
                 self._fileDB[self._NAME] + self._fileDB[self._EXT]
         return fp
 
-    def setCSV(self, path: str, check=False):
-        """set path and filename for DB. \n
-        checks if file exist if requested, useful for reading config (lastDB)
+    def setCSV(self, path: str):
+        """set path and filename for export to csv file. \n
         """
-        if check and not os.path.isfile(path):
-            # file is missing
-            self._fileDB = ['', '', '']
-            return
         # override file extension. No other than s3db can be opened
-        self._fileCSV = self._split_path(path)
+        self._fileCSV = self.__splitPath__(path)
         self._fileCSV[self._EXT] = self.typeCSV[1]
+        if not self.__checkFile__(self.getCSV()):
+            self._fileCSV = ['', '', '']
 
     def getCSV(self, path=False, file=False, ext=False):
         """ext=True: input typical for QtFileDialog: ('CSV file (*.csv)') \n
@@ -174,7 +183,7 @@ class FileSystem:
                 file = os.path.realpath(__file__)  # debug in IDE
             except NameError:
                 file = os.getcwd()  # command line >python3 app.py
-        self._fileAPP = self._split_path(file)
+        self._fileAPP = self.__splitPath__(file)
 
     def getCONF(self, path=False, file=False):
         """Returns file path (inculding filename) to config file.
@@ -262,27 +271,28 @@ class FileSystem:
         else:
             return ""
 
-    def _checkLOG(self):
+    def __checkLOG__(self):
         """Will create a file if not exists
-        TODO: need some cleaning mechanism (size?)
+        Delete content
         """
-        self._readFile(self.getLOG())
+        with open(self.getLOG(), 'w+') as file:
+            file.write('')
 
-    def _checkCONF(self):
+    def __checkCONF__(self):
         """Make sure the config file exists and has proper content.
         Removes wrong entries, add entries if missing
         """
         ref_conf = {}
-        conf = self._readFile(self.getCONF())
+        conf = self.__readFile__(self.getCONF())
         for op in self.option:  # check here for known options
             if op not in conf:
                 ref_conf[op] = self.option[op]
             else:
                 ref_conf[op] = conf[op]
         if ref_conf != conf:
-            self._repairCONF(ref_conf)
+            self.__repairCONF__(ref_conf)
 
-    def _readFile(self, fileName) -> dict:
+    def __readFile__(self, fileName) -> dict:
         with open(fileName, 'a+') as file:  # will create file if not exist
             try:
                 # on WIN 'r+' is not creating new file! why??
@@ -294,18 +304,32 @@ class FileSystem:
                 conf = {}  # empty file
         return conf
 
-    def _repairCONF(self, conf: dict):
+    def __repairCONF__(self, conf: dict):
         """create new fresh conf file
         """
         with open(self.getCONF(), 'w') as file:
             json.dump(conf, file)
 
-    def _split_path(self, file):
-        """split the string by path separator. Last list item is name.
-        What is left is the path. Than name is split by dot, giving extension
+    def __checkFile__(self, file: str) -> bool:
+        """Check if file exists\n
+        write message if not
         """
+        if not os.path.isfile(file):
+            # file is missing
+            if file:
+                self.printMsg(f"file '{file}' dosen't exists")
+            return False
+        return True
 
+    def __splitPath__(self, file):
+        """split the string by path separator. Last list item is name.\n
+        What is left is the path. Than name is split by dot, giving extension\n
+        If path start with './': add py module path
+        """
         path = ''
+        # when file starts with dot, add module path
+        if file[0:2] == './':
+            file = self._fileAPP[self._PATH] + file[2:]
         # path separator is system specific (/ for linux, \ for win)
         file = file.split(self._PS)
         name = file.pop()

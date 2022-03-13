@@ -1,4 +1,11 @@
-wrangling doesn't restore all (splits remain empty (not updated))
+integrate FileSystem class with DB class
+
+
+add split of single operation. Must be treated separately and splited BEFORE category
+
+mark split rows which are not valid. Update split.validSplit on start
+
+set min max dates when starting split calendar
 
 see all data when on grandpa and "show all data" clicked
 
@@ -8,9 +15,6 @@ add number of operations to stat window table
 reverse log and pretify
 
 add statistics on front tab
-
-possible to manipulate categories (rm, mov, treeRm) only on selected and following.
-No need to rebuild before cat?
 
 
 what to do with short filters (add (?!<=[:alphanumeric:]))?

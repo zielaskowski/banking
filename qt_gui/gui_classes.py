@@ -3,23 +3,13 @@ define windows objects classes
 control classes shall be named the same +suffix 'ctrl'
 """
 from PyQt5 import QtWidgets, QtCore, QtGui
+from sqlalchemy import false
 from qt_gui.design.calendar import Ui_calendar
 from qt_gui.design.main_window import Ui_banking
 from qt_gui.design.plot import Ui_plot_win
 from qt_gui.design.stat import Ui_statistics
 from qt_gui.design.log import Ui_log
-
-
-class GUILog(QtWidgets.QDialog, Ui_log):
-    """
-    display history of messages (log)
-    """
-
-    def __init__(self, txt):
-        super().__init__()
-        self.setupUi(self)
-        self.logText.setReadOnly(True)
-        self.logText.setText(txt)
+from qt_gui.design.cat_tree import Ui_selTree
 
 
 class moduleDelay():
@@ -72,15 +62,56 @@ class statusQLabel(QtWidgets.QLabel, moduleDelay):
         return super().mousePressEvent(ev)
 
 
+class GUISelTree(QtWidgets.QDialog, Ui_selTree):
+    """Display modal dialog with tree copy to select a category
+    """
+
+    def __init__(self, tree: QtWidgets.QTreeWidget) -> None:
+        super().__init__()
+        self.setupUi(self)
+        self.cat = ''  # store selected category
+        self.tree_db.setModel(tree.model())
+        # hide columns
+        self.tree_db.setHeaderHidden(True)
+        # expand and resize
+        self.tree_db.expandAll()
+        self.tree_db.resizeColumnToContents(0)
+        self.connect()
+
+    def connect(self):
+        self.cancel_btn.clicked.connect(self.stop)
+        self.tree_db.clicked.connect(self.selCat)
+
+    def selCat(self):
+        self.cat = self.tree_db.selectedIndexes()[0].data()
+        self.accept()
+
+    def stop(self):
+        self.reject()
+
+
+class GUILog(QtWidgets.QDialog, Ui_log):
+    """
+    display history of messages (log)
+    """
+
+    def __init__(self, txt):
+        super().__init__()
+        self.setupUi(self)
+        self.logText.setReadOnly(True)
+        self.logText.setText(txt)
+
+
 class GUIStats(QtWidgets.QDialog, Ui_statistics):
     """
     display window with data statistics
     also alows delete selected import
     """
 
-    def __init__(self):#, text):
+    def __init__(self):  # , text):
         super().__init__()
         self.setupUi(self)
+
 
 class GUIPlot(QtWidgets.QMainWindow, Ui_plot_win):
     """
@@ -112,7 +143,7 @@ class GUICalendar(QtWidgets.QDialog, Ui_calendar):
         self.accept()
 
     def noDate(self):
-        self.dat = '-'
+        self.dat = '*'
         self.accept()
 
 

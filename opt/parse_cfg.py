@@ -105,6 +105,7 @@ op_col_type = data_cfg.op_col_type
 raw_bank = data_cfg.bank.copy()
 # map banks col names to operation DB col names
 bank = map_bank(data_cfg.bank)
+bank_names_all = 'all'
 
 extra_col = [f'{bank_col}', 'hash', f'{category}']
 extra_col_type = ['TEXT', 'TEXT', 'TEXT']
@@ -124,7 +125,8 @@ cat_col_type = ["TEXT", "TEXT", 'INT', "TEXT", "TEXT", "INT", "TEXT", "TEXT", "T
 # allowed columns for filtering cat_col[col_name]
 # op_col = ["data_operacji", "data_waluty", "typ_transakcji", "kwota", "waluta", "saldo_po", "rachunek_nadawcy", "nazwa_nadawcy", "adres_nadawcy", "rachunek_odbiorcy", "nazwa_odbiorcy", "adres_odbiorcy", "opis_transakcji", "lokalizacja",'data_czas', 'originalna_kwota', 'nr_karty', 'bank', 'hash', 'kategoria']
 cat_col_names = [op_col[i] for i in range(len(op_col)) if i not in [0,1,4,5]]
-cat_col_names=  cat_col_names[0:-2] # drop hash and category
+cat_col_names=  cat_col_names[0:-1] # drop category
+cat_col_all=  'ALL' # when filter among all columns
 
 # DB used for transform operations
 trans_col = [f'{bank_col}', f"{col_name}", f'{oper}', f'{val1}', "val2", "trans_n"]
