@@ -1,8 +1,9 @@
 """
 manage database logic, defines all operations
 """
+#from msilib.schema import Class
 from typing import Dict, List, Union
-from sqlalchemy import false, null
+from sqlalchemy import case, false, null
 import opt.parse_cfg as cfg
 from pandas.core.dtypes.missing import isnull
 import re
@@ -13,136 +14,7 @@ import pandas
 pandas.options.plotting.backend = 'plotly'
 
 
-class COMMON:
-    def __init__(self):
-        self.CATEGORY = cfg.extra_col[2]
-        self.BANK = cfg.extra_col[0]
-        self.VAL1 = cfg.trans_col[3]
-        self.VAL2 = cfg.trans_col[4]
-        self.TRANS_N = cfg.trans_col[5]
-        self.COL_NAME = cfg.cat_col[0]
-        self.SEL = cfg.cat_col[1]
-        self.FILTER = cfg.cat_col[2]
-        self.FILTER_ORIG = cfg.cat_col[7]
-        self.FILTER_N = cfg.cat_col[3]
-        self.OPER = cfg.cat_col[4]
-        self.OPER_N = cfg.cat_col[5]
-        self.HASH = cfg.extra_col[1]
-        self.CATEGORY = cfg.extra_col[2]
-        self.CAT_PARENT = cfg.tree_col[1]
-        self.START = cfg.split_col[0]
-        self.END = cfg.split_col[1]
-        self.DAYS = cfg.split_col[5]
-        self.SPLIT_N = cfg.split_col[6]
-        self.DATA_OP = cfg.op_col[0]
-
-        def transMultiply(vec: list, x: str, y: str) -> list:
-            try:
-                x = float(x)
-            except:
-                return
-            vec_new = []
-            for i in vec:
-                if type(i) in [float, int]:  # moga byc NULL lub inne kwiatki
-                    # a nie mozemy zmienic dlugosci wektora
-                    vec_new.append(i * x)
-                else:
-                    vec_new.append(i)
-            return vec_new
-
-        def transRep(vec: list, x: str, y: str) -> list:
-            if type(x) == str:
-                x = x.lower()
-            if type(y) == str:
-                y = y.lower()
-            vec = vec.to_list()
-            new_vec = []
-            for i in vec:
-                if isinstance(i, str):  # work only with string (no int or NULL)
-                    # removing \n: search WHOLE string
-                    new_vec.append(re.sub(x, y,
-                                          i.replace('\n', ''),
-                                          flags=re.IGNORECASE).strip())
-                else:
-                    new_vec.append(i)
-            return new_vec
-
-        def catAdd(rows: 'list(bool)', vec: 'list(bool)') -> list:
-            return list(np.array(vec) | np.array(rows))
-
-        def catLim(rows: 'list(bool)', vec: 'list(bool)') -> list:
-            return list(np.array(vec) & np.array(rows))
-
-        def catRem(rows: 'list(bool)', vec: 'list(bool)') -> list:
-            return list(np.array(vec) & ~np.array(rows))
-
-        def fltrMa(self, vec_all: 'list(str)', fltr: str) -> list:
-            rows = vec_all\
-                .astype('string')\
-                .str.contains(fltr,
-                              case=False,
-                              flags=re.IGNORECASE,
-                              regex=True,
-                              na=False)
-            return rows
-
-        def fltrGt(self, vec_all: 'list(str)', fltr: str) -> list:
-            try:
-                fltr = float(fltr)
-                return vec_all > fltr
-            except Exception as error:
-                self.parent.msg(type(error).__name__ + ': ' + str(error))
-                return [False] * len(vec_all)
-
-        def fltrLt(self, vec_all: 'list(str)', fltr: str) -> list:
-            try:
-                fltr = float(fltr)
-                return vec_all < fltr
-            except Exception as error:
-                self.parent.msg(type(error).__name__ + ': ' + str(error))
-                return [False] * len(vec_all)
-
-        def fltrEq(self, vec_all: 'list(str)', fltr: str) -> list:
-            try:
-                fltr = float(fltr)
-                return vec_all == fltr
-            except Exception as error:
-                self.parent.msg(type(error).__name__ + ': ' + str(error))
-                return [False] * len(vec_all)
-
-        # transform and category filtering operations
-        self.transOps = {'*': transMultiply,
-                         'str.replace': transRep}
-        self.catOps = {'add': catAdd,
-                       'lim': catLim,
-                       'rem': catRem}
-        self.catFltrs = {'txt_match': fltrMa,
-                         'greater >': fltrGt,
-                         'smaller <': fltrLt,
-                         'equal': fltrEq}
-
-    def str2int(self, n: str):
-        try:
-            n = float(n)
-        except:
-            self.msg(f'unknown number : {n}')
-            return False
-        return n
-
-    def validateRegEx(self, regEx: str) -> str:
-        """
-        validate regular expression
-        return empty str if all is ok
-        other way return msg
-        """
-        try:
-            re.compile(regEx)
-            return ''
-        except:
-            return f'Wrong filter regExp: {regEx}'
-
-
-class OP(COMMON):
+class OP:
     """operations DB: stores all data imported from bank plus columns:\n
     hash|category\n
     1)category column shall speed up when more than one filter in category\n
@@ -160,7 +32,7 @@ class OP(COMMON):
         # stores list of bools for rows assigned to curCat
         if isinstance(category, str):
             category = [category]
-        catRows = self.op.loc[:, self.CATEGORY].isin(category)
+        catRows = self.op.loc[:, cfg.CATEGORY].isin(category)
         return self.op.loc[catRows, :].copy().reset_index()
 
     def ins(self, db):
@@ -169,7 +41,7 @@ class OP(COMMON):
         """
         self.op = self.op.append(db, ignore_index=True)
         pandas.DataFrame.drop_duplicates(
-            self.op, subset=self.HASH, inplace=True, ignore_index=True)
+            self.op, subset=cfg.HASH, inplace=True, ignore_index=True)
 
     def group_data(self, col: str, category=[cfg.GRANDPA]) -> list:
         """Grupuje wartości w kazdej kolumnie i pokazuje licznosc dla nie pogrupownych danych:\n
@@ -189,7 +61,7 @@ class OP(COMMON):
         # take data
         temp_op = self.get(category=category)
 
-        col_grouped = temp_op.groupby(by=col).count().loc[:, self.DATA_OP]
+        col_grouped = temp_op.groupby(by=col).count().loc[:, cfg.DATA]
         col_grouped = col_grouped.sort_values(ascending=False)
         if col_grouped.empty:
             return ['None']
@@ -244,19 +116,19 @@ class OP(COMMON):
         self.__rmCat__()
 
         for fltr in change:
-            if fltr[self.BANK] in cfg.bank.keys():  # chosen bank
-                bankRows = self.op[self.BANK] == fltr[self.BANK]
+            if fltr[cfg.BANK] in cfg.bank.keys():  # chosen bank
+                bankRows = self.op[cfg.BANK] == fltr[cfg.BANK]
             else:
                 bankRows = [True] * len(self.op)  # all banks
             # iterate through all columns or chosen only
-            if fltr[self.COL_NAME] in cfg.cat_col_names:  # chosen column name
-                cols = [fltr[self.COL_NAME]]
+            if fltr[cfg.COL_NAME] in cfg.cat_col_names:  # chosen column name
+                cols = [fltr[cfg.COL_NAME]]
             else:
                 cols = cfg.cat_col_names  # we search in ALL columns
             for col in cols:
                 ser = self.op.loc[bankRows, col]
-                ser = self.transOps[fltr[self.OPER]](
-                    ser, fltr[self.VAL1], fltr[self.VAL2])
+                ser = fltr[cfg.OPER](
+                    ser, fltr[cfg.VAL1], fltr[cfg.VAL2])
                 self.op.loc[bankRows, col] = ser
 
     def __updateCat__(self, change: List[Dict]):
@@ -269,28 +141,28 @@ class OP(COMMON):
 
         def otherCats():
             otherCat = set(self.op.loc[ser & ~grandpas,
-                                       self.CATEGORY])
+                                       cfg.CATEGORY])
             if cat in otherCat:
                 otherCat.remove(cat)
             return otherCat
 
-        cats = set([c[self.CATEGORY]
+        cats = set([c[cfg.CATEGORY]
                     for c in change])
         self.__rmCat__(cats)
 
         # arrange by filter_n !!!!
-        cats = sorted(cats, key=lambda x: [int(f[self.FILTER_N])
+        cats = sorted(cats, key=lambda x: [int(f[cfg.FILTER_N])
                                            for f in change
-                                           if f[self.CATEGORY] == x])
+                                           if f[cfg.CATEGORY] == x])
 
         for cat in cats:
             ser = [False] * len(self.op)
 
             for fltr in [c for c in change
-                         if c[self.CATEGORY] == cat]:
+                         if c[cfg.CATEGORY] == cat]:
                 # iterate through all columns or chosen only
-                if fltr[self.COL_NAME] in cfg.cat_col_names:  # chosen column name
-                    cols = [fltr[self.COL_NAME]]
+                if fltr[cfg.COL_NAME] in cfg.cat_col_names:  # chosen column name
+                    cols = [fltr[cfg.COL_NAME]]
                 else:
                     cols = cfg.cat_col_names  # we search in ALL columns
 
@@ -298,18 +170,18 @@ class OP(COMMON):
                 rows = [False] * len(self.op)
                 for col in cols:
                     ser_all = self.op.loc[:, col]
-                    row = self.catFltrs[fltr[self.SEL]](
-                        self, ser_all, fltr[self.FILTER])
+                    row = fltr[cfg.FUNCTION](
+                        self, ser_all, fltr[cfg.FILTER])
                     rows = list(np.array(rows) | np.array(row))
-                ser = self.catOps[fltr[self.OPER]](rows, ser)
+                ser = fltr[cfg.OPER](rows, ser)
 
             # we completed category, write selected rows and check for overlaps
-            grandpas = self.op.loc[:, self.CATEGORY] == cfg.GRANDPA
+            grandpas = self.op.loc[:, cfg.CATEGORY] == cfg.GRANDPA
             if otherCats():  # mark overlaping cats
                 self.parent.msg(
                     f'When setting {cat}, could not get rows belonging already to other categories: {otherCats()}')
 
-            self.op.loc[ser & grandpas, self.CATEGORY] = cat
+            self.op.loc[ser & grandpas, cfg.CATEGORY] = cat
 
     def __updateSplit__(self, change: List[Dict]):
         """split selected rows\n
@@ -321,46 +193,46 @@ class OP(COMMON):
 
         for ch in change:
             ch = pandas.Series(ch)
-            if ch[self.COL_NAME] != self.HASH:
-                if ch[self.START] in ["-", "", "*"]:
-                    ch[self.START] = self.op.loc[:, self.DATA_OP].min()
-                if ch[self.END] in ["-", "", "*"]:
-                    ch[self.END] = self.op.loc[:, self.DATA_OP].max()
+            if ch[cfg.COL_NAME] != cfg.HASH:
+                if ch[cfg.START] in ["-", "", "*"]:
+                    ch[cfg.START] = self.op.loc[:, cfg.DATA].min()
+                if ch[cfg.END] in ["-", "", "*"]:
+                    ch[cfg.END] = self.op.loc[:, cfg.DATA].max()
 
                 # make sure we have proper data types
                 try:
-                    ch[self.START] = pandas.to_datetime(ch[self.START])
-                    ch[self.END] = pandas.to_datetime(ch[self.END])
-                    ch[self.VAL1] = self.str2int(ch[self.VAL1])
-                    ch[self.DAYS] = self.str2int(ch[self.DAYS])
+                    ch[cfg.START] = pandas.to_datetime(ch[cfg.START])
+                    ch[cfg.END] = pandas.to_datetime(ch[cfg.END])
+                    ch[cfg.VAL1] = self.str2int(ch[cfg.VAL1])
+                    ch[cfg.DAYS] = self.str2int(ch[cfg.DAYS])
                 except:
                     self.parent.msg('__updateSplit__: wrong type of input')
                     return False
-                self.parent.split.validateSplit(ch[self.SPLIT_N], True)
+                self.parent.split.validateSplit(ch[cfg.SPLIT_N], True)
 
                 # get op rows
-                days = (ch[self.END] - ch[self.START]) // ch[self.DAYS]
+                days = (ch[cfg.END] - ch[cfg.START]) // ch[cfg.DAYS]
                 days_n = days.days
                 if days_n < 1:
                     self.parent.msg(
                         '__updateSplit__: Date range shall be at number of day')
-                    ch[self.END] = ch[self.START] + days.days
-                start = self.op.loc[:, self.DATA_OP] >= ch[self.START]
-                end = self.op.loc[:, self.DATA_OP] <= ch[self.END]
-                cat = self.op.loc[:, ch[self.COL_NAME]] == ch[self.FILTER]
+                    ch[cfg.END] = ch[cfg.START] + days.days
+                start = self.op.loc[:, cfg.DATA] >= ch[cfg.START]
+                end = self.op.loc[:, cfg.DATA] <= ch[cfg.END]
+                cat = self.op.loc[:, ch[cfg.COL_NAME]] == ch[cfg.FILTER]
                 rows = self.op.loc[start & end & cat, :].copy()
                 if rows.empty:
                     self.parent.msg(f'Split filter refer to empty category')
-                    self.parent.split.validateSplit(ch[self.SPLIT_N], False)
+                    self.parent.split.validateSplit(ch[cfg.SPLIT_N], False)
                     return False
 
                 availCash = rows.loc[:, colKwota].sum()
-                if abs(availCash) < abs(days_n * ch[self.VAL1]):
+                if abs(availCash) < abs(days_n * ch[cfg.VAL1]):
                     self.parent.msg(
-                        f'when setting {ch[self.CATEGORY]} not enough cash in {ch[self.FILTER]}: {round(availCash,2)} is less than {days_n * ch[self.VAL1]}.')
-                    ch[self.VAL1] = abs(availCash) / days_n
+                        f'when setting {ch[cfg.CATEGORY]} not enough cash in {ch[cfg.FILTER]}: {round(availCash,2)} is less than {days_n * ch[cfg.VAL1]}.')
+                    ch[cfg.VAL1] = abs(availCash) / days_n
                     # write info to status table
-                    self.parent.split.validateSplit(ch[self.SPLIT_N], False)
+                    self.parent.split.validateSplit(ch[cfg.SPLIT_N], False)
 
                 self.op.drop(rows.index, inplace=True)
 
@@ -371,7 +243,7 @@ class OP(COMMON):
                     return newAmount
 
                 rows.loc[:, colKwota] = substract(
-                    ch[self.VAL1] * days_n / len(rows))
+                    ch[cfg.VAL1] * days_n / len(rows))
                 # some amounts may be less then substract
                 smallRows = rows.loc[:, colKwota] > 0
                 while any(smallRows):
@@ -383,14 +255,14 @@ class OP(COMMON):
                 # add new rows
                 for i in range(int(days_n)):
                     row = rows.iloc[0, :].to_dict()
-                    row[self.DATA_OP] = ch[self.START] + \
-                        pandas.Timedelta(ch[self.DAYS] * i, unit='D')
-                    row[self.CATEGORY] = ch[self.CATEGORY]
-                    row[colKwota] = ch[self.VAL1]
+                    row[cfg.DATA] = ch[cfg.START] + \
+                        pandas.Timedelta(ch[cfg.DAYS] * i, unit='D')
+                    row[cfg.CATEGORY] = ch[cfg.CATEGORY]
+                    row[colKwota] = ch[cfg.VAL1]
                     hashRow = pandas.DataFrame(
                         row, columns=list(row.keys()), index=[0])
-                    hashRow = hashRow.drop([self.HASH, self.CATEGORY], axis=1)
-                    row[self.HASH] = pandas.util.hash_pandas_object(
+                    hashRow = hashRow.drop([cfg.HASH, cfg.CATEGORY], axis=1)
+                    row[cfg.HASH] = pandas.util.hash_pandas_object(
                         hashRow, index=False).to_string(index=False).strip()
                     rows = rows.append(row, ignore_index=True)
 
@@ -398,8 +270,8 @@ class OP(COMMON):
                 self.op = self.parent.__correct_col_types__(self.op)
 
             else:  # find hash only and change category
-                hashRow = self.op.loc[:, self.HASH] == ch[self.FILTER]
-                self.op.loc[hashRow, self.CATEGORY] = ch[self.CATEGORY]
+                hashRow = self.op.loc[:, cfg.HASH] == ch[cfg.FILTER]
+                self.op.loc[hashRow, cfg.CATEGORY] = ch[cfg.CATEGORY]
 
         return True
 
@@ -409,30 +281,81 @@ class OP(COMMON):
         """
         for c in category:
             if c in [cfg.GRANDPA, '*']:
-                self.op.loc[:, self.CATEGORY] = cfg.GRANDPA
+                self.op.loc[:, cfg.CATEGORY] = cfg.GRANDPA
                 return
-            catRows = self.op.loc[:, self.CATEGORY] == c
-            self.op.loc[catRows, self.CATEGORY] = cfg.GRANDPA
+            catRows = self.op.loc[:, cfg.CATEGORY] == c
+            self.op.loc[catRows, cfg.CATEGORY] = cfg.GRANDPA
         return
 
 
-class CAT(COMMON):
+class CAT:
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
-        self.cat = pandas.DataFrame({self.COL_NAME: cfg.cat_col_names[0],
-                                     self.SEL: 'txt_match',
-                                     self.FILTER: '.*',
-                                     self.FILTER_N: 0,
-                                     self.FILTER_ORIG: '.*',
-                                     self.OPER: 'add',
-                                     self.OPER_N: 1,
-                                     self.CATEGORY: cfg.GRANDPA}, columns=cfg.cat_col, index=[0])  # table of categories
+        self.cat = pandas.DataFrame({cfg.COL_NAME: cfg.cat_col_names[0],
+                                     cfg.FUNCTION: 'txt_match',
+                                     cfg.FILTER: '.*',
+                                     cfg.FILTER_N: 0,
+                                     cfg.OPER: 'add',
+                                     cfg.OPER_N: 1,
+                                     cfg.CATEGORY: cfg.GRANDPA}, columns=cfg.cat_col, index=[0])  # table of categories
         # start with selected grandpa category,
         # there can be only one filter which we don't want to display
         self.curCat = [cfg.GRANDPA]
         self.catRows = pandas.DataFrame
         self.setCat(self.curCat)
+
+        def catAdd(rows: 'list(bool)', vec: 'list(bool)') -> list:
+            return list(np.array(vec) | np.array(rows))
+
+        def catLim(rows: 'list(bool)', vec: 'list(bool)') -> list:
+            return list(np.array(vec) & np.array(rows))
+
+        def catRem(rows: 'list(bool)', vec: 'list(bool)') -> list:
+            return list(np.array(vec) & ~np.array(rows))
+
+        def fltrMa(self, vec_all: 'list(str)', fltr: str) -> list:
+            rows = vec_all\
+                .astype('string')\
+                .str.contains(fltr,
+                              case=False,
+                              flags=re.IGNORECASE,
+                              regex=True,
+                              na=False)
+            return rows
+
+        def fltrGt(self, vec_all: 'list(str)', fltr: str) -> list:
+            try:
+                fltr = float(fltr)
+                return vec_all > fltr
+            except Exception as error:
+                self.parent.msg(type(error).__name__ + ': ' + str(error))
+                return [False] * len(vec_all)
+
+        def fltrLt(self, vec_all: 'list(str)', fltr: str) -> list:
+            try:
+                fltr = float(fltr)
+                return vec_all < fltr
+            except Exception as error:
+                self.parent.msg(type(error).__name__ + ': ' + str(error))
+                return [False] * len(vec_all)
+
+        def fltrEq(self, vec_all: 'list(str)', fltr: str) -> list:
+            try:
+                fltr = float(fltr)
+                return vec_all == fltr
+            except Exception as error:
+                self.parent.msg(type(error).__name__ + ': ' + str(error))
+                return [False] * len(vec_all)
+
+        # category filtering and operations
+        self.catOps = {'add': catAdd,
+                       'lim': catLim,
+                       'rem': catRem}
+        self.catFltrs = {'txt_match': fltrMa,
+                         'greater >': fltrGt,
+                         'smaller <': fltrLt,
+                         'equal': fltrEq}
 
     def setCat(self, category: List[str]) -> None:
         """set curent category so other methods work only on sel cat\n
@@ -446,7 +369,7 @@ class CAT(COMMON):
         elif '*' in category:
             self.catRows = [True] * len(self.cat)
         else:
-            self.catRows = self.cat.loc[:, self.CATEGORY].isin(category)
+            self.catRows = self.cat.loc[:, cfg.CATEGORY].isin(category)
         self.curCat = category
 
     def __getitem__(self, *args) -> str:
@@ -471,16 +394,16 @@ class CAT(COMMON):
         # filter_original not enough when cat created AFTER filter
 
         # warn when removing filter with val2 in cat filter and filter==filter_orig
-        affCats = np.array(self.cat.loc[:, self.FILTER] == trans[0][self.VAL2])
-        origCats = np.array(self.cat[self.FILTER]
-                            == self.cat[self.FILTER_ORIG])
+        affCats = np.array(self.cat.loc[:, cfg.FILTER] == trans[0][cfg.VAL2])
+        origCats = np.array(self.cat[cfg.FILTER]
+                            == self.cat[cfg.FILTER_ORIG])
 
-        probCats = self.cat.loc[affCats & origCats, self.CATEGORY].to_list()
+        probCats = self.cat.loc[affCats & origCats, cfg.CATEGORY].to_list()
         if probCats:
             self.parent.msg(
                 f'This operation may have invalidated the category: {list(set(probCats))}. Please check.')
 
-        self.cat[self.FILTER] = self.cat[self.FILTER_ORIG]
+        self.cat[cfg.FILTER] = self.cat[cfg.FILTER_ORIG]
 
     def __update__(self, change: List[Dict]):
         """transform all filters\n
@@ -488,18 +411,18 @@ class CAT(COMMON):
         """
         for fltr in change:
             # do not change if val2=='', just warn that cat is no longer valid
-            affCats = self.cat.loc[:, self.FILTER] == fltr[self.VAL1]
-            probCats = self.cat.loc[affCats, self.CATEGORY].to_list()
+            affCats = self.cat.loc[:, cfg.FILTER] == fltr[cfg.VAL1]
+            probCats = self.cat.loc[affCats, cfg.CATEGORY].to_list()
 
-            if fltr[self.VAL2] == '' and probCats:
+            if fltr[cfg.VAL2] == '' and probCats:
                 self.parent.msg(
                     f'This operation may have invalidated the category: {list(set(probCats))}. Please check.')
                 continue
 
-            ser = self.cat.loc[:, self.FILTER]
-            ser = self.transOps[fltr[self.OPER]](
-                ser, fltr[self.VAL1], fltr[self.VAL2])
-            self.cat.loc[:, self.FILTER] = ser
+            ser = self.cat.loc[:, cfg.FILTER]
+            ser = self.transOps[fltr[cfg.OPER]](
+                ser, fltr[cfg.VAL1], fltr[cfg.VAL2])
+            self.cat.loc[:, cfg.FILTER] = ser
 
     def __len__(self):
         return len(self.cat.loc[self.catRows, :])
@@ -507,14 +430,14 @@ class CAT(COMMON):
     def opers(self) -> list:
         """return avilable filtering operations
         """
-        return list(self.catOps.keys())
+        return list(self.parent.catOps.keys())
 
     def fltrs(self) -> list:
         """return avilable filters
         """
-        return list(self.catFltrs.keys())
+        return list(self.parent.catFltrs.keys())
 
-    def add(self, fltr: "dict"):
+    def add(self, fltr: "dict") -> bool:
         """add new filter, can be also used for replacement when oper_n provided\n
         also possible to pass multiple dicts in list\n
         not allowed on category in ['grandpa', '*']\n
@@ -526,20 +449,19 @@ class CAT(COMMON):
             Not always possible, i.e when transform created before category....
         """
         # validate regexp in FILTER
-        val = self.validateRegEx(fltr[self.FILTER])
-        if val:
-            self.parent.msg = val
+        val = self.parent.validateRegEx(fltr[cfg.FILTER])
+        if not val:
             return False
 
         # if first time
-        if not fltr[self.FILTER_ORIG]:
-            fltr[self.FILTER_ORIG] = fltr[self.FILTER]
+        if not fltr[cfg.FILTER_ORIG]:
+            fltr[cfg.FILTER_ORIG] = fltr[cfg.FILTER]
 
         # define categories
-        if not any([v for k, v in fltr.items() if k == self.TRANS_N]):
-            self.setCat(fltr[self.CATEGORY])
+        if not any([v for k, v in fltr.items() if k == cfg.TRANS_N]):
+            self.setCat(fltr[cfg.CATEGORY])
         else:
-            fltr[self.CATEGORY] = self.curCat
+            fltr[cfg.CATEGORY] = self.curCat
 
         if self.curCat in [cfg.GRANDPA, '*']:
             self.parent.msg(
@@ -547,16 +469,16 @@ class CAT(COMMON):
             return False
 
         # define filter position
-        if not any([v for k, v in fltr.items() if k == self.OPER_N]):
-            fltr[self.OPER_N] = self.__max__(self.OPER_N) + 1
+        if not any([v for k, v in fltr.items() if k == cfg.OPER_N]):
+            fltr[cfg.OPER_N] = self.__max__(cfg.OPER_N) + 1
         else:  # renumber oper_n above inserting position
-            fltr[self.OPER_N] = float(fltr[self.OPER_N])
-            newSer = self.cat.loc[self.catRows, self.OPER_N].apply(
-                lambda x: self.__addAbove__(x, fltr[self.OPER_N]))
-            self.cat.loc[self.catRows, self.OPER_N] = newSer
+            fltr[cfg.OPER_N] = float(fltr[cfg.OPER_N])
+            newSer = self.cat.loc[self.catRows, cfg.OPER_N].apply(
+                lambda x: self.__addAbove__(x, fltr[cfg.OPER_N]))
+            self.cat.loc[self.catRows, cfg.OPER_N] = newSer
 
         # define new filter_n or take of current category
-        fltr[self.FILTER_N] = self.__max__(self.FILTER_N)
+        fltr[cfg.FILTER_N] = self.__max__(cfg.FILTER_N)
 
         # validate
         cat2val = self.cat.append(fltr, ignore_index=True)
@@ -584,12 +506,12 @@ class CAT(COMMON):
             return False
 
         if not oper_n:
-            oper_n = self.cat.loc[self.catRows, self.OPER_N].to_list()
+            oper_n = self.cat.loc[self.catRows, cfg.OPER_N].to_list()
         else:
             oper_n = [oper_n]
 
         # find row to be deleted
-        operRows = self.cat.loc[:, self.OPER_N].isin(oper_n)
+        operRows = self.cat.loc[:, cfg.OPER_N].isin(oper_n)
         dropRows = self.cat.loc[operRows & self.catRows]
 
         # validate
@@ -612,24 +534,24 @@ class CAT(COMMON):
                 f'category.mov: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.')
             return []
 
-        oper_n_row = (self.cat.loc[:, self.OPER_N] == oper_n) & self.catRows
+        oper_n_row = (self.cat.loc[:, cfg.OPER_N] == oper_n) & self.catRows
         new_oper_n_row = (
-            self.cat.loc[:, self.OPER_N] == new_oper_n) & self.catRows
+            self.cat.loc[:, cfg.OPER_N] == new_oper_n) & self.catRows
         if not (any(oper_n_row) and any(new_oper_n_row)):
             self.parent.msg(f'category.mov: Wrong operation position')
             return []
 
         db = self.cat.copy()
-        db.loc[oper_n_row, self.OPER_N] = new_oper_n
-        db.loc[new_oper_n_row, self.OPER_N] = oper_n
+        db.loc[oper_n_row, cfg.OPER_N] = new_oper_n
+        db.loc[new_oper_n_row, cfg.OPER_N] = oper_n
 
         valid_cat = self.__validate__(db)
         if not valid_cat.empty:
             self.cat = valid_cat
             self.setCat(self.curCat)  # to have the same number of rows
             # if change between add oper, no need to update
-            if (self.cat.loc[oper_n_row, self.OPER] == 'add').bool() &\
-                    (self.cat.loc[new_oper_n_row, self.OPER] == 'add').bool():
+            if (self.cat.loc[oper_n_row, cfg.OPER] == 'add').bool() &\
+                    (self.cat.loc[new_oper_n_row, cfg.OPER] == 'add').bool():
                 return []
             return self.curCat
         else:
@@ -647,7 +569,7 @@ class CAT(COMMON):
                 f'category.ren: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.')
             return []
 
-        self.cat.loc[self.catRows, self.CATEGORY] = new_category
+        self.cat.loc[self.catRows, cfg.CATEGORY] = new_category
         self.setCat(new_category)
 
         # validate
@@ -658,15 +580,15 @@ class CAT(COMMON):
             return self.curCat
         else:
             # not validated, so recover cat
-            self.cat.loc[self.catRows, self.CATEGORY] = category
+            self.cat.loc[self.catRows, cfg.CATEGORY] = category
             self.setCat(category)
             return []
 
     def arrange(self, categories: str):
         db = pandas.DataFrame()
         for cat in categories:
-            cat_rows = self.cat.loc[:, self.CATEGORY] == cat
-            self.cat.loc[cat_rows, self.FILTER_N] = list(categories).index(cat)
+            cat_rows = self.cat.loc[:, cfg.CATEGORY] == cat
+            self.cat.loc[cat_rows, cfg.FILTER_N] = list(categories).index(cat)
             db = db.append(self.cat.loc[cat_rows, :], ignore_index=True)
         self.cat = db.copy(deep=True)
         return
@@ -683,9 +605,9 @@ class CAT(COMMON):
         - col=oper_n: limit max to selected category
         - col=filter_n: take from curent category if exist or max+1
         """
-        if column == self.FILTER_N:
+        if column == cfg.FILTER_N:
             if any(self.catRows):  # category already exists
-                return self.cat.loc[self.catRows, self.FILTER_N].iloc[0]
+                return self.cat.loc[self.catRows, cfg.FILTER_N].iloc[0]
             else:
                 return max(self.cat.loc[:, column], default=0) + 1
         else:
@@ -698,21 +620,21 @@ class CAT(COMMON):
         4) renumber oper_n within categories to avoid holes
         5) not make sense to duplicate
         """
-        db.sort_values(by=[self.FILTER_N, self.OPER_N],
+        db.sort_values(by=[cfg.FILTER_N, cfg.OPER_N],
                        ignore_index=True, inplace=True)
-        catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
+        catRows = db.loc[:, cfg.CATEGORY].isin(self.curCat)
         # 1) align filter_n among category
         # only if we have curent category (not after remove)
         if any(catRows):
-            fltr_n = db.loc[catRows, self.FILTER_N].iloc[0]
-            db.loc[catRows, self.FILTER_N] = fltr_n
-            db.sort_values(by=[self.FILTER_N, self.OPER_N],
+            fltr_n = db.loc[catRows, cfg.FILTER_N].iloc[0]
+            db.loc[catRows, cfg.FILTER_N] = fltr_n
+            db.sort_values(by=[cfg.FILTER_N, cfg.OPER_N],
                            ignore_index=True, inplace=True)
-            catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
+            catRows = db.loc[:, cfg.CATEGORY].isin(self.curCat)
 
         # 2) check first row in cat
         if any(catRows):
-            oper = db.loc[catRows, self.OPER].iloc[0]
+            oper = db.loc[catRows, cfg.OPER].iloc[0]
         else:
             # we removed whole category, but this way we pass check
             oper = 'add'
@@ -727,9 +649,9 @@ class CAT(COMMON):
         # 4) renumber oper_n
         oper_max = len(db.loc[catRows, :]) + 1
         opers_l = list(range(1, oper_max))
-        db.loc[catRows, self.OPER_N] = opers_l
+        db.loc[catRows, cfg.OPER_N] = opers_l
 
-        db.sort_values(by=[self.FILTER_N, self.OPER_N],
+        db.sort_values(by=[cfg.FILTER_N, cfg.OPER_N],
                        ignore_index=True, inplace=True)
 
         # 5) not make sense to duplicate
@@ -743,12 +665,48 @@ class CAT(COMMON):
         return db
 
 
-class TRANS(COMMON):
+class TRANS:
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
         self.trans = pandas.DataFrame(
             columns=cfg.trans_col)  # table of transformations
+        self.lastOper = {}
+
+        def transMultiply(vec: list, x: str, y: str) -> list:
+            try:
+                x = float(x)
+            except:
+                return
+            vec_new = []
+            for i in vec:
+                if type(i) in [float, int]:  # moga byc NULL lub inne kwiatki
+                    # a nie mozemy zmienic dlugosci wektora
+                    vec_new.append(i * x)
+                else:
+                    vec_new.append(i)
+            return vec_new
+
+        def transRep(vec: list, x: str, y: str) -> list:
+            if type(x) == str:
+                x = x.lower()
+            if type(y) == str:
+                y = y.lower()
+            vec = vec.to_list()
+            new_vec = []
+            for i in vec:
+                if isinstance(i, str):  # work only with string (no int or NULL)
+                    # removing \n: search WHOLE string
+                    new_vec.append(re.sub(x, y,
+                                          i.replace('\n', ''),
+                                          flags=re.IGNORECASE).strip())
+                else:
+                    new_vec.append(i)
+            return new_vec
+
+        # transform and category filtering operations
+        self.transOps = {'*': transMultiply,
+                         'str.replace': transRep}
 
     def __getitem__(self, *args) -> str:
         """equivalent of pandas.iloc\n
@@ -763,13 +721,13 @@ class TRANS(COMMON):
             fltr = self.trans
         else:
             fltr = self.trans.loc[self.trans.loc[:,
-                                                 self.TRANS_N] == trans_n, :]
+                                                 cfg.TRANS_N] == trans_n, :]
         return fltr.to_dict('records')
 
     def __len__(self):
         return len(self.trans)
 
-    def __validate__(self, db) -> pandas:
+    def __validate__(self, db: pandas) -> pandas:
         """validate tranformation DB. returns DB if ok or empty (when found duplicates)
         1) remove duplicates
         2) renumber filter_n to remove holes
@@ -777,50 +735,49 @@ class TRANS(COMMON):
         """
         # remove duplicates
         dup = db.duplicated(
-            subset=[self.COL_NAME, self.OPER, self.VAL1], keep='first')
+            subset=[cfg.COL_NAME, cfg.OPER, cfg.VAL1], keep='first')
         if any(dup.to_list()):
             self.parent.msg(
                 f'trans.__validate__: transformation already exist')
             return pandas.DataFrame()
         # renumber trans_n
-        db.sort_values(by=self.TRANS_N, ignore_index=True, inplace=True)
+        db.sort_values(by=cfg.TRANS_N, ignore_index=True, inplace=True)
         trans_max = len(db) + 1
         trans_l = list(range(1, trans_max))
-        db.loc[:, self.TRANS_N] = trans_l
+        db.loc[:, cfg.TRANS_N] = trans_l
         # sort by trans_n
-        db.sort_values(by=self.TRANS_N, ignore_index=True, inplace=True)
+        db.sort_values(by=cfg.TRANS_N, ignore_index=True, inplace=True)
 
         return db
 
-    def add(self, fltr: dict):
+    def add(self, fltr: dict) -> List[Union[Dict, None]]:
         """add new transformation, can be also used for replacement when trans_n provided\n
-        also possible to pass multiple dicts in list\n
         minimum input: {bank: str,col_name: str, oper: str, val1: str, val2: str}\n
         optionally:\n
         - trans_n, will put at position if provided, other way will add after last one
         """
         # validate regexp in FILTER
-        val = self.validateRegEx(fltr[self.VAL1])
-        if val:
-            self.parent.msg = val
+        val = self.parent.validateRegEx(fltr[cfg.VAL1])
+        if not val:
             return False
 
         # define filter position
-        if not any([v for k, v in fltr.items() if k == self.TRANS_N]):
-            fltr[self.TRANS_N] = self.__max__() + 1
+        if not any([v for k, v in fltr.items() if k == cfg.TRANS_N]):
+            fltr[cfg.TRANS_N] = self.__max__() + 1
         else:  # renumber filter_n above inserting position
-            fltr[self.TRANS_N] = float(fltr[self.TRANS_N])
-            newSer = self.trans[self.TRANS_N].apply(
-                lambda x: self.__addAbove__(x, fltr[self.TRANS_N]))
-            self.trans.loc[:, self.TRANS_N] = newSer
+            fltr[cfg.TRANS_N] = float(fltr[cfg.TRANS_N])
+            newSer = self.trans[cfg.TRANS_N].apply(
+                lambda x: self.__addAbove__(x, fltr[cfg.TRANS_N]))
+            self.trans.loc[:, cfg.TRANS_N] = newSer
 
         cat2val = self.trans.append(fltr, ignore_index=True)
         valid_cat = self.__validate__(cat2val)
         if not valid_cat.empty:
             self.trans = valid_cat
+            self.lastOper = fltr
             return self.__to_dict__()
         else:
-            return False
+            return []
 
     @ staticmethod
     def __addAbove__(x, filter_n):
@@ -833,7 +790,7 @@ class TRANS(COMMON):
         """remove transformation\n
         """
         trans_n = float(trans_n)
-        transRows = self.trans.loc[:, self.TRANS_N] == trans_n
+        transRows = self.trans.loc[:, cfg.TRANS_N] == trans_n
         self.trans.drop(self.trans[transRows].index, inplace=True)
 
         self.trans = self.__validate__(self.trans)
@@ -846,11 +803,11 @@ class TRANS(COMMON):
         trans_n = float(trans_n)
         new_trans_n = float(new_trans_n)
 
-        trans_n_row = self.trans.loc[:, self.TRANS_N] == trans_n
-        new_trans_n_row = self.trans.loc[:, self.TRANS_N] == new_trans_n
+        trans_n_row = self.trans.loc[:, cfg.TRANS_N] == trans_n
+        new_trans_n_row = self.trans.loc[:, cfg.TRANS_N] == new_trans_n
 
-        self.trans.loc[trans_n_row, self.TRANS_N] = new_trans_n
-        self.trans.loc[new_trans_n_row, self.TRANS_N] = trans_n
+        self.trans.loc[trans_n_row, cfg.TRANS_N] = new_trans_n
+        self.trans.loc[new_trans_n_row, cfg.TRANS_N] = trans_n
 
         self.trans = self.__validate__(self.trans)
         return True
@@ -863,15 +820,15 @@ class TRANS(COMMON):
     def __max__(self):
         """max function, but also handle empty db
         """
-        return max(self.trans.loc[:, self.TRANS_N], default=0)
+        return max(self.trans.loc[:, cfg.TRANS_N], default=0)
 
 
-class TREE(COMMON):
+class TREE:
     def __init__(self, parent):
         super().__init__()
         self.par = parent
-        self.tree = pandas.DataFrame({self.CATEGORY: cfg.GRANDPA,
-                                      self.CAT_PARENT: '/'}, columns=cfg.tree_col, index=[0])
+        self.tree = pandas.DataFrame({cfg.CATEGORY: cfg.GRANDPA,
+                                      cfg.CAT_PARENT: '/'}, columns=cfg.tree_col, index=[0])
 
     def new_cat(self) -> str:
         """
@@ -885,8 +842,8 @@ class TREE(COMMON):
         return "new category" + str(new_names_no)
 
     def child(self, parent: str) -> list:
-        childRow = self.tree.loc[:, self.CAT_PARENT] == parent
-        return self.tree.loc[childRow, self.CATEGORY].to_list()
+        childRow = self.tree.loc[:, cfg.CAT_PARENT] == parent
+        return self.tree.loc[childRow, cfg.CATEGORY].to_list()
 
     def parent(self, child: str) -> str:
         """return parent of category.\n
@@ -894,7 +851,7 @@ class TREE(COMMON):
         """
         if child == cfg.GRANDPA:
             return cfg.GRANDPA
-        parentRow = self.tree.loc[:, self.CATEGORY] == child
+        parentRow = self.tree.loc[:, cfg.CATEGORY] == child
         # if child do not exist, return empty str
         if not any(parentRow):
             return ''
@@ -902,7 +859,7 @@ class TREE(COMMON):
         if len([i for i in parentRow if i]) > 1:
             self.par.msg(f'doubled category names: {child}')
             return cfg.GRANDPA  # this will stop infinite loop of allChildren()
-        return self.tree.loc[parentRow, self.CAT_PARENT].to_list()[0]
+        return self.tree.loc[parentRow, cfg.CAT_PARENT].to_list()[0]
 
     def path(self, category: str) -> list:
         """return path for category
@@ -940,9 +897,9 @@ class TREE(COMMON):
             return False
 
         self.tree = self.tree.append(
-            {self.CATEGORY: child, self.CAT_PARENT: parent}, ignore_index=True)
+            {cfg.CATEGORY: child, cfg.CAT_PARENT: parent}, ignore_index=True)
         self.tree.drop_duplicates(
-            subset=self.CATEGORY, keep='first', inplace=True)
+            subset=cfg.CATEGORY, keep='first', inplace=True)
         return True
 
     def ren(self, category: str, new_category: str):
@@ -963,15 +920,15 @@ class TREE(COMMON):
                 f'tree.ren(): Not allowed to rename into child or parent')
             return
 
-        catRows = self.tree.loc[:, self.CATEGORY] == category
-        parRows = self.tree.loc[:, self.CAT_PARENT] == category
+        catRows = self.tree.loc[:, cfg.CATEGORY] == category
+        parRows = self.tree.loc[:, cfg.CAT_PARENT] == category
         newParent = self.parent(category)
-        self.tree.loc[catRows, self.CATEGORY] = new_category
-        self.tree.loc[catRows, self.CAT_PARENT] = newParent
-        self.tree.loc[parRows, self.CAT_PARENT] = new_category
+        self.tree.loc[catRows, cfg.CATEGORY] = new_category
+        self.tree.loc[catRows, cfg.CAT_PARENT] = newParent
+        self.tree.loc[parRows, cfg.CAT_PARENT] = new_category
         # remove duplicates
         self.tree.drop_duplicates(
-            subset=[self.CATEGORY], keep='last', inplace=True)
+            subset=[cfg.CATEGORY], keep='last', inplace=True)
         self.tree.reset_index(inplace=True, drop=True)
         return True
 
@@ -986,8 +943,8 @@ class TREE(COMMON):
             self.par.msg = f"Not allowed to move category to it's children or parent"
             return
 
-        childRows = self.tree.loc[:, self.CATEGORY] == child
-        self.tree.loc[childRows, self.CAT_PARENT] = new_parent
+        childRows = self.tree.loc[:, cfg.CATEGORY] == child
+        self.tree.loc[childRows, cfg.CAT_PARENT] = new_parent
 
     def rm(self, child: str):
         """rem category, if data in category it will be removed (move to Grandpa) by cat DB in parent.__update__
@@ -997,7 +954,7 @@ class TREE(COMMON):
         for i in self.child(parent=child):
             self.mov(new_parent=cfg.GRANDPA, child=i)
 
-        childRows = self.tree.loc[:, self.CATEGORY] == child
+        childRows = self.tree.loc[:, cfg.CATEGORY] == child
         self.tree.drop(self.tree.loc[childRows].index, inplace=True)
 
         return True
@@ -1018,8 +975,8 @@ class TREE(COMMON):
         if cat_i < 0 or cat_i > len(siblings):
             self.par.msg(f'Can not move {dir}. Already on edge.')
             return []
-        sib_row = self.tree.loc[:, self.CATEGORY] == siblings[cat_i]
-        cat_row = self.tree.loc[:, self.CATEGORY] == category
+        sib_row = self.tree.loc[:, cfg.CATEGORY] == siblings[cat_i]
+        cat_row = self.tree.loc[:, cfg.CATEGORY] == category
         self.tree.loc[cat_row, :] = self.tree.loc[sib_row, :].to_numpy()
         self.tree.loc[sib_row, :] = [category, parent]
 
@@ -1097,15 +1054,23 @@ class IMP:
         return ret[0]
 
 
-class SPLIT(COMMON):
+class SPLIT:
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
         self.split = pandas.DataFrame(columns=cfg.split_col)
-        self.validSplit = pandas.DataFrame(columns=[self.SPLIT_N, 'valid'])
+        self.validSplit = pandas.DataFrame(columns=[cfg.SPLIT_N, 'valid'])
         self.impSplit = [cfg.GRANDPA]
         self.splitRows = []
         self.setSplit(category=['*'])
+
+        def splitCat():
+            pass
+
+        def splitOp():
+            pass
+        self.splitOps = {'split category': splitCat,
+                         'split operation': splitOp}
 
     def __len__(self):
         return len(self.split.loc[self.splitRows, :])
@@ -1116,9 +1081,15 @@ class SPLIT(COMMON):
         it = self.split.loc[self.splitRows, :].reset_index().loc[args[0]]
         return it
 
+    def opers(self) -> List:
+        """
+        return available operation for split: category or single op
+        """
+        return self.splitOps.keys()
+
     def validateSplit(self, split_n: int, valid: bool):
         self.validSplit = self.validSplit\
-            .append({self.SPLIT_N: split_n, 'valid': valid},
+            .append({cfg.SPLIT_N: split_n, 'valid': valid},
                     ignore_index=True)
 
     def setSplit(self, category=[], fltr=[], oper_n=0):
@@ -1129,15 +1100,15 @@ class SPLIT(COMMON):
         set catRows: List[bool] and curSplit: list
         """
         if oper_n != 0:
-            self.splitRows = self.split.loc[:, self.SPLIT_N] == oper_n
+            self.splitRows = self.split.loc[:, cfg.SPLIT_N] == oper_n
             self.setImpCats()
             return
 
         if '*' in category:
             self.splitRows = [True] * len(self.split)
         else:
-            self.splitRows = self.split.loc[:, self.CATEGORY].isin(category) |\
-                self.split.loc[:, self.FILTER].isin(fltr)
+            self.splitRows = self.split.loc[:, cfg.CATEGORY].isin(category) |\
+                self.split.loc[:, cfg.FILTER].isin(fltr)
 
         self.setImpCats()
 
@@ -1148,15 +1119,15 @@ class SPLIT(COMMON):
         if category missing, use self.splitRows
         """
         if not category:
-            category = self.split.loc[self.splitRows, self.CATEGORY].to_list()
-            category += self.split.loc[self.splitRows, self.FILTER].to_list()
+            category = self.split.loc[self.splitRows, cfg.CATEGORY].to_list()
+            category += self.split.loc[self.splitRows, cfg.FILTER].to_list()
         while True:
-            fltr = self.split.loc[:, self.FILTER].isin(category)
-            cats = self.split.loc[:, self.CATEGORY].isin(category)
+            fltr = self.split.loc[:, cfg.FILTER].isin(category)
+            cats = self.split.loc[:, cfg.CATEGORY].isin(category)
             if not(any(cats) or any(fltr)):
                 break
-            newCat = self.split.loc[fltr | cats, self.CATEGORY].to_list()
-            newCat += self.split.loc[fltr | cats, self.FILTER].to_list()
+            newCat = self.split.loc[fltr | cats, cfg.CATEGORY].to_list()
+            newCat += self.split.loc[fltr | cats, cfg.FILTER].to_list()
             if all([nc in category for nc in newCat]):
                 break
             category = list(set(category + newCat))
@@ -1169,19 +1140,19 @@ class SPLIT(COMMON):
         optionally:\n
         - split_n, will replace at position if provided, other way will add after last one
         """
-        if not any([v for k, v in split.items() if k == self.SPLIT_N]):
-            split[self.SPLIT_N] = self.__max__() + 1
+        if not any([v for k, v in split.items() if k == cfg.SPLIT_N]):
+            split[cfg.SPLIT_N] = self.__max__() + 1
         else:  # renumber split_n above inserting position
-            split[self.SPLIT_N] = self.str2int(split[self.SPLIT_N])
-            newSer = self.split[self.SPLIT_N].apply(
-                lambda x: self.__addAbove__(x, split[self.SPLIT_N]))
-            self.split.loc[:, self.SPLIT_N] = newSer
+            split[cfg.SPLIT_N] = self.parent.str2int(split[cfg.SPLIT_N])
+            newSer = self.split[cfg.SPLIT_N].apply(
+                lambda x: self.__addAbove__(x, split[cfg.SPLIT_N]))
+            self.split.loc[:, cfg.SPLIT_N] = newSer
 
         valid_split = self.__validate__(
             self.split.append(split, ignore_index=True))
         if isinstance(valid_split, pandas.DataFrame):
             self.split = valid_split
-            return self.__to_dict__(category=[split[self.CATEGORY]])
+            return self.__to_dict__(category=[split[cfg.CATEGORY]])
         else:
             return []
 
@@ -1220,10 +1191,10 @@ class SPLIT(COMMON):
                 f'split.ren: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.')
             return []
 
-        self.split.loc[self.splitRows, self.CATEGORY] = new_category
+        self.split.loc[self.splitRows, cfg.CATEGORY] = new_category
 
         self.setSplit(fltr=[category])
-        self.split.loc[self.splitRows, self.FILTER] = new_category
+        self.split.loc[self.splitRows, cfg.FILTER] = new_category
 
         return self.__to_dict__(category=[new_category])
 
@@ -1254,7 +1225,7 @@ class SPLIT(COMMON):
         3) sort by split_n
         """
         # remove duplicates
-        dup = db.duplicated(subset=[self.START, self.END, self.COL_NAME, self.FILTER, self.VAL1, self.DAYS],
+        dup = db.duplicated(subset=[cfg.START, cfg.END, cfg.COL_NAME, cfg.FILTER, cfg.VAL1, cfg.DAYS],
                             keep='first')
         if any(dup.to_list()):
             if dupComplain:
@@ -1264,12 +1235,12 @@ class SPLIT(COMMON):
             else:
                 db = db.loc[pandas.np.invert(dup), :]
         # renumber split_n
-        db.sort_values(by=self.SPLIT_N, ignore_index=True, inplace=True)
+        db.sort_values(by=cfg.SPLIT_N, ignore_index=True, inplace=True)
         split_max = len(db) + 1
         split_l = list(range(1, split_max))
-        db.loc[:, self.SPLIT_N] = split_l
+        db.loc[:, cfg.SPLIT_N] = split_l
         # sort by split_n
-        db.sort_values(by=self.SPLIT_N, ignore_index=True, inplace=True)
+        db.sort_values(by=cfg.SPLIT_N, ignore_index=True, inplace=True)
 
         return db
 
@@ -1283,13 +1254,13 @@ class SPLIT(COMMON):
 
         rows = pandas.Series([False] * len(self.split), dtype='boolean')
         for s in self.impSplit:
-            rows = rows | self.split.loc[:, self.CATEGORY].isin([s])
+            rows = rows | self.split.loc[:, cfg.CATEGORY].isin([s])
         return self.split.loc[rows, :].to_dict('records')
 
     def __max__(self):
         """max function, but also handle empty db
         """
-        return max(self.split.loc[:, self.SPLIT_N], default=0)
+        return max(self.split.loc[:, cfg.SPLIT_N], default=0)
 
     @ staticmethod
     def __addAbove__(x, filter_n):
@@ -1299,7 +1270,41 @@ class SPLIT(COMMON):
             return x
 
 
-class DB(COMMON):
+class ACT:
+    """
+    track order of operations
+    columns group and type used for displaing
+    """
+
+    def __init__(self, parent) -> None:
+        self.parent = parent
+        self.act = pandas.DataFrame(columns=cfg.act_col)
+
+    def __grouping__(self, className: str) -> str:
+        """Assign class name to group
+        """
+        switch = {'TRANS': '',
+                  'CAT': '',
+                  'TREE': '',
+                  'SPLIT': ''}
+        return switch.get(className, 'other')
+
+    def add(self, actRow=Dict):
+        actRow[cfg.OP_GROUP] = self.__grouping__(actRow[cfg.COL_DB])
+
+        self.act.append(actRow, ignore_index=True)
+
+    def rm(self):
+        pass
+
+    def mov(self):
+        pass
+
+    def disp(self):
+        pass
+
+
+class DB:
     """
     manage other DBs and stores in SQLite db\n
     imp_data(bank): import excel with operations history from bank and apply all filtering and transformation if avilable\n
@@ -1336,6 +1341,7 @@ class DB(COMMON):
         self.tree = TREE(self)
         self.imp = IMP(self)
         self.split = SPLIT(self)
+        self.act = ACT(self)
 
         # during import set status and save all db until commit
         self.imp_status = False
@@ -1344,6 +1350,7 @@ class DB(COMMON):
         self.cat_before_imp = pandas.DataFrame()
         self.tree_before_imp = pandas.DataFrame()
         self.split_before_imp = pandas.DataFrame()
+        self.act_before_imp = pandas.DataFrame()
 
         self.msg = print
         if file:
@@ -1356,34 +1363,68 @@ class DB(COMMON):
         """
         self.msg = parent
 
+    def str2int(self, n: str):
+        try:
+            n = float(n)
+        except:
+            self.msg(f'unknown number : {n}')
+            return False
+        return n
+
+    def validateRegEx(self, regEx: str) -> bool:
+        """
+        validate regular expression
+        return TRUE if all is ok
+        other way return FALSE
+        """
+        try:
+            re.compile(regEx)
+            return True
+        except:
+            self.msg(f'Wrong filter regExp: {regEx}')
+            return False
+
+    @staticmethod
+    def getSignature(db: Union[CAT, TRANS, SPLIT]) -> Dict:
+        """
+        return signature of last operation
+        TYPE: transform applied
+        COL_DB: self class name
+        HASH_REF: hash of last oper
+        """
+        return {cfg.OP_TYPE: db.lastOper[cfg.OPER],
+                cfg.COL_DB: db.__name__,
+                cfg.HASH_REF: db.lastOper[cfg.HASH]}
+
 # operation methods
+
     def splitAdd(self, split: dict) -> bool:
         """add split filter, also add category in tree if not existing\n
         if category existing in tree, will use parent of cat, otherway Grandpa\n
         split = {start_date: date, end_date: date, col_name: str, fltr: str, val: float, day: int}\n
         """
         parent = cfg.GRANDPA
-        if split[self.COL_NAME] != self.CATEGORY:
+        if split[cfg.COL_NAME] != cfg.CATEGORY:
             self.msg('spliting single items not implemented yet')
             return False
 
-        if split[self.FILTER] == split[self.CATEGORY]:
+        if split[cfg.FILTER] == split[cfg.CATEGORY]:
             self.msg(f"can't add split to category which you split")
             return False
 
         # if category already exists change parent to parent of existing category
-        if split[self.CATEGORY] in self.tree.allChild().keys():
-            parent = self.tree.parent(split[self.CATEGORY])
+        if split[cfg.CATEGORY] in self.tree.allChild().keys():
+            parent = self.tree.parent(split[cfg.CATEGORY])
 
         # add split category to tree
-        if not self.tree.add(parent, child=split[self.CATEGORY]):
+        if not self.tree.add(parent, child=split[cfg.CATEGORY]):
             return False  # probably missing parent
 
         change = self.split.add(split)
         if not change:  # probably duplicate
-            self.cat.setCat([split[self.CATEGORY]])
+            self.cat.setCat([split[cfg.CATEGORY]])
             if self.cat[:].empty:
-                self.tree.rm(child=split[self.CATEGORY])
+                self.tree.rm(child=split[cfg.CATEGORY])
             return False
 
         self.__restoreAll__(block=['op', 'trans', 'cat'],
@@ -1406,7 +1447,7 @@ class DB(COMMON):
                             change_cat=self.split.impSplit)
         return True
 
-    def catAdd(self, fltr: "dict", parent=cfg.GRANDPA):
+    def catAdd(self, fltr: "dict", parent=cfg.GRANDPA) -> bool:
         """add new filter, also create cat in tree under parent\n
         can be also used for replacement when oper_n provided\n
         also possible to pass multiple dicts in list\n
@@ -1421,10 +1462,12 @@ class DB(COMMON):
             return False
 
         if not self.tree.add(parent, change[0]):
-            self.cat.rm(category=change[self.CATEGORY],
-                        oper_n=change[self.OPER_N])
+            self.cat.rm(category=change[cfg.CATEGORY],
+                        oper_n=change[cfg.OPER_N])
             return False
 
+        
+        
         self.__restoreAll__(block=['op', 'trans', 'split'],
                             change_cat=change)
         return True
@@ -1459,22 +1502,22 @@ class DB(COMMON):
                             change_cat=rmCat + rmSplitCat)
         return rmSplit
 
-    def catMov(self, oper_n: int, new_oper_n: int, category: str)->None:
+    def catMov(self, oper_n: int, new_oper_n: int, category: str) -> None:
         """move filter at oper_n to new position
         """
         change = self.cat.mov(oper_n, new_oper_n, category)
         if not change:
-            return 
+            return
 
         rmSplit = self.split.rm(filter=category,
                                 category=category,
                                 confirm=False)
-        rmSplitCat = [s[self.CATEGORY] for s in rmSplit]
+        rmSplitCat = [s[cfg.CATEGORY] for s in rmSplit]
 
         self.__restoreAll__(block=['op', 'trans'],
                             change_split=rmSplit,
                             change_cat=change + rmSplitCat)
-        return 
+        return
 
     def transAdd(self, fltr: dict):
         """add new transformation, can be also used for replacement when trans_n provided\n
@@ -1487,6 +1530,7 @@ class DB(COMMON):
         if not change_trans:
             return False
 
+        self.act.add(self.getSignature(self.trans))
         self.__restoreAll__()
         return True
 
@@ -1764,11 +1808,11 @@ class DB(COMMON):
         if not file:
             return False
         colNames = self.op.op.columns.values.tolist()
-        colNames.remove(self.HASH)
+        colNames.remove(cfg.HASH)
         db = self.op.op.copy(deep=True)
         path = ['/'.join(self.tree.path(cat))
-                for cat in db[self.CATEGORY]]
-        db[self.CATEGORY] = path
+                for cat in db[cfg.CATEGORY]]
+        db[cfg.CATEGORY] = path
         db.to_csv(path_or_buf=file,
                   columns=colNames,
                   index=False)
@@ -1856,11 +1900,11 @@ class DB(COMMON):
             bank = self.dataBanks()
         else:
             bank = [bank]
-        datMin = self.imp.imp[bank[0]][self.DATA_OP].min()
-        datMax = self.imp.imp[bank[0]][self.DATA_OP].max()
+        datMin = self.imp.imp[bank[0]][cfg.DATA].min()
+        datMax = self.imp.imp[bank[0]][cfg.DATA].max()
         for b in bank[1:]:
-            datMin = min(datMin, self.imp.imp[b][self.DATA_OP].min())
-            datMax = max(datMax, self.imp.imp[b][self.DATA_OP].max())
+            datMin = min(datMin, self.imp.imp[b][cfg.DATA].min())
+            datMax = max(datMax, self.imp.imp[b][cfg.DATA].max())
         return [datMin, datMax]
 
     def dataBanks(self) -> list:
@@ -1871,7 +1915,7 @@ class DB(COMMON):
         """return #rows in db and percent of categorized rows
         """
         if isinstance(self.op.op, pandas.DataFrame):
-            catRows = self.op.op.loc[:, self.CATEGORY] != cfg.GRANDPA
+            catRows = self.op.op.loc[:, cfg.CATEGORY] != cfg.GRANDPA
             catRowsL = len(self.op.op.loc[catRows, :])
             rowsL = len(self.op.op)
             per = 0
@@ -1885,4 +1929,4 @@ class DB(COMMON):
         """return data histogram (date vs #operations)
         from imp db
         """
-        return self.imp.imp[bank][self.DATA_OP].hist()
+        return self.imp.imp[bank][cfg.DATA].hist()

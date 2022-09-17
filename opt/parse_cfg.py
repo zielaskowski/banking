@@ -28,6 +28,7 @@ split DB
     stores split info (category split or sinngle operation split)
     split_col <list> - column names
     split_col_type <list> - column types in split DB for store in SQLlite.
+
 tree DB
     stores categories hierarchy
     tree_col <list> - column names
@@ -99,14 +100,52 @@ def sql_table(col_names, types=''):
 # top level category (root)
 GRANDPA = 'Grandpa'
 
-# common col names
-oper = 'oper'
-bank_col = 'bank'
-category = 'kategoria'
-col_name = 'col_name'
-val1 = 'val1'
-fltr = 'filter'
-hash = 'hash'
+bank_names_all = 'ALL' # when transforming among all banks
+cat_col_all = 'ALL'  # when filter among all columns
+
+# col names
+#### op cols
+DATA = data_cfg.op_col[0]
+BANK = 'bank'
+HASH = 'hash'
+CATEGORY = 'kategoria'
+
+### cat cols
+COL_NAME = 'col_name'
+FUNCTION = 'function'
+FILTER = 'filter'
+FILTER_N = 'filter_n'
+OPER = 'oper'
+OPER_N = 'oper_n'
+#CATEGORY, HASH
+COL_MSG = 'message'
+COL_STAT = 'status'
+
+### trans cols
+#BANK, COL_NAME, OPER
+VAL1 = 'val1'
+VAL2 = 'val2'
+TRANS_N = 'trans_n'
+#HASH, COL_MSG, COL_STAT
+
+### tree cols
+#CATEGORY
+CAT_PARENT = 'parent'
+
+### split cols
+START = 'start_date'
+END = 'end_date'
+#OPER, FILTER, VAL1
+DAYS = 'days'
+SPLIT_N = 'split_n'
+#CATEGORY, HASH, COL_MSG, COL_STAT
+
+### act cols
+ID = 'id'
+OP_GROUP = 'group' # TRANS or CAT
+OP_TYPE = 'operation' # operation on group
+COL_DB = 'db'
+HASH_REF = 'hash_ref'
 
 # SQL DB tables names
 DB_tabs = ['op', 'cat', 'trans', 'tree', 'split', 'act']
@@ -117,9 +156,8 @@ op_col_type = data_cfg.op_col_type
 raw_bank = data_cfg.bank.copy()
 # map banks col names to operation DB col names
 bank = map_bank(data_cfg.bank)
-bank_names_all = 'all'
 
-extra_col = [f'{bank_col}', f{hash}, f'{category}']
+extra_col = [f'{BANK}', f'{HASH}', f'{CATEGORY}']
 extra_col_type = ['TEXT', 'TEXT', 'TEXT']
 
 # add extra cols (for bank name and hash)
@@ -129,8 +167,9 @@ bank = add_extra_col(extra_col, bank)
 
 # DB used for categorize
 # oper col_name must be the same name for both cat & trans
-cat_col = ["col_name", 'function',
-           f"{fltr}", 'filter_n', f'{oper}', "oper_n", f'{category}', f'{hash}']
+cat_col = [f'{COL_NAME}', f'{FUNCTION}',
+           f'{FILTER}', f'{FILTER_N}', f'{OPER}', f'{OPER_N}',
+           f'{CATEGORY}', f'{HASH}']
 cat_col_type = ["TEXT", "TEXT", 'INT', "TEXT", "TEXT", "INT", "TEXT", "TEXT", "TEXT"]
 
 # allowed columns for filtering cat_col[col_name]
@@ -138,26 +177,28 @@ cat_col_type = ["TEXT", "TEXT", 'INT', "TEXT", "TEXT", "INT", "TEXT", "TEXT", "T
 cat_col_names = [op_col[i]
                  for i in range(len(op_col)) if i not in [0, 1, 4, 5]]
 cat_col_names = cat_col_names[0:-1]  # drop category
-cat_col_all = 'ALL'  # when filter among all columns
+
 
 # DB used for transform operations
-trans_col = [f'{bank_col}', f"{col_name}",
-             f'{oper}', f'{val1}', "val2", "trans_n", f'{hash}']
+trans_col = [f'{BANK}', f"{COL_NAME}",
+             f'{OPER}', f'{VAL1}', '{VAL2}',
+             f'{TRANS_N}', f'{HASH}']
 trans_col_type = ["TEXT", "TEXT", "TEXT", "TEXT", "TEXT", "INT", "TEXT"]
 
 # DB used for category structure
-tree_col = [f'{category}', 'parent',f'{hash}']
-tree_col_type = ["TEXT", "TEXT", "TEXT"]
+tree_col = [f'{CATEGORY}', f'{CAT_PARENT}']
+tree_col_type = ["TEXT", "TEXT"]
 
 # DB used to split operations
-split_col = ['start_date', 'end_date',
-             f'{col_name}', f'{fltr}', f'{val1}', 'days', 'split_n', f'{category}', f'{hash}']
+split_col = [f'{START}', f'{END}',
+             f'{COL_NAME}', f'{OPER}', f'{VAL1}',
+             f'{DAYS}', f'{SPLIT_N}', f'{CATEGORY}', f'{HASH}']
 split_col_type = ['TIMESTAMP', 'TIMESTAMP',
                   'TEXT', 'TEXT', 'TEXT', 'INT', 'INT', 'TEXT', "TEXT"]
 
 # DB used to track history of all actions
-act_col = ['description', 'db', 'db_hash']
-act_col_type = ['TEXT', 'TEXT', 'TEXT']
+act_col = [f'{ID}', f'{OP_GROUP}', f'{OP_TYPE}', f'{COL_DB}', f'{HASH_REF}']
+act_col_type = ['TEXT', 'TEXT', 'TEXT', 'TEXT','TEXT']
 
 # create SQL query for tables
 op_col_sql = sql_table(op_col, op_col_type)

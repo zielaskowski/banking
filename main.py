@@ -1,4 +1,4 @@
-#!/home/mi/.backup/venv/banking/bin/python
+#!/home/mi/.backup/venv/banking3.6/bin/python
 """
 Start banking application. Loads PyQT5 GUI.
 project structure:

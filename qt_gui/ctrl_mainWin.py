@@ -544,7 +544,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         def split2():
             # QComboWidget col_name
             colWidget = QtWidgets.QComboBox()
-            it = [self.db.CATEGORY, self.db.HASH]
+            it = self.db.split.opers()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
