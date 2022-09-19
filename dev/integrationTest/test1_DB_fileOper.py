@@ -81,6 +81,7 @@ class testDBfileOper(ut.TestCase):
     @readRes
     @compRes
     def test4OpenDBfilters(self):
+        """open DB"""
         self.assertTrue(self.db.openDB(
             file=self.path + 'db/filters.s3db', onlyTrans=True))
 

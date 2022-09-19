@@ -1,26 +1,30 @@
 import unittest as ut
 from db import DB
 from dev.integrationTest.decorators import blockWrite, compJSON, readJSON, writeJSON
-from modules import FileSystem
 
 
 class testDBinfo(ut.TestCase):
     @classmethod
     def setUpClass(self) -> None:
         self.db = DB()
-        self.fs = FileSystem()
+        
+        # set path for fixtures
+        self.path = './dev/integrationTest/fixtures/'
+        
         ####################################
         # use write==True when setting test environment (fixtures)
         # after, use write==False for real testing
-        self.write = False
+        self.write = True
         ####################################
         self.read = not self.write
         self.fixtures = {}
 
-        self.fs.setDB(
-            path='./dev/integrationTest/fixtures/testDB.s3db')
-        # if sqlite file not present, run test_DB_fileOper
-        self.db.openDB(self.fs.getDB())
+        # setUp sql db
+        impFile = './dev/op_history/history_20220118_002911.xls'
+        dbFile = 'testDB.s3db'
+        dbPath = self.path+'db/'
+        self.db.impData(impFile)
+        self.db.writeDB(file=dbPath+dbFile)
 
     @blockWrite
     def testDataRange(self):

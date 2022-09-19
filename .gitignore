@@ -4,6 +4,8 @@ __pycache__
 .profile
 *.s3db
 dev/stats
-fixtures
+**/fixtures/**
+!**/fixtures/**/
+!**/.gitkeep
 op_history
 log.log

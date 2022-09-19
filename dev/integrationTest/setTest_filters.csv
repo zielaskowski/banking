@@ -1,0 +1,12 @@
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PANEK CAR SHARING WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "tr", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "1", "category": "tr"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PANEK", "filter_n": "1", "oper": "add", "oper_n": "1", "kategoria": "tr", "filter_orig": ""}, "parent": "Grandpa"}
+treeRen;[];{"category": "tr", "new_category": "transport"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "BOLT", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "taxi", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "transport", "child": "taxi"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "DELIKATESY CENTRUM WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "spoz", "filter_orig": ""}, "parent": "Grandpa"}
+transAdd;[];{"fltr": {"bank": "paribas", "col_name": "nazwa_nadawcy", "oper": "str.replace", "val1": "PL53175000120000000033730608", "val2": "pnb", "trans_n": ""}}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "MPSA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bilety", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "transport", "child": "bilety"}
+splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "spoz", "val1": "-8", "days": "1", "split_n": "", "kategoria": "piwo"}];{}
+catRm;[];{"oper_n": "1.0", "category": "taxi"}

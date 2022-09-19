@@ -149,7 +149,9 @@ def writeJSON(fn):
     def deco(self, *args, **kwargs):
         dat = fn(self, *args, **kwargs)
         if self.write:
-            with open(self.fs.getDB(path=True)+self._testMethodName, 'w') as file:
+            with open(self.path +
+                      self.__module__.split('.')[-1] +
+                      self._testMethodName, 'w') as file:
                 json.dump(dat, file)
         return
     return deco
@@ -158,7 +160,9 @@ def writeJSON(fn):
 def readJSON(fn):
     def deco(self, *args, **kwargs):
         if self.read:
-            with open(self.fs.getDB(path=True) + self._testMethodName, 'r') as file:
+            with open(self.path +
+                      self.__module__.split('.')[-1] +
+                      self._testMethodName, 'r') as file:
                 self.fixtures = json.load(file)
         return fn(self, *args, **kwargs)
     return deco
