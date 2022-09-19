@@ -2,10 +2,10 @@
 controls GUI windows
 """
 import re
-from wsgiref.validate import validator
+#from wsgiref.validate import validator
 from PyQt5 import QtCore, QtGui, QtWidgets
 from db import DB
-from modules import FileSystem
+#from modules import FileSystem
 from models import DBmodelProxy
 import opt.parse_cfg as cfg
 from qt_gui.gui_classes import GUIMainWin, statusQLabel
@@ -22,9 +22,10 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.view = GUIMainWin()
         super().__init__(self.view)
         self.view.show()
-        self.db = DB()
-        self.fs = FileSystem()
-        self.db.connect(parent=self.fs.writeMsg)
+        self.db = DB(DEBUG=True)
+        self.db.DEBUG_F = './dev/integrationTest/setTest_filters.csv'
+        #self.fs = FileSystem()
+        #self.db.connect(parent=self.fs.writeMsg)
         # connect signals
         self.connect_signals()
         # hide import widgets
@@ -46,10 +47,10 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.summCol = ''
         # read options
         self.setStat()
-        self.view.db_stat_txt.setText(self.fs.getOpt('welcome'))
-        file = self.fs.getOpt('LastDB')
-        if file:
-            self.openDB(file=file)
+        self.view.db_stat_txt.setText(self.db.fs.getOpt('welcome'))
+        #file = self.fs.getOpt('LastDB')
+        #if file:
+        self.openDB()
 
     # signals and connections
     def connect_signals(self):
@@ -133,7 +134,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         # exit
         if event.type() == QtCore.QEvent.Close:
             self.save_asDB()
-            self.fs.writeOpt(op='visColumns', val=self.visCol)
+            self.db.fs.writeOpt(op='visColumns', val=self.visCol)
         # win resize
         elif event.type() == QtCore.QEvent.Resize:
             if source.__class__ is self.view.__class__:
@@ -259,7 +260,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 if all_widgets[col].isChecked():
                     self.visCol.append(col)
             if act == apply:
-                self.fs.writeOpt(op='visColumns', val=self.visCol)
+                self.db.fs.writeOpt(op='visColumns', val=self.visCol)
                 self.fill_DB('')  # fill_DB() will not affect the model
                 break
             else:
@@ -1169,44 +1170,43 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
     # file operations
     def openDB(self, file=''):
-        if not file:
-            file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose SQlite3 file',
-                                                         directory='',
-                                                         filter=self.fs.getDB(ext=True))
-            # Qt lib returning always / as path separator
-            # we need system specific, couse we are checking for file existence
-            path = QtCore.QDir.toNativeSeparators(file[0])
-            if path:
-                self.fs.setDB(path)
-            else:  # operation canceled
-                return
-        else:
-            self.fs.setDB(file)
-        if self.db.openDB(self.fs.getDB()):  # return False if fail
+        if self.db.openDB(file=file):  # return False if fail
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             # self.disp_statusbar('openDB')
-            self.fs.writeOpt("LastDB", self.fs.getDB())
+            #self.fs.writeOpt("LastDB", self.fs.getDB())
             self.fill('trans')
             self.fill('split')
             self.fill_tree()  # will set top item and filter tables accordingly
             self.setCatInput()
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        else:
+            file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose SQlite3 file',
+                                                         directory='',
+                                                         filter=self.db.fs.getDB(ext=True))
+            # Qt lib returning always / as path separator
+            # we need system specific, couse we are checking for file existence
+            path = QtCore.QDir.toNativeSeparators(file[0])
+            if path:
+                self.db.openDB(path)
+            else:  # operation canceled
+                return
 
     def newDB(self):
         file = QtWidgets.QFileDialog.getSaveFileName(self.view,
                                                      caption='Choose name for new SQlite3 file',
                                                      directory='',
-                                                     filter=self.fs.getDB(ext=True))
+                                                     filter=self.db.fs.getDB(ext=True))
         # Qt lib returning always / as path separator
         # we need system specific, because we are checking for file existence
         path = QtCore.QDir.toNativeSeparators(file[0])
         if path:
-            self.fs.setDB(path)
+            self.db = DB()
+            if not self.save_asDB(file=path):
+                return
         else:  # operation canceled
             return
-        self.fs.writeOpt("LastDB", self.fs.getDB())
-        self.db = DB()
-        self.save_asDB()
+        #self.fs.writeOpt("LastDB", self.fs.getDB())
+        
         # need to reset DB view model manually because
         # empty DB is ignored by fill_DB()
         self.view.DB_view.setModel(DBmodelProxy(
@@ -1216,23 +1216,22 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.fill('split')
         self.fill_tree()  # will set top item and filter tables accordingly
         self.setCatInput()
-        self.fs.writeMsg('Created new empty DB')
+        self.db.msg('Created new empty DB')
 
-    def save_asDB(self):
-        self.db.writeDB(self.fs.getDB())
+    def save_asDB(self, file='') -> bool:
+        return self.db.writeDB(file=file)
 
     def imp(self, bank):
         file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose Excell file',
                                                      directory='',
-                                                     filter=self.fs.getIMP(ext=True))
+                                                     filter=self.db.fs.getIMP(ext=True))
         # Qt lib returning always / as path separator
         # we need system specific, couse we are checking for file existence
         path = QtCore.QDir.toNativeSeparators(file[0])
-        if path:
-            self.fs.setIMP(path)
-        else:  # operation canceled
+        if not path:
+            # operation canceled
             return
-        if self.db.impData(self.fs.getIMP()):
+        if self.db.impData(path):
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             self.fill('trans')
             self.fill('split')
@@ -1272,28 +1271,26 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         file = QtWidgets.QFileDialog.getSaveFileName(self.view,
                                                      caption='Choose CSV file',
                                                      directory='',
-                                                     filter=self.fs.getCSV(ext=True))
+                                                     filter=self.db.fs.getCSV(ext=True))
         # Qt lib returning always / as path separator
         # we need system specific, couse we are checking for file existence
         path = QtCore.QDir.toNativeSeparators(file[0])
-        if path:
-            self.fs.setCSV(path)
-        else:  # operation canceled
+        if not path:
+            # operation canceled
             return
-        self.db.exportCSV(self.fs.getCSV())
+        self.db.exportCSV(path)
 
     def impCatsAndTrans(self):
         file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose DB file',
                                                      directory='',
-                                                     filter=self.fs.getIMPDB(ext=True))
+                                                     filter=self.db.fs.getIMPDB(ext=True))
         # Qt lib returning always / as path separator
         # we need system specific, couse we are checking for file existence
         path = QtCore.QDir.toNativeSeparators(file[0])
-        if path:
-            self.fs.setIMPDB(path)
-        else:  # operation canceled
+        if not path:
+            # operation canceled
             return
-        if self.db.openDB(self.fs.getIMPDB(), onlyTrans=True):
+        if self.db.openDB(path, onlyTrans=True):
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             self.fill('trans')
             self.fill('split')
@@ -1340,8 +1337,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
     def setStatusBar(self):
         # add text messages
-        self.view.msg = statusQLabel(self.fs)
-        self.fs.connect(self.view.msg.setMsg)
+        self.view.msg = statusQLabel(self.db.fs)
+        self.db.connect(self.view.msg.setMsg)
         self.view.statusbar.addWidget(self.view.msg)
         # add progress meter
         self.view.prog = QtWidgets.QProgressBar()
@@ -1380,16 +1377,16 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
     def readStat(self) -> dict:
         """read gui status
         """
-        self.fs.writeOpt(op='visColumns', val=self.visCol)
+        self.db.fs.writeOpt(op='visColumns', val=self.visCol)
         # self.fs.writeOpt(op='winSize', val=self.view.size())
 
     def setStat(self):
         """set gui status
         """
-        self.visCol = self.fs.getOpt('visColumns')
+        self.visCol = self.db.fs.getOpt('visColumns')
         if not self.visCol:
             self.visCol = cfg.op_col
-            self.fs.writeOpt(op='visColumns', val=self.visCol)
+            self.db.fs.writeOpt(op='visColumns', val=self.visCol)
 
     def plot(self):
         GUIPlot_ctrl(self.db)

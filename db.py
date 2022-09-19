@@ -1,10 +1,14 @@
 """
 manage database logic, defines all operations
 """
+#from pickle import TRUE
 from typing import Dict, List, Union
-from sqlalchemy import false, null
+
+# from sqlalchemy import false, null, true
 import opt.parse_cfg as cfg
-from pandas.core.dtypes.missing import isnull
+from modules import FileSystem
+from dev.integrationTest.decorators import writeOp
+#from pandas.core.dtypes.missing import isnull
 import re
 import os
 import sqlite3
@@ -1141,7 +1145,7 @@ class SPLIT(COMMON):
 
         self.setImpCats()
 
-    def setImpCats(self, category=[]) -> null:
+    def setImpCats(self, category=[]):
         """
         Set all cats impacted by split in impSplit\n
         chain down, so have also split refere to categories in split etc\n
@@ -1327,8 +1331,12 @@ class DB(COMMON):
     6. db split stores data to split operation into two by amount
     """
 
-    def __init__(self, file=''):
+    def __init__(self, file='', DEBUG=False):
         super().__init__()
+
+        # write function names and arguments to csv file
+        self.DEBUG = DEBUG
+        self.DEBUG_F = ''  # set to CSV file with modules to be tested
 
         self.op = OP(self)
         self.cat = CAT(self)
@@ -1345,7 +1353,8 @@ class DB(COMMON):
         self.tree_before_imp = pandas.DataFrame()
         self.split_before_imp = pandas.DataFrame()
 
-        self.msg = print
+        self.fs = FileSystem()
+        self.msg = self.fs.msg
         if file:
             self.openDB(file)
 
@@ -1354,9 +1363,10 @@ class DB(COMMON):
         This way we can call parent method when needed\n
         used for msg transport\n
         """
-        self.msg = parent
+        self.fs.connect(parent)
 
 # operation methods
+    @writeOp
     def splitAdd(self, split: dict) -> bool:
         """add split filter, also add category in tree if not existing\n
         if category existing in tree, will use parent of cat, otherway Grandpa\n
@@ -1392,6 +1402,7 @@ class DB(COMMON):
 
         return True
 
+    @writeOp
     def splitRm(self, oper_n=0, category='') -> bool:
         """remove split filter, also remove cat from tree
         if category have kids, kids will go to grandpa
@@ -1406,7 +1417,8 @@ class DB(COMMON):
                             change_cat=self.split.impSplit)
         return True
 
-    def catAdd(self, fltr: "dict", parent=cfg.GRANDPA):
+    @writeOp
+    def catAdd(self, fltr: "dict", parent=cfg.GRANDPA) -> bool:
         """add new filter, also create cat in tree under parent\n
         can be also used for replacement when oper_n provided\n
         also possible to pass multiple dicts in list\n
@@ -1429,6 +1441,7 @@ class DB(COMMON):
                             change_cat=change)
         return True
 
+    @writeOp
     def catRm(self, category: str, oper_n=0) -> List[Union[Dict, None]]:
         """remove filter or category and update tree\n
         not allowed on category in ['grandpa', '*']\n
@@ -1444,9 +1457,8 @@ class DB(COMMON):
         rmCat = self.cat.rm(category, oper_n)
 
        # need to update ref split
-        rmSplit = self.split.rm(filter=category,
-                                category=category,
-                                confirm=False)
+        rmSplit = self.split.rm(fltr=category,
+                                category=category)
         rmSplitCat = self.split.impSplit
         # categories with split only must be removed from op now
         # before cat update
@@ -1459,12 +1471,13 @@ class DB(COMMON):
                             change_cat=rmCat + rmSplitCat)
         return rmSplit
 
-    def catMov(self, oper_n: int, new_oper_n: int, category: str)->None:
+    @writeOp
+    def catMov(self, oper_n: int, new_oper_n: int, category: str) -> None:
         """move filter at oper_n to new position
         """
         change = self.cat.mov(oper_n, new_oper_n, category)
         if not change:
-            return 
+            return
 
         rmSplit = self.split.rm(filter=category,
                                 category=category,
@@ -1474,8 +1487,9 @@ class DB(COMMON):
         self.__restoreAll__(block=['op', 'trans'],
                             change_split=rmSplit,
                             change_cat=change + rmSplitCat)
-        return 
+        return
 
+    @writeOp
     def transAdd(self, fltr: dict):
         """add new transformation, can be also used for replacement when trans_n provided\n
         also possible to pass multiple dicts in list\n
@@ -1490,6 +1504,7 @@ class DB(COMMON):
         self.__restoreAll__()
         return True
 
+    @writeOp
     def transRm(self, trans_n: int) -> bool:
         # to restore cat, need to replace FILTER with FILTER_ORIG
         # we can reverse only cats existed before filtering
@@ -1505,6 +1520,7 @@ class DB(COMMON):
         self.__restoreAll__()
         return True
 
+    @writeOp
     def transMov(self, trans_n: int, new_trans_n: int) -> bool:
         # to restore cat, need to replace FILTER with FILTER_ORIG
         # we can reverse only cats existed before filtering
@@ -1515,6 +1531,7 @@ class DB(COMMON):
         self.__restoreAll__()
         return True
 
+    @writeOp
     def treeRen(self, new_category: str, category: str):
         if not self.tree.ren(category, new_category):
             return
@@ -1529,10 +1546,12 @@ class DB(COMMON):
                             change_cat=[category] + change_cat + self.split.impSplit)
         return True
 
+    @writeOp
     def treeAdd(self, parent: str, child: str):
         self.tree.add(parent, child)
         return True
 
+    @writeOp
     def treeArrange(self, category: str, dir: str):
         """Move category in tree
         dir is direction in which to move
@@ -1545,10 +1564,12 @@ class DB(COMMON):
         self.__restoreAll__(block=['op', 'trans'])
         return
 
+    @writeOp
     def treeMov(self, new_parent: str, child: str):
         self.tree.mov(new_parent, child)
         return True
 
+    @writeOp
     def treeRm(self, child: str):
         '''
         remove cat from tree, together with cat and split,
@@ -1570,6 +1591,7 @@ class DB(COMMON):
                             change_cat=[child] + self.split.impSplit)
         return True
 
+    @writeOp
     def impRm(self, bank: str):
         """remove data from imp db
         """
@@ -1612,6 +1634,9 @@ class DB(COMMON):
         otherway will drop and restore orginal dbs\n
         do NOT save dbs
         """
+        if not self.imp_status:
+            return
+
         if decision == 'ok':
             self.imp.commit()
             # split very likely will be unintentionaly removed
@@ -1639,24 +1664,26 @@ class DB(COMMON):
         self.split_before_imp = pandas.DataFrame()
         self.imp_status = False
 
-    def impData(self, file: str) -> bool:
+    def impData(self, file='') -> bool:
         """import excell file, does not commit!\n
         this means creating op_before_imp for current data until commit decision
         """
+        file = self.fs.setIMP(file)
         if not file:
-            self.msg('Missing file. Nothing imported')
+            self.msg(f'Missing file {file}. Nothing imported')
             return False
-        self.imp_status = True
 
         try:
             xls = pandas.read_excel(file)
         except:
-            self.msg('wrong import file')
+            self.msg(f'wrong import file {file}')
+            self.imp_status = False
             return False
 
         bank = self.__checkBank__(list(xls.columns))
         if not bank:
-            return
+            self.imp_status = False
+            return False
         xls = xls.reindex(columns=cfg.bank[bank])
         xls.columns = cfg.op_col
         # set bank name
@@ -1678,15 +1705,28 @@ class DB(COMMON):
 
         self.__restoreAll__()
         self.msg(f'Iported data from {bank} bank. Review and confirm import.')
+        self.imp_status = True
         return True
 
-    def openDB(self, file: str, onlyTrans=False) -> bool:
-        # not allowed when in import mode
-        if not file:
-            return
+    def openDB(self, file='', onlyTrans=False) -> bool:
+        """
+        opens sql DB
+        when file is missing get current file or lastOpened
+        when onlyTrans, import only transformations, without op DB
+        """
         if self.imp_status:
+            # not allowed when in import mode
             self.msg('finish importing before opening another DB')
-            return
+            return False
+
+        if not onlyTrans:
+            file = self.fs.setDB(file)
+        else:
+            file = self.fs.setIMPDB(file)
+        
+        if not file:
+            return False
+
         engine = sqlite3.connect(file)
         tabs = cfg.DB_tabs.copy()
         if onlyTrans:
@@ -1727,18 +1767,21 @@ class DB(COMMON):
         self.msg(f"opened db: {file}")
         return True
 
-    def writeDB(self, file: str) -> bool:
+    def writeDB(self, file='') -> bool:
         """
         save all dbs as sqlite file
+        used also to create new DB
         """
         # not allowed when in import mode
         if self.imp_status:
             self.msg('finish importing before saving DB')
             return False
+
+        file = self.fs.setDB(file)
+
         if file:
             self.__create_db__(file)
-            self.msg(f'written new DB: {file}. File overwritten if existed')
-        elif not file:
+        else:
             self.msg(f'no DB {file}. Nothing written.')
             return False
 
@@ -1755,14 +1798,17 @@ class DB(COMMON):
             engine.close()
             return False
         engine.close()
+        self.msg(f'written new DB: {file}. File overwritten if existed')
         return True
 
-    def exportCSV(self, file: str) -> bool:
+    def exportCSV(self, file='') -> bool:
         """
         Export db with operations and categories
         """
+        file = self.fs.setCSV(file)
         if not file:
             return False
+        
         colNames = self.op.op.columns.values.tolist()
         colNames.remove(self.HASH)
         db = self.op.op.copy(deep=True)
@@ -1832,7 +1878,11 @@ class DB(COMMON):
                     col_digit.append(i)
         return pandas.Series(col_digit, dtype='float')
 
-    def __create_db__(self, file):
+    def __create_db__(self, file: str) -> bool:
+        dirName = os.path.dirname(file)
+        if not os.path.exists(dirName):
+            self.msg(f'{dirName} is not correct path')
+            return False
         if os.path.isfile(file):
             os.remove(file)
         db_file = sqlite3.connect(file)
@@ -1845,6 +1895,7 @@ class DB(COMMON):
             db.execute(f'''CREATE TABLE {bnk} ({cfg.op_col_sql})''')
             db_file.commit()
         db_file.close()
+        return True
 
 # info methods
     def dataRange(self, bank='') -> list:

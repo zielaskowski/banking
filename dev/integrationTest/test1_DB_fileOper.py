@@ -1,9 +1,7 @@
-from operator import index
 import unittest as ut
 import os
-import pandas as pd
+
 from db import DB
-from modules import FileSystem
 from dev.integrationTest.decorators import *
 
 
@@ -11,11 +9,9 @@ class testDBfileOper(ut.TestCase):
     @classmethod
     def setUpClass(self) -> None:
         self.db = DB()
-        self.fs = FileSystem()
-        self.fs.setIMP(
-            path='./dev/integrationTest/fixtures/history_20220118_002911.xls')
-        self.path = self.fs.getIMP(path=True)
-        self.fs.setDB(self.path+'testDB')
+
+        # set path for fixtures
+        self.path = './dev/integrationTest/fixtures/'
 
         ####################################
         # use write==True when setting test environment (fixtures)
@@ -25,62 +21,80 @@ class testDBfileOper(ut.TestCase):
         self.read = not self.write
         self.fixtures = {}
 
-
-    @writeRes
-    @readRes
-    @compRes
-    def test1ImportData(self):
-        """impData"""
-        self.assertFalse(self.db.impData(file=""))
-        self.assertFalse(self.db.impData(file="bla"))
-        
-        self.assertTrue(self.db.impData(file=self.fs.getIMP()))
-        self.db.impCommit('ok')
-
-        self.fs.setIMP(self.path+'Zestawienie operacji.xlsx')
-        self.assertTrue(self.db.impData(file=self.fs.getIMP()))
-        self.db.impCommit('ok')
-
     @blockWrite
-    def test2WriteDB(self):
+    def test1WriteDB(self):
         """writeDB"""
-        self.assertFalse(self.db.writeDB(''))
+        dbFile = 'testDB.s3db'
+        dbPath = self.path+'db/'
 
-        self.assertTrue(self.db.writeDB(self.fs.getDB()))
-        self.assertTrue(os.path.isfile(self.fs.getDB()))
+        self.assertFalse(self.db.writeDB('foo'))
+        self.assertTrue(self.db.writeDB(file=dbPath+dbFile))
 
-        self.db.impData(file=self.fs.getIMP())
-        self.assertFalse(self.db.writeDB(self.fs.getDB()))
+        self.assertTrue(dbFile == self.db.fs.getDB(file=True))
+
+        self.assertTrue(self.db.writeDB())
+        self.assertTrue(os.path.isfile(self.db.fs.getDB()))
+
+        self.db.impData(file='./dev/op_history/Zestawienie operacji.xlsx')
+        self.assertFalse(self.db.writeDB())
         self.db.impCommit('not ok')
 
     @writeRes
     @readRes
     @compRes
+    def test2ImportData(self):
+        """impData"""
+        impFile = './dev/op_history/history_20220118_002911.xls'
+
+        self.assertTrue(self.db.writeDB(self.path+'db/testDB.s3db'))
+        self.assertFalse(self.db.impData(file="foo"))
+
+        self.assertTrue(self.db.impData(impFile))
+        self.assertTrue(self.db.imp_status)
+        self.db.impCommit(decision='ok')
+        self.assertFalse(self.db.imp_status)
+
+        self.assertTrue(self.db.impData())
+        self.db.impCommit('not ok')
+
+        self.assertTrue('history_20220118_002911.xls' ==
+                        self.db.fs.getIMP(file=True))
+        self.assertTrue(self.db.writeDB())
+
+    @blockWrite
     def test3OpenDB(self):
         """openDB"""
         self.db = DB()
-        self.assertFalse(self.db.openDB(''))
-        self.assertFalse(self.db.openDB('bla'))
+        dbFile = 'testDB.s3db'
+        dbPath = self.path+'db/'
+        self.assertTrue(self.db.writeDB(file=dbPath+dbFile))
+        
+        self.assertFalse(self.db.openDB('foo'))
 
-        self.assertTrue(self.db.openDB(self.fs.getDB()))
+        self.assertTrue(self.db.openDB())
 
-        self.db.impData(file=self.fs.getIMP())
-        self.assertFalse(self.db.openDB(self.fs.getDB()))
+        self.db.impData(file='./dev/op_history/Zestawienie operacji.xlsx')
+        self.assertFalse(self.db.openDB())
         self.db.impCommit('not ok')
 
-    @blockWrite
+    @writeRes
+    @readRes
+    @compRes
     def test4OpenDBfilters(self):
-        self.fs.setDB(self.path + 'filters.s3db')
-        self.assertTrue(self.db.openDB(file=self.fs.getDB(), onlyTrans=True))
+        self.assertTrue(self.db.openDB(
+            file=self.path + 'db/filters.s3db', onlyTrans=True))
+
+        self.assertTrue(self.db.fs.getIMPDB(file=True) == 'filters.s3db')
 
     @blockWrite
     def test5ExportCSV(self):
         """exportCSV"""
-        self.assertFalse(self.db.exportCSV(''))
+        exFile = self.path + 'export.csv'
+        self.assertFalse(self.db.exportCSV('foo'))
 
-        self.assertTrue(self.db.exportCSV(self.path + 'export.csv'))
-        self.fs.setCSV(self.path + 'export.csv')
-        self.assertTrue(os.path.isfile(self.fs.getCSV()))
+        self.assertTrue(self.db.exportCSV(exFile))
+        self.assertTrue(os.path.isfile(self.db.fs.getCSV()))
+        self.assertTrue('export.csv' == self.db.fs.getCSV(file=True))
 
 
 if __name__ == '__main__':

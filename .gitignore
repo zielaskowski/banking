@@ -6,3 +6,4 @@ __pycache__
 dev/stats
 fixtures
 op_history
+log.log
