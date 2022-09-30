@@ -23,9 +23,9 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         super().__init__(self.view)
         self.view.show()
         self.db = DB(DEBUG=True)
-        self.db.DEBUG_F = './dev/integrationTest/setTest_filters.csv'
+        self.db.DEBUG_F = './dev/integrationTest/setTest_cat.csv'
         #self.fs = FileSystem()
-        #self.db.connect(parent=self.fs.writeMsg)
+        # self.db.connect(parent=self.fs.writeMsg)
         # connect signals
         self.connect_signals()
         # hide import widgets
@@ -48,9 +48,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         # read options
         self.setStat()
         self.view.db_stat_txt.setText(self.db.fs.getOpt('welcome'))
-        #file = self.fs.getOpt('LastDB')
-        #if file:
-        self.openDB()
+        self.restoreDB()
 
     # signals and connections
     def connect_signals(self):
@@ -58,7 +56,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         # file management
         self.view.openDB_btn.clicked.connect(self.openDB)
         self.view.newDB_btn.clicked.connect(self.newDB)
-        self.view.save_asDB_btn.clicked.connect(self.save_asDB)
+        self.view.save_asDB_btn.clicked.connect(
+            lambda: self.save_asDB(ask=False))
         self.view.imp_btn.clicked.connect(self.imp)
         self.view.export_btn.clicked.connect(self.exp)
         self.view.importTrans_btn.clicked.connect(self.impCatsAndTrans)
@@ -733,14 +732,6 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.view.new_cat_name.blockSignals(False)
 
     def fill_tree(self):
-        # # DEBUG
-        # print(self.db.trans.trans)
-        # print(self.db.cat.cat)
-        # print(self.db.split.split)
-        # print(self.db.tree.tree)
-        # print(self.db.op.op.loc[self.db.op.op.loc[:, self.db.CATEGORY]
-        #       != cfg.GRANDPA, self.db.CATEGORY].unique())
-        # #####
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.view.tree_db.blockSignals(True)
         # reset the tree
@@ -1169,44 +1160,56 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             mod.sort(0, QtCore.Qt.AscendingOrder)
 
     # file operations
-    def openDB(self, file=''):
-        if self.db.openDB(file=file):  # return False if fail
+    def selNewDB(self, msg: str, type: str) -> str:
+        if type == 'save':
+            FileDialogModul = QtWidgets.QFileDialog.getSaveFileName
+        else:
+            FileDialogModul = QtWidgets.QFileDialog.getOpenFileName
+
+        file = FileDialogModul(self.view,
+                               caption=msg,
+                               directory='',
+                               filter=self.db.fs.getDB(ext=True))
+        # Qt lib returning always / as path separator
+        # we need system specific, because we are checking for file existence
+        return QtCore.QDir.toNativeSeparators(file[0])
+
+    def restoreDB(self):
+        """tries to open last DB"""
+        if self.db.openDB():  # return False if fail
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-            # self.disp_statusbar('openDB')
-            #self.fs.writeOpt("LastDB", self.fs.getDB())
             self.fill('trans')
             self.fill('split')
             self.fill_tree()  # will set top item and filter tables accordingly
             self.setCatInput()
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-        else:
-            file = QtWidgets.QFileDialog.getOpenFileName(self.view, caption='Choose SQlite3 file',
-                                                         directory='',
-                                                         filter=self.db.fs.getDB(ext=True))
-            # Qt lib returning always / as path separator
-            # we need system specific, couse we are checking for file existence
-            path = QtCore.QDir.toNativeSeparators(file[0])
-            if path:
-                self.db.openDB(path)
-            else:  # operation canceled
-                return
+
+    def openDB(self):
+        # save existing data
+        self.save_asDB()
+
+        path = self.selNewDB(msg='Choose SQlite3 file',
+                             type='open')
+        if path:
+            self.db.openDB(path)
+        else:  # operation canceled
+            return
 
     def newDB(self):
-        file = QtWidgets.QFileDialog.getSaveFileName(self.view,
-                                                     caption='Choose name for new SQlite3 file',
-                                                     directory='',
-                                                     filter=self.db.fs.getDB(ext=True))
-        # Qt lib returning always / as path separator
-        # we need system specific, because we are checking for file existence
-        path = QtCore.QDir.toNativeSeparators(file[0])
+        # save existing data
+        self.save_asDB()
+
+        path = self.selNewDB(msg='Choose name for new SQlite3 file',
+                             type='save')
         if path:
-            self.db = DB()
+            fileN = self.db.DEBUG_F
+            self.db = DB(self.db.DEBUG)
+            self.db.DEBUG_F = fileN
             if not self.save_asDB(file=path):
                 return
         else:  # operation canceled
             return
-        #self.fs.writeOpt("LastDB", self.fs.getDB())
-        
+
         # need to reset DB view model manually because
         # empty DB is ignored by fill_DB()
         self.view.DB_view.setModel(DBmodelProxy(
@@ -1218,7 +1221,23 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.setCatInput()
         self.db.msg('Created new empty DB')
 
-    def save_asDB(self, file='') -> bool:
+    def save_asDB(self, file='', ask=True) -> bool:
+        if not self.db.IsData:
+            return False  # no data so dosen't make sense
+
+        # DB exists?
+        file = self.db.fs.setDB(file)
+        if not file:  # no, so ask
+            if ask:
+                ans = QtWidgets.QMessageBox.question(self.view,
+                                                    "Save DB?",
+                                                    'Save existing data?')
+                if ans == QtWidgets.QMessageBox.No:
+                    return False
+            file = self.selNewDB(msg='Choose where to save existing data',
+                                 type='save')
+            if not file:
+                return False
         return self.db.writeDB(file=file)
 
     def imp(self, bank):

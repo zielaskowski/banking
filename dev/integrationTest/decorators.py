@@ -12,6 +12,7 @@ set fixtures location in self.path
 
 def writeRes(fn):
     def deco(self, *args, **kwargs):
+        print(2*'\n'+5*'*'+self._testMethodName+5*'*')
         fn(self, *args, **kwargs)
         if self.write:
             try:

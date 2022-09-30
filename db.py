@@ -263,9 +263,10 @@ class OP(COMMON):
                     ser, fltr[self.VAL1], fltr[self.VAL2])
                 self.op.loc[bankRows, col] = ser
 
-    def __updateCat__(self, change: List[Dict]):
+    def __updateCat__(self, change: List[Dict], removeOnly=False):
         """update categories
         change can be one or more rows from cat DB
+        if removeOnly=True, only remove cats in change
         """
         if self.op.empty:
             # may happen when mporting filters on empty db
@@ -281,7 +282,9 @@ class OP(COMMON):
         cats = set([c[self.CATEGORY]
                     for c in change])
         self.__rmCat__(cats)
-
+        if removeOnly:
+            return
+        
         # arrange by filter_n !!!!
         cats = sorted(cats, key=lambda x: [int(f[self.FILTER_N])
                                            for f in change
@@ -311,7 +314,7 @@ class OP(COMMON):
             grandpas = self.op.loc[:, self.CATEGORY] == cfg.GRANDPA
             if otherCats():  # mark overlaping cats
                 self.parent.msg(
-                    f'When setting {cat}, could not get rows belonging already to other categories: {otherCats()}')
+                    f'When setting {cat}, could not get some rows belonging already to other categories: {otherCats()}')
 
             self.op.loc[ser & grandpas, self.CATEGORY] = cat
 
@@ -707,12 +710,12 @@ class CAT(COMMON):
         catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
         # 1) align filter_n among category
         # only if we have curent category (not after remove)
-        if any(catRows):
-            fltr_n = db.loc[catRows, self.FILTER_N].iloc[0]
-            db.loc[catRows, self.FILTER_N] = fltr_n
-            db.sort_values(by=[self.FILTER_N, self.OPER_N],
-                           ignore_index=True, inplace=True)
-            catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
+        # if any(catRows):
+        #     fltr_n = db.loc[catRows, self.FILTER_N].iloc[0]
+        #     db.loc[catRows, self.FILTER_N] = fltr_n
+        #     db.sort_values(by=[self.FILTER_N, self.OPER_N],
+        #                    ignore_index=True, inplace=True)
+        #     catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
 
         # 2) check first row in cat
         if any(catRows):
@@ -729,19 +732,26 @@ class CAT(COMMON):
             # it will be ignored by op.__validate_cat__
 
         # 4) renumber oper_n
-        oper_max = len(db.loc[catRows, :]) + 1
-        opers_l = list(range(1, oper_max))
-        db.loc[catRows, self.OPER_N] = opers_l
+        # oper_max = len(db.loc[catRows, :]) + 1
+        # opers_l = list(range(1, oper_max))
+        # db.loc[catRows, self.OPER_N] = opers_l
 
-        db.sort_values(by=[self.FILTER_N, self.OPER_N],
-                       ignore_index=True, inplace=True)
+        # db.sort_values(by=[self.FILTER_N, self.OPER_N],
+        #                ignore_index=True, inplace=True)
 
         # 5) not make sense to duplicate
         colNames = db.columns.values.tolist()
-        colNames.remove('oper_n')
-        dup = db.loc[catRows, colNames].duplicated()
+        [colNames.remove(c) for c in [self.OPER_N,
+                                      self.CATEGORY,
+                                      self.FILTER_N,
+                                      self.FILTER_ORIG]]
+        # colNames.remove(self.OPER_N)
+        dup = db.loc[:, colNames].duplicated(keep=False)
         if any(dup):
-            self.parent.msg = f'cat.__validate__: identical filter already exists in this category. Nothing done.'
+            dupCat = list(db.loc[dup, self.CATEGORY])
+            dupOper = list(db.loc[dup, self.OPER_N])
+            self.parent.msg(
+                f'Identical filter already exists in {dupCat[0]} at position {dupOper[0]}. Nothing done.')
             return pandas.DataFrame()
 
         return db
@@ -1352,7 +1362,8 @@ class DB(COMMON):
         self.cat_before_imp = pandas.DataFrame()
         self.tree_before_imp = pandas.DataFrame()
         self.split_before_imp = pandas.DataFrame()
-
+        self.IsData = False # change to True when data exists
+        
         self.fs = FileSystem()
         self.msg = self.fs.msg
         if file:
@@ -1439,6 +1450,7 @@ class DB(COMMON):
 
         self.__restoreAll__(block=['op', 'trans', 'split'],
                             change_cat=change)
+        self.msg(f'Category {fltr[self.CATEGORY]} added')
         return True
 
     @writeOp
@@ -1456,7 +1468,7 @@ class DB(COMMON):
 
         rmCat = self.cat.rm(category, oper_n)
 
-       # need to update ref split
+        # need to update ref split
         rmSplit = self.split.rm(fltr=category,
                                 category=category)
         rmSplitCat = self.split.impSplit
@@ -1539,11 +1551,11 @@ class DB(COMMON):
         # need also change split filter, may refer to changed cat
         change_split = self.split.ren(new_category, category)
         change_cat = self.cat.ren(new_category, category)
-        # self.op.__rmCat__([category])  # remove old category
+        self.op.__rmCat__([category])  # remove old category
 
         self.__restoreAll__(block=['op', 'trans'],
                             change_split=change_split,
-                            change_cat=[category] + change_cat + self.split.impSplit)
+                            change_cat=change_cat + self.split.impSplit)
         return True
 
     @writeOp
@@ -1623,9 +1635,19 @@ class DB(COMMON):
             self.op.__updateTrans__(change_trans)
         if 'cat' not in block:
             change_cat_fltr = self.cat.__to_dict__(change_cat)
-            self.op.__updateCat__(change_cat_fltr)
+            if not change_cat_fltr:
+                # removed category but we need to update op anyway
+                change_cat_fltr = [{self.CATEGORY: c} for c in change_cat]
+                self.op.__updateCat__(change_cat_fltr, removeOnly=True)
+            else:
+                self.op.__updateCat__(change_cat_fltr)
         if 'split' not in block:
             self.op.__updateSplit__(change_split)
+        
+        if len(self.op.op.index) == 0:
+            self.IsData = False
+        else:
+            self.IsData = True
 
 # file operation methods
     def impCommit(self, decision: str):
@@ -1723,7 +1745,7 @@ class DB(COMMON):
             file = self.fs.setDB(file)
         else:
             file = self.fs.setIMPDB(file)
-        
+
         if not file:
             return False
 
@@ -1808,7 +1830,7 @@ class DB(COMMON):
         file = self.fs.setCSV(file)
         if not file:
             return False
-        
+
         colNames = self.op.op.columns.values.tolist()
         colNames.remove(self.HASH)
         db = self.op.op.copy(deep=True)

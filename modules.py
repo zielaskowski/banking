@@ -118,7 +118,7 @@ class FileSystem:
                 self._fileIMPDB[self._NAME] + self._fileIMPDB[self._EXT]
         return fp
 
-    def setDB(self, path: str) -> str:
+    def setDB(self, path='') -> str:
         """set path and filename for DB. \n
         takes lastDB from options if path is missing
         return file path with name (or '' if file is missing)
@@ -127,7 +127,8 @@ class FileSystem:
                             optName="LastDB",
                             _Ffile=self._fileDB,
                             _Ftype=self.typeDB,
-                            getFn=self.getDB)
+                            getFn=self.getDB,
+                            dirOnly=True)
 
     def getDB(self, path=False, file=False, ext=False) -> str:
         """ext=True: input typical for QtFileDialog: ('SQlite3 (*.s3db)') \n
@@ -162,13 +163,18 @@ class FileSystem:
         """
         if not path:
             path = self.getOpt(optName)
-
+            # file may disapear in meantime
+            if not self.__checkFile__(path):
+                self.writeOpt(op=optName, val='')
+                _Ffile[0:2] = ['', '', '']
+                return ''
+                
         if not self.__checkFile__(path, dirOnly=dirOnly):
             _Ffile[0:2] = ['', '', '']
             return ''
 
         _Ffile[0:2] = self.__splitPath__(path)
-        # override file extension. No other than csv can be exported
+        # override file extension
         if _Ftype:
             _Ffile[self._EXT] = _Ftype[1]
 

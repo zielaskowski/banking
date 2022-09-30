@@ -1,6 +1,8 @@
 import unittest as ut
 import os
 
+from sqlalchemy import true
+
 from db import DB
 from dev.integrationTest.decorators import *
 
@@ -26,7 +28,11 @@ class testDBfileOper(ut.TestCase):
         """writeDB"""
         dbFile = 'testDB.s3db'
         dbPath = self.path+'db/'
-
+        try:
+            os.remove(dbPath+dbFile)
+        except:
+            pass
+        
         self.assertFalse(self.db.writeDB('foo'))
         self.assertTrue(self.db.writeDB(file=dbPath+dbFile))
 
@@ -38,6 +44,12 @@ class testDBfileOper(ut.TestCase):
         self.db.impData(file='./dev/op_history/Zestawienie operacji.xlsx')
         self.assertFalse(self.db.writeDB())
         self.db.impCommit('not ok')
+        
+        os.remove(dbPath+dbFile)
+        self.assertFalse(self.db.writeDB())
+        # shall remove file also from options
+        self.assertTrue(self.db.fs.getDB() == '')
+        self.assertTrue(self.db.fs.setDB() == '')
 
     @writeRes
     @readRes
@@ -76,12 +88,31 @@ class testDBfileOper(ut.TestCase):
         self.db.impData(file='./dev/op_history/Zestawienie operacji.xlsx')
         self.assertFalse(self.db.openDB())
         self.db.impCommit('not ok')
-
+        
+        os.remove(dbPath+dbFile)
+        self.assertFalse(self.db.openDB())
+        # shall remove file also from options
+        self.assertTrue(self.db.fs.getDB() == '')
+        self.assertTrue(self.db.fs.setDB() == '')
+        
     @writeRes
     @readRes
     @compRes
     def test4OpenDBfilters(self):
         """open DB"""
+        # create empty DB
+        self.db.writeDB(file=self.path+'db/filters.s3db')
+        self.db.impData('./dev/op_history/Zestawienie operacji.xlsx')
+        self.db.impCommit(decision='ok')
+        # create some opers
+        self.db.catAdd(fltr= {"col_name": "opis_transakcji", "function": "txt_match", "filter": "BAR OK ORIENTALNY WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "restauracje", "filter_orig": ""}, parent= "Grandpa")        
+        self.db.treeRen(category= "restauracje", new_category= "rest")
+        self.db.treeAdd(parent= "Grandpa", child= "new category")
+        self.db.catAdd(fltr= {"col_name": "opis_transakcji", "function": "txt_match", "filter": "TOPAZ", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "top", "filter_orig": ""}, parent= "Grandpa")
+        self.db.catRm(oper_n= "1.0", category= "topaz")
+        self.db.writeDB(file=self.path+'db/filters.s3db')
+        
+        self.db.writeDB(file=self.path+'db/testDB.s3db')
         self.assertTrue(self.db.openDB(
             file=self.path + 'db/filters.s3db', onlyTrans=True))
 
@@ -90,7 +121,7 @@ class testDBfileOper(ut.TestCase):
     @blockWrite
     def test5ExportCSV(self):
         """exportCSV"""
-        exFile = self.path + 'export.csv'
+        exFile = self.path + 'db/export.csv'
         self.assertFalse(self.db.exportCSV('foo'))
 
         self.assertTrue(self.db.exportCSV(exFile))
