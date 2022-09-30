@@ -13,7 +13,7 @@ class testDBfromFile(ut.TestCase):
         self.path = './dev/integrationTest/fixtures/'
         
         self.db = DB(DEBUG=False)
-        self.DEBUG_F = './dev/integrationTest/setTest_bug.csv'
+        self.DEBUG_F = './dev/integrationTest/setTest_cat.csv'
         self.DEBUG_Fn = re.sub("^.*(?=\/)\/", "", self.DEBUG_F) #remove path
         self.DEBUG_Fn = re.sub("\.[^\.]*$", "", self.DEBUG_Fn) #remove file ext
         ####################################

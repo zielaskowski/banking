@@ -1448,8 +1448,7 @@ class DB(COMMON):
                         oper_n=change[self.OPER_N])
             return False
 
-        self.__restoreAll__(block=['op', 'trans', 'split'],
-                            change_cat=change)
+        self.__restoreAll__()
         self.msg(f'Category {fltr[self.CATEGORY]} added')
         return True
 
@@ -1466,21 +1465,18 @@ class DB(COMMON):
         if not oper_n:
             return []
 
-        rmCat = self.cat.rm(category, oper_n)
+        self.cat.rm(category, oper_n)
 
         # need to update ref split
         rmSplit = self.split.rm(fltr=category,
                                 category=category)
-        rmSplitCat = self.split.impSplit
+        
         # categories with split only must be removed from op now
         # before cat update
         # also completely removed categories shall be removed now
         # becouse updete cat ....wil not update
-        self.op.__rmCat__(rmSplitCat + rmCat)
-
-        self.__restoreAll__(block=['op', 'trans'],
-                            change_split=rmSplit,
-                            change_cat=rmCat + rmSplitCat)
+        
+        self.__restoreAll__()
         return rmSplit
 
     @writeOp
@@ -1549,13 +1545,11 @@ class DB(COMMON):
             return
 
         # need also change split filter, may refer to changed cat
-        change_split = self.split.ren(new_category, category)
-        change_cat = self.cat.ren(new_category, category)
+        self.split.ren(new_category, category)
+        self.cat.ren(new_category, category)
         self.op.__rmCat__([category])  # remove old category
 
-        self.__restoreAll__(block=['op', 'trans'],
-                            change_split=change_split,
-                            change_cat=change_cat + self.split.impSplit)
+        self.__restoreAll__()
         return True
 
     @writeOp
@@ -1573,7 +1567,7 @@ class DB(COMMON):
         categories = self.tree.arrange(category=category, dir=dir)
         if categories:
             self.cat.arrange(categories=categories)
-        self.__restoreAll__(block=['op', 'trans'])
+        self.__restoreAll__()
         return
 
     @writeOp
@@ -1587,9 +1581,7 @@ class DB(COMMON):
         remove cat from tree, together with cat and split,
         possibly, will also remove cat with split refering to child
         '''
-        splitChange = self.split.rm(
-            category=child, fltr=child)
-
+        self.split.rm(category=child, fltr=child)
         self.cat.rm(category=child)
         self.tree.rm(child)
         for s in self.split.impSplit:
@@ -1598,9 +1590,7 @@ class DB(COMMON):
             if self.cat[:].empty:
                 self.tree.rm(s)
 
-        self.__restoreAll__(block=['op', 'trans'],
-                            change_split=splitChange,
-                            change_cat=[child] + self.split.impSplit)
+        self.__restoreAll__()
         return True
 
     @writeOp
@@ -1617,32 +1607,22 @@ class DB(COMMON):
         """
         # restore whole op DB
         # restore also if  changed split db
-        if 'op' not in block:  # or change_split != []:
-            self.op = OP(self)
-            for bank, db in self.imp:
-                self.op.ins(db=db)
-            block = []
-            change_cat = ['*']
-            change_split = ['*']
-
-        if change_split == ['*']:
-            change_split = self.split.__to_dict__(change_split)
+        self.op = OP(self)
+        for bank, db in self.imp:
+            self.op.ins(db=db)
+        
+        change_split = self.split.__to_dict__('*')
+        change_cat = self.cat.__to_dict__('*')
+        change_trans = self.trans.__to_dict__('*')
 
         # order is important
-        if 'trans' not in block:
-            change_trans = self.trans.__to_dict__()
-            self.cat.__update__(change_trans)
-            self.op.__updateTrans__(change_trans)
-        if 'cat' not in block:
-            change_cat_fltr = self.cat.__to_dict__(change_cat)
-            if not change_cat_fltr:
-                # removed category but we need to update op anyway
-                change_cat_fltr = [{self.CATEGORY: c} for c in change_cat]
-                self.op.__updateCat__(change_cat_fltr, removeOnly=True)
-            else:
-                self.op.__updateCat__(change_cat_fltr)
-        if 'split' not in block:
-            self.op.__updateSplit__(change_split)
+        #trans
+        self.cat.__update__(change_trans)
+        self.op.__updateTrans__(change_trans)
+        #cat
+        self.op.__updateCat__(change_cat)
+        #split
+        self.op.__updateSplit__(change_split)
         
         if len(self.op.op.index) == 0:
             self.IsData = False
