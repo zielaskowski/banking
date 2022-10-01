@@ -517,7 +517,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 cat = cfg.GRANDPA
             else:
                 cat = self.curCat
-            data = self.db.op.group_data(col=self.visCol[col_n], category=cat)
+            data = self.db.op.groupData(col=self.visCol[col_n], category=cat)
             colWidget = QtWidgets.QComboBox()
             colWidget.insertItems(-1, data)
             colWidget.setEditable(False)
@@ -527,7 +527,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         def tree1():
             # widget for column header in tree
             colWidget = QtWidgets.QComboBox()
-            colWidget.insertItems(-1, self.db.op.sum_data())
+            colWidget.insertItems(-1, self.db.op.sumData())
             colWidget.setEditable(False)
             return colWidget
 
@@ -617,7 +617,10 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         if dbTxt == 'trans':
             hideCols = [self.db.TRANS_N]
         elif dbTxt == 'cat':
-            db.setCat(self.curCat)
+            if self.curCat[0] == cfg.GRANDPA:
+                db.setCat('')
+            else:
+                db.setCat(self.curCat)
             hideCols = [self.db.FILTER_N, self.db.OPER_N,
                         self.db.CATEGORY, self.db.FILTER_ORIG]
         elif dbTxt == 'split':
@@ -761,7 +764,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         cats.remove(cfg.GRANDPA)
 
         # second row is Grandpa
-        summ = self.db.op.sum_data(
+        summ = self.db.op.sumData(
             op=colWidget.currentText(), category=cfg.GRANDPA)
         grandpa = QtWidgets.QTreeWidgetItem(
             self.view.tree_db, [cfg.GRANDPA, summ])
@@ -772,7 +775,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         for cat in cats:
             parent = self.view.tree_db.findItems(
                 self.db.tree.parent(child=cat), match)
-            summ = self.db.op.sum_data(
+            summ = self.db.op.sumData(
                 op=colWidget.currentText(), category=cat)
             it = QtWidgets.QTreeWidgetItem(parent[0], [cat, summ])
             flag = QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled

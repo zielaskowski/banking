@@ -1,9 +1,12 @@
-integrate FileSystem class with DB class
+add split arrange
+
+handle empty categories (ask user), now DB do not delete nothing
+handle categories impacted by trans (ask user)
 
 
 add split of single operation. Must be treated separately and splited BEFORE category
 
-mark split rows which are not valid. Update split.validSplit on start
+
 
 set min max dates when starting split calendar
 
@@ -24,8 +27,6 @@ warn when closing without commited import
 
 
 when importing wrong bank file (csv), imp_status is not updated (remains like in import mode)
-
-write full path in category column in all dbs???
 
 
 create events (like trips)

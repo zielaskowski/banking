@@ -19,7 +19,7 @@ class testDBfromFile(ut.TestCase):
         ####################################
         # use write==True when setting test environment (fixtures)
         # after, use write==False for real testing
-        self.write = True
+        self.write = False
         ####################################
         self.read = not self.write
         self.fixtures = {}
@@ -54,6 +54,7 @@ class testDBfromFile(ut.TestCase):
                 """call the function"""
                 eval(f'self.db.{self.fName}(*{args}, **{kwargs})')
             test(self)
+        self.db.writeDB()
 
 if __name__ == '__main__':
     ut.main()

@@ -151,11 +151,16 @@ class OP(COMMON):
     hash|category\n
     1)category column shall speed up when more than one filter in category\n
     2)hash used o avoid duplicates when importing "new" data\n
+    current filtered data stored in 'op' DB\n
+    There is also opTrans (data without cat and split).\n
+    This is to avoid rebuild from scratch after every op
     """
 
     def __init__(self, parent):
         super().__init__()
         self.op = pandas.DataFrame(columns=cfg.op_col)  # table of operations
+        # table of operations without cats and splits
+        self.opTrans = pandas.DataFrame(columns=cfg.op_col)
         self.parent = parent
 
     def get(self, category: List[str]) -> pandas:
@@ -175,7 +180,7 @@ class OP(COMMON):
         pandas.DataFrame.drop_duplicates(
             self.op, subset=self.HASH, inplace=True, ignore_index=True)
 
-    def group_data(self, col: str, category=[cfg.GRANDPA]) -> list:
+    def groupData(self, col: str, category=[cfg.GRANDPA]) -> list:
         """Grupuje wartości w kazdej kolumnie i pokazuje licznosc dla nie pogrupownych danych:\n
         Przyklad:\n
         typ_transakcji              count\n
@@ -206,7 +211,7 @@ class OP(COMMON):
             res.append(f'x{col_grouped[i]}:  {ii}')
         return res
 
-    def sum_data(self, op='', category='') -> 'str(int)':
+    def sumData(self, op='', category='') -> 'str(int)':
         """sum whole category\n
         if op == count: return number of rows
         if op == cumSum: return cumulative sum of kids
@@ -284,7 +289,7 @@ class OP(COMMON):
         self.__rmCat__(cats)
         if removeOnly:
             return
-        
+
         # arrange by filter_n !!!!
         cats = sorted(cats, key=lambda x: [int(f[self.FILTER_N])
                                            for f in change
@@ -324,7 +329,7 @@ class OP(COMMON):
         1) hash new rows\n
         2) {col_name: col_name, function: 'txt_match' , filter: filter, oper: 'add'}
         """
-        colKwota = self.sum_data()[0]
+        colKwota = self.sumData()[0]
 
         for ch in change:
             ch = pandas.Series(ch)
@@ -441,14 +446,14 @@ class CAT(COMMON):
         self.catRows = pandas.DataFrame
         self.setCat(self.curCat)
 
-    def setCat(self, category: List[str]) -> None:
+    def setCat(self, category='') -> None:
         """set curent category so other methods work only on sel cat\n
-        if cat=grandpa return null\n
-        if cat='*' return all\n
+        if cat=None set catRows to none rows\n
+        if cat='*' set catRows to all rows\n
         """
         if isinstance(category, str):
             category = [category]
-        if cfg.GRANDPA in category:
+        if not category[0]:
             self.catRows = [False] * len(self.cat)
         elif '*' in category:
             self.catRows = [True] * len(self.cat)
@@ -462,6 +467,12 @@ class CAT(COMMON):
         """
         it = self.cat.loc[self.catRows, :].reset_index().loc[args[0]]
         return it
+
+    def __setitem__(self, loc, val) -> None:
+        """set value on selected column
+        work on curent category only (set by setCat())
+        """
+        self.cat.loc[self.catRows, loc] = val
 
     def __to_dict__(self, category=[]) -> List[Dict]:
         """return list of rows, each row as dic\n
@@ -489,9 +500,11 @@ class CAT(COMMON):
 
         self.cat[self.FILTER] = self.cat[self.FILTER_ORIG]
 
-    def __update__(self, change: List[Dict]):
+    def __update__(self, change: List[Dict], update: bool) -> str:
         """transform all filters\n
         change is one or more rows from trans DB
+
+        if not update, only return impacted
         """
         for fltr in change:
             # do not change if val2=='', just warn that cat is no longer valid
@@ -562,7 +575,7 @@ class CAT(COMMON):
                 lambda x: self.__addAbove__(x, fltr[self.OPER_N]))
             self.cat.loc[self.catRows, self.OPER_N] = newSer
 
-        # define new filter_n or take of current category
+        # define new filter_n
         fltr[self.FILTER_N] = self.__max__(self.FILTER_N)
 
         # validate
@@ -670,12 +683,12 @@ class CAT(COMMON):
             return []
 
     def arrange(self, categories: str):
-        db = pandas.DataFrame()
+        # set order
         for cat in categories:
-            cat_rows = self.cat.loc[:, self.CATEGORY] == cat
-            self.cat.loc[cat_rows, self.FILTER_N] = list(categories).index(cat)
-            db = db.append(self.cat.loc[cat_rows, :], ignore_index=True)
-        self.cat = db.copy(deep=True)
+            self.setCat(cat)
+            self[self.FILTER_N] = list(categories).index(cat)
+        # validate will renumber FILTER_N one by one
+        self.__validate__(self.cat)
         return
 
     @ staticmethod
@@ -691,12 +704,9 @@ class CAT(COMMON):
         - col=filter_n: take from curent category if exist or max+1
         """
         if column == self.FILTER_N:
-            if any(self.catRows):  # category already exists
-                return self.cat.loc[self.catRows, self.FILTER_N].iloc[0]
-            else:
-                return max(self.cat.loc[:, column], default=0) + 1
+            return max(self.cat.loc[:, column], default=0) + 1
         else:
-            return max(self.cat.loc[self.catRows, column], default=0)
+            return max(self[:,column], default=0)
 
     def __validate__(self, db: pandas) -> None or pandas:
         """ cleaning of self.cat
@@ -730,14 +740,16 @@ class CAT(COMMON):
             # we do not have 'add' on first row
             # but for 'edit' purpose, we leave this category
             # it will be ignored by op.__validate_cat__
+  
+        # 4) renumber filter_n to have continous
+        # especially, after rearange tree with empty cats
+        cats = list(db.loc[:,self.CATEGORY].unique())
+        for c in cats:
+                catRows = db.loc[:,self.CATEGORY] == c
+                db.loc[catRows, self.FILTER_N] = cats.index(c)
 
-        # 4) renumber oper_n
-        # oper_max = len(db.loc[catRows, :]) + 1
-        # opers_l = list(range(1, oper_max))
-        # db.loc[catRows, self.OPER_N] = opers_l
-
-        # db.sort_values(by=[self.FILTER_N, self.OPER_N],
-        #                ignore_index=True, inplace=True)
+        db.sort_values(by=[self.FILTER_N, self.OPER_N],
+                       ignore_index=True, inplace=True)
 
         # 5) not make sense to duplicate
         colNames = db.columns.values.tolist()
@@ -843,7 +855,7 @@ class TRANS(COMMON):
         else:
             return x
 
-    def rm(self, trans_n: int):
+    def rm(self, trans_n: int) -> List[Dict]:
         """remove transformation\n
         """
         trans_n = float(trans_n)
@@ -854,7 +866,7 @@ class TRANS(COMMON):
 
         return self.__to_dict__()
 
-    def mov(self, trans_n: int, new_trans_n: int):
+    def mov(self, trans_n: int, new_trans_n: int) -> List[Dict]:
         """move transformation at trans_n to new position
         """
         trans_n = float(trans_n)
@@ -867,7 +879,7 @@ class TRANS(COMMON):
         self.trans.loc[new_trans_n_row, self.TRANS_N] = trans_n
 
         self.trans = self.__validate__(self.trans)
-        return True
+        return self.__to_dict__('*')
 
     def opers(self):
         """return avilable filtering operations
@@ -989,7 +1001,7 @@ class TREE(COMMON):
         self.tree.reset_index(inplace=True, drop=True)
         return True
 
-    def mov(self, new_parent: str, child: str):
+    def mov(self, new_parent: str, child: str) -> list:
         """move child to new parent
         - can't move cat to it's parent
         - can't move cat to it's child
@@ -998,10 +1010,12 @@ class TREE(COMMON):
         forbiden.append(self.parent(child))
         if new_parent in forbiden:
             self.par.msg = f"Not allowed to move category to it's children or parent"
-            return
+            return []
 
         childRows = self.tree.loc[:, self.CATEGORY] == child
         self.tree.loc[childRows, self.CAT_PARENT] = new_parent
+
+        return self.allChild().keys()
 
     def rm(self, child: str):
         """rem category, if data in category it will be removed (move to Grandpa) by cat DB in parent.__update__
@@ -1041,6 +1055,10 @@ class TREE(COMMON):
 
 
 class IMP:
+    """
+    stores raw data (just after import) as dict: {bank: pandas.dataFrame}
+    """
+
     def __init__(self, parent):
         self.imp = {}  # store raw data {bank: pandas.DataFrame,...}
         self.iter = 100
@@ -1316,29 +1334,33 @@ class SPLIT(COMMON):
 class DB(COMMON):
     """
     manage other DBs and stores in SQLite db\n
-    imp_data(bank): import excel with operations history from bank and apply all filtering and transformation if avilable\n
-    imp_comit(yes|no): append importad data to main DB\n
-    write_db(file): store data into SQL\n
-    update(): update op DB\n
-    takes othe DBs as classes:\n
-    1.db op stores data with attached categories and hash col.
-        get_op(not_categorized = bool): reqest stored data
-        group_data(column=''): group data based on occurance, sorting first most common
-        filter_data(col='', filter='', operation='new|add|lim|rem'): filter data and store into temporary db, NOT commiting changes
-        show_tree(col=''), show kategories structure in data
-    2. db cat stores filtering operation per cattegory
-        filter_commit(name, nameOf='category|parent): comit filtered data and store filters for category
-        get_filter_cat(cat_sel''): set temp dbs to show data and filters for category
-        filter_temp_rm(oper_n): remove selected temprary filter
-        filter_mov(oper_n, direction): move selected filter
-        filter_rm(oper_n): remove selected filter
-    3. db trans stores data basic manipulations, mainly string replace
-        trans_col(bank='', col_name='', op='+|-|*|str_repl', val1='', val2=''): transform data in selected column
-        trans_mov(index, direction): move selected
-        trans_rm(index): remove selected transformation
-    4. db tree stores categories hierarchy
-    5. db imp{} stores raw data in dictionary, before any changes. Allowes reverse changes
-    6. db split stores data to split operation into two by amount
+    impData(bank): import excel with operations history from bank and apply all filtering and transformation if avilable\n
+    impComit(yes|no): append importad data to main DB\n
+    writeDB(file): store data into SQL\n
+    openDB(file): open existing file\n
+    __updateDB__(): update op DB\n
+    takes other DBs as classes:\n
+    1.db 'op' stores data with attached categories and hash col.
+        pop(bank): reqest stored data
+        ins(bank,db)\n
+        commit():\n
+    2. db 'cat' stores filtering operation per cattegory\n
+        filter_commit(name, nameOf='category|parent): comit filtered data and store filters for category\n
+        get_filter_cat(cat_sel''): set temp dbs to show data and filters for category\n
+        filter_temp_rm(oper_n): remove selected temprary filter\n
+        filter_mov(oper_n, direction): move selected filter\n
+        filter_rm(oper_n): remove selected filter\n
+    3. db trans stores data basic manipulations, mainly string replace\n
+        trans_col(bank='', col_name='', op='+|-|*|str_repl', val1='', val2=''): transform data in selected column\n
+        trans_mov(index, direction): move selected\n
+        trans_rm(index): remove selected transformation\n
+    4. db tree stores categories hierarchy\n
+    5. db imp{} stores raw data in dictionary, before any changes. Allowes reverse changes\n
+    6. db split stores data to split operation into two by amount\n
+
+    After each operation 'op' DB is updated by __updateDB__:\n
+    - if cat or split, use opTrans (op with transformations from Trans)\n
+    - if trans or import, perform full rebuild\n
     """
 
     def __init__(self, file='', DEBUG=False):
@@ -1346,7 +1368,7 @@ class DB(COMMON):
 
         # write function names and arguments to csv file
         self.DEBUG = DEBUG
-        self.DEBUG_F = ''  # set to CSV file with modules to be tested
+        self.DEBUG_F = ''  # set to CSV file with tests
 
         self.op = OP(self)
         self.cat = CAT(self)
@@ -1362,8 +1384,8 @@ class DB(COMMON):
         self.cat_before_imp = pandas.DataFrame()
         self.tree_before_imp = pandas.DataFrame()
         self.split_before_imp = pandas.DataFrame()
-        self.IsData = False # change to True when data exists
-        
+        self.IsData = False  # change to True when data exists
+
         self.fs = FileSystem()
         self.msg = self.fs.msg
         if file:
@@ -1396,22 +1418,14 @@ class DB(COMMON):
         if split[self.CATEGORY] in self.tree.allChild().keys():
             parent = self.tree.parent(split[self.CATEGORY])
 
-        # add split category to tree
-        if not self.tree.add(parent, child=split[self.CATEGORY]):
-            return False  # probably missing parent
+        
+        if self.split.add(split):
+            # add split category to tree
+            self.tree.add(parent, child=split[self.CATEGORY])
+            self.__updateDB__(full=False)
+            return True
 
-        change = self.split.add(split)
-        if not change:  # probably duplicate
-            self.cat.setCat([split[self.CATEGORY]])
-            if self.cat[:].empty:
-                self.tree.rm(child=split[self.CATEGORY])
-            return False
-
-        self.__restoreAll__(block=['op', 'trans', 'cat'],
-                            change_split=change,
-                            change_cat=self.split.impSplit)
-
-        return True
+        return False
 
     @writeOp
     def splitRm(self, oper_n=0, category='') -> bool:
@@ -1420,16 +1434,13 @@ class DB(COMMON):
         """
         oper_n = self.str2int(oper_n)
 
-        changeSplit = self.split.rm(oper_n=oper_n, category=category)
+        self.split.rm(oper_n=oper_n, category=category)
 
-        self.tree.rm(category)
-        self.__restoreAll__(block=['op', 'trans'],
-                            change_split=changeSplit,
-                            change_cat=self.split.impSplit)
+        self.__updateDB__(full=False)
         return True
 
     @writeOp
-    def catAdd(self, fltr: "dict", parent=cfg.GRANDPA) -> bool:
+    def catAdd(self, fltr: Dict, parent=cfg.GRANDPA) -> bool:
         """add new filter, also create cat in tree under parent\n
         can be also used for replacement when oper_n provided\n
         also possible to pass multiple dicts in list\n
@@ -1439,144 +1450,124 @@ class DB(COMMON):
         - category, other way will use self.curCat\n
         - oper_n, will replace at position if provided, other way will add after last one
         """
-        change = self.cat.add(fltr)
-        if not change:
-            return False
+        if self.tree.add(parent, fltr[self.CATEGORY]):
+            self.cat.add(fltr)
 
-        if not self.tree.add(parent, change[0]):
-            self.cat.rm(category=change[self.CATEGORY],
-                        oper_n=change[self.OPER_N])
-            return False
-
-        self.__restoreAll__()
+        self.__updateDB__(full=False)
         self.msg(f'Category {fltr[self.CATEGORY]} added')
         return True
 
     @writeOp
-    def catRm(self, category: str, oper_n=0) -> List[Union[Dict, None]]:
+    def catRm(self, category: str, oper_n=0) -> bool:
         """remove filter or category and update tree\n
         not allowed on category in ['grandpa', '*']\n
         if category not given will use self.curCat\n
         if oper_n=0, remove whole category
-        if split also in this cat, keep cat in tree
-        if split ref to cat, return removed split so possible to restore when cat edited only
         """
         oper_n = self.str2int(oper_n)
         if not oper_n:
             return []
 
         self.cat.rm(category, oper_n)
-
-        # need to update ref split
-        rmSplit = self.split.rm(fltr=category,
-                                category=category)
         
-        # categories with split only must be removed from op now
-        # before cat update
-        # also completely removed categories shall be removed now
-        # becouse updete cat ....wil not update
-        
-        self.__restoreAll__()
-        return rmSplit
+        self.__updateDB__(full=False)
+        return True
 
     @writeOp
     def catMov(self, oper_n: int, new_oper_n: int, category: str) -> None:
         """move filter at oper_n to new position
         """
-        change = self.cat.mov(oper_n, new_oper_n, category)
-        if not change:
+        if not self.cat.mov(oper_n, new_oper_n, category):
             return
 
-        rmSplit = self.split.rm(filter=category,
-                                category=category,
-                                confirm=False)
-        rmSplitCat = [s[self.CATEGORY] for s in rmSplit]
-
-        self.__restoreAll__(block=['op', 'trans'],
-                            change_split=rmSplit,
-                            change_cat=change + rmSplitCat)
+        self.__updateDB__(full=False)
         return
 
     @writeOp
-    def transAdd(self, fltr: dict):
+    def transAdd(self, fltr: dict) -> bool:
         """add new transformation, can be also used for replacement when trans_n provided\n
         also possible to pass multiple dicts in list\n
         minimum input: {bank: str,col_name: str, oper: str, val1: str, val2: str}\n
         optionally:\n
         - trans_n, will put at position if provided, other way will add after last one
-        """
-        change_trans = self.trans.add(fltr)
-        if not change_trans:
-            return False
 
-        self.__restoreAll__()
+        return impacted categories (so user can make decision if also change)
+        """
+        allTrans = self.trans.add(fltr)
+        if allTrans:
+            self.msg(
+            f'impacted categories: {self.cat.__update__(allTrans, update=False)}')
+        else:
+            return False
+        
+        self.__updateDB__(full=True)
         return True
 
     @writeOp
     def transRm(self, trans_n: int) -> bool:
-        # to restore cat, need to replace FILTER with FILTER_ORIG
-        # we can reverse only cats existed before filtering
-        # warn when removing filter created before category (see CAT.__update__())
         trans_n = self.str2int(trans_n)
         if not trans_n:
-            return
+            return False
 
-        self.cat.__restore__(self.trans.__to_dict__(trans_n))
+        allTrans = self.trans.rm(trans_n)
+        self.msg(
+            f'impacted categories: {self.cat.__update__(allTrans, update=False)}')
 
-        self.trans.rm(trans_n)
-
-        self.__restoreAll__()
+        self.__updateDB__(full=True)
         return True
 
     @writeOp
     def transMov(self, trans_n: int, new_trans_n: int) -> bool:
-        # to restore cat, need to replace FILTER with FILTER_ORIG
-        # we can reverse only cats existed before filtering
-        # warn when removing filter created before category
-        self.cat.__restore__(self.trans.__to_dict__(trans_n))
-
-        self.trans.mov(trans_n, new_trans_n)
-        self.__restoreAll__()
+        allTrans = self.trans.mov(trans_n, new_trans_n)
+        self.msg(
+            f'impacted categories: {self.cat.__update__(allTrans,update=False)}')
+        self.__updateDB__(full=True)
         return True
 
     @writeOp
-    def treeRen(self, new_category: str, category: str):
+    def treeRen(self, new_category: str, category: str) -> bool:
         if not self.tree.ren(category, new_category):
-            return
+            return False
 
         # need also change split filter, may refer to changed cat
         self.split.ren(new_category, category)
         self.cat.ren(new_category, category)
-        self.op.__rmCat__([category])  # remove old category
 
-        self.__restoreAll__()
+        self.__updateDB__(full=False)
         return True
 
     @writeOp
-    def treeAdd(self, parent: str, child: str):
+    def treeAdd(self, parent: str, child: str) -> bool:
         self.tree.add(parent, child)
         return True
 
     @writeOp
-    def treeArrange(self, category: str, dir: str):
+    def treeArrange(self, category: str, dir: str) -> bool:
         """Move category in tree
         dir is direction in which to move
         move on the same level only
         then rearange the categories in cat
         """
         categories = self.tree.arrange(category=category, dir=dir)
+        # arrange also cats
         if categories:
             self.cat.arrange(categories=categories)
-        self.__restoreAll__()
-        return
+            self.__updateDB__(full=False)
+            return True
+        return False
 
     @writeOp
-    def treeMov(self, new_parent: str, child: str):
-        self.tree.mov(new_parent, child)
-        return True
+    def treeMov(self, new_parent: str, child: str) -> bool:
+        categories = self.tree.mov(new_parent, child)
+        # arrange also cats
+        if categories:
+            self.cat.arrange(self.tree.allChild())
+            self.__updateDB__(full=False)
+            return True
+        return False
 
     @writeOp
-    def treeRm(self, child: str):
+    def treeRm(self, child: str) -> str:
         '''
         remove cat from tree, together with cat and split,
         possibly, will also remove cat with split refering to child
@@ -1584,46 +1575,49 @@ class DB(COMMON):
         self.split.rm(category=child, fltr=child)
         self.cat.rm(category=child)
         self.tree.rm(child)
-        for s in self.split.impSplit:
-            # remove tree only if no category
-            self.cat.setCat([s])
-            if self.cat[:].empty:
-                self.tree.rm(s)
 
-        self.__restoreAll__()
-        return True
+        # list empty categories
+        self.cat.setCat('*')
+        self.split.setSplit('*')
+        
+        cats = list(self.cat[:,self.CATEGORY])
+        cats += list(self.split[:,self.CATEGORY])
+        emptyCats = list(self.tree.allChild().keys())
+        for c in cats:
+            try:
+                emptyCats.remove(c)
+            except ValueError:
+                pass
+        if emptyCats:
+            self.msg(f'empty categories left: {emptyCats}')
+
+        self.__updateDB__(full=False)
+        return emptyCats
 
     @writeOp
     def impRm(self, bank: str):
         """remove data from imp db
         """
         self.imp.pop(bank)
-        self.__restoreAll__()
+        self.__updateDB__(full=True)
 
-    def __restoreAll__(self, block=[], change_split=['*'], change_cat=['*']):
-        """restore all DB, if nothing indicated restore all filters
-        to block filters in some DB, put into list block. Add 'op' to not reset op DB
-        When only cat changed, consider updating of impacted split, both filter and category
+    def __updateDB__(self, full: bool) -> None:
+        """restore all DB, all cat and splits only
         """
-        # restore whole op DB
-        # restore also if  changed split db
-        self.op = OP(self)
-        for bank, db in self.imp:
-            self.op.ins(db=db)
-        
-        change_split = self.split.__to_dict__('*')
-        change_cat = self.cat.__to_dict__('*')
-        change_trans = self.trans.__to_dict__('*')
+        if full:
+            # restore whole op DB
+            self.op = OP(self)
+            for bank, db in self.imp:
+                self.op.ins(db=db)
+            # trans
+            self.op.__updateTrans__(self.trans.__to_dict__('*'))
 
         # order is important
-        #trans
-        self.cat.__update__(change_trans)
-        self.op.__updateTrans__(change_trans)
-        #cat
-        self.op.__updateCat__(change_cat)
-        #split
-        self.op.__updateSplit__(change_split)
-        
+        # cat
+        self.op.__updateCat__(self.cat.__to_dict__('*'))
+        # split
+        self.op.__updateSplit__(self.split.__to_dict__('*'))
+
         if len(self.op.op.index) == 0:
             self.IsData = False
         else:
@@ -1645,7 +1639,7 @@ class DB(COMMON):
             # (due to insuficient funds)
             # so we need to merge with orginal
             self.split.merge(self.split_before_imp)
-            self.__restoreAll__()
+            self.__updateDB__(full=True)
             self.msg('Data added to DB')
 
         else:  # not ok
@@ -1705,7 +1699,7 @@ class DB(COMMON):
 
         self.imp.ins(bank=bank, db=xls.copy())
 
-        self.__restoreAll__()
+        self.__updateDB__(full=True)
         self.msg(f'Iported data from {bank} bank. Review and confirm import.')
         self.imp_status = True
         return True
