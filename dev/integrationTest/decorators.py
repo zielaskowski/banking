@@ -106,35 +106,54 @@ def compRes(fn):
     def deco(self, *args, **kwargs):
         fn(self, *args, **kwargs)
         if self.read:
+            try:
+                DEBUG_Fn = self.DEBUG_Fn
+                fNameId = self.fNameId
+                fName = self.fName
+            except:
+                DEBUG_Fn = self.__module__.split('.')[-1]
+                fNameId = ''
+                fName = self._testMethodName
             pd.testing.assert_frame_equal(
                 self.db.op.op,
                 self.fixtures['op'],
                 check_dtype=False,
                 check_index_type=False,
-                obj='op_db')
+                obj=f'{DEBUG_Fn}_'
+                    f'{fNameId}_'
+                    f'{fName}_op')
             pd.testing.assert_frame_equal(
                 self.db.cat.cat.astype('str'),
                 self.fixtures['cat'],
                 check_dtype=False,
                 check_index_type=False,
-                obj='cat_db')
+                obj=f'{DEBUG_Fn}_'
+                    f'{fNameId}_'
+                    f'{fName}_cat')
             pd.testing.assert_frame_equal(
                 self.db.split.split.astype('str'),
                 self.fixtures['split'],
                 check_dtype=False,
                 check_index_type=False,
-                obj='split_db')
+                obj=f'{DEBUG_Fn}_'
+                    f'{fNameId}_'
+                    f'{fName}_split')
             pd.testing.assert_frame_equal(
                 self.db.trans.trans.astype('str'),
                 self.fixtures['trans'],
                 check_dtype=False,
                 check_index_type=False,
-                obj='trans_db')
+                obj=f'{DEBUG_Fn}_'
+                    f'{fNameId}_'
+                    f'{fName}_trans')
             pd.testing.assert_frame_equal(
-                self.db.tree.tree, self.fixtures['tree'],
+                self.db.tree.tree,
+                self.fixtures['tree'],
                 check_dtype=False,
                 check_index_type=False,
-                obj='tree_db')
+                obj=f'{DEBUG_Fn}_'
+                    f'{fNameId}_'
+                    f'{fName}_tree')
         return
     return deco
 

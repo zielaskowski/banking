@@ -64,8 +64,7 @@ class COMMON:
             for i in vec:
                 if isinstance(i, str):  # work only with string (no int or NULL)
                     # removing \n: search WHOLE string
-                    new_vec.append(re.sub(x, y,
-                                          i.replace('\n', ''),
+                    new_vec.append(re.sub(x, y, i,
                                           flags=re.IGNORECASE).strip())
                 else:
                     new_vec.append(i)
@@ -127,7 +126,7 @@ class COMMON:
 
     def str2int(self, n: str):
         try:
-            n = float(n)
+            n = int(float(n))
         except:
             self.msg(f'unknown number : {n}')
             return False
@@ -268,7 +267,7 @@ class OP(COMMON):
                     ser, fltr[self.VAL1], fltr[self.VAL2])
                 self.op.loc[bankRows, col] = ser
 
-    def __updateCat__(self, change: List[Dict], removeOnly=False):
+    def __updateCat__(self, change: List[Dict]):
         """update categories
         change can be one or more rows from cat DB
         if removeOnly=True, only remove cats in change
@@ -287,8 +286,6 @@ class OP(COMMON):
         cats = set([c[self.CATEGORY]
                     for c in change])
         self.__rmCat__(cats)
-        if removeOnly:
-            return
 
         # arrange by filter_n !!!!
         cats = sorted(cats, key=lambda x: [int(f[self.FILTER_N])
@@ -355,15 +352,16 @@ class OP(COMMON):
                 days_n = days.days
                 if days_n < 1:
                     self.parent.msg(
-                        '__updateSplit__: Date range shall be at number of day')
+                        '__updateSplit__: Date range shall be bigger then number of day')
                     ch[self.END] = ch[self.START] + days.days
                 start = self.op.loc[:, self.DATA_OP] >= ch[self.START]
                 end = self.op.loc[:, self.DATA_OP] <= ch[self.END]
                 cat = self.op.loc[:, ch[self.COL_NAME]] == ch[self.FILTER]
                 rows = self.op.loc[start & end & cat, :].copy()
                 if rows.empty:
-                    self.parent.msg(f'Split filter refer to empty category')
-                    self.parent.split.validateSplit(ch[self.SPLIT_N], False)
+                    self.parent.msg(
+                        f'Split filter refer to empty category. Rejected')
+                    self.parent.split.rm(oper_n=ch[self.SPLIT_N])
                     return False
 
                 availCash = rows.loc[:, colKwota].sum()
@@ -372,9 +370,10 @@ class OP(COMMON):
                         f'when setting {ch[self.CATEGORY]} not enough cash in {ch[self.FILTER]}: {round(availCash,2)} is less than {days_n * ch[self.VAL1]}.')
                     ch[self.VAL1] = abs(availCash) / days_n
                     # write info to status table
-                    self.parent.split.validateSplit(ch[self.SPLIT_N], False)
-
-                self.op.drop(rows.index, inplace=True)
+                    chUpd = [
+                        chUpd for chUpd in change if chUpd[self.SPLIT_N] == ch[self.SPLIT_N]][0]
+                    chUpd[self.VAL1] = ch[self.VAL1]
+                    self.parent.split.add(chUpd)
 
                 def substract(amount):
                     newAmount = rows\
@@ -391,6 +390,8 @@ class OP(COMMON):
                     rows.drop(rows.loc[smallRows].index, inplace=True)
                     rows.loc[:, colKwota] = substract(newAmount / len(rows))
                     smallRows = rows.loc[:, colKwota] > 0
+
+                self.op.drop(rows.index, inplace=True)
 
                 # add new rows
                 for i in range(int(days_n)):
@@ -541,9 +542,10 @@ class CAT(COMMON):
         minimum input: {col_name: str, function: str, filter: str, oper: str}\n
         optionally:\n
         - category, otherway will use self.curCat\n
-        - oper_n, will replace at position if provided, other way will add after last one
-        - filter_orig used to restore category filter after removing transform.
-            Not always possible, i.e when transform created before category....
+        - oper_n, will replace at position if provided, other way will add after last one\n
+        - filter_orig used to restore category filter after removing transform.\n
+            Not always possible, i.e when transform created before category....\n
+        FILTER_N will be set based on category (new category is last one)
         """
         # validate regexp in FILTER
         val = self.validateRegEx(fltr[self.FILTER])
@@ -556,10 +558,10 @@ class CAT(COMMON):
             fltr[self.FILTER_ORIG] = fltr[self.FILTER]
 
         # define categories
-        if not any([v for k, v in fltr.items() if k == self.TRANS_N]):
-            self.setCat(fltr[self.CATEGORY])
-        else:
+        if not fltr[self.CATEGORY]:
             fltr[self.CATEGORY] = self.curCat
+        else:
+            self.setCat(fltr[self.CATEGORY])
 
         if self.curCat in [cfg.GRANDPA, '*']:
             self.parent.msg(
@@ -569,14 +571,10 @@ class CAT(COMMON):
         # define filter position
         if not any([v for k, v in fltr.items() if k == self.OPER_N]):
             fltr[self.OPER_N] = self.__max__(self.OPER_N) + 1
-        else:  # renumber oper_n above inserting position
-            fltr[self.OPER_N] = float(fltr[self.OPER_N])
-            newSer = self.cat.loc[self.catRows, self.OPER_N].apply(
-                lambda x: self.__addAbove__(x, fltr[self.OPER_N]))
-            self.cat.loc[self.catRows, self.OPER_N] = newSer
-
-        # define new filter_n
-        fltr[self.FILTER_N] = self.__max__(self.FILTER_N)
+        else:  # remove existing oper_n
+            fltr[self.OPER_N] = self.str2int(fltr[self.OPER_N])
+            operRow = self[:, self.OPER_N] == fltr[self.OPER_N]
+            self.cat.drop(self[operRow, 'index'], inplace=True)
 
         # validate
         cat2val = self.cat.append(fltr, ignore_index=True)
@@ -704,9 +702,10 @@ class CAT(COMMON):
         - col=filter_n: take from curent category if exist or max+1
         """
         if column == self.FILTER_N:
-            return max(self.cat.loc[:, column], default=0) + 1
+            rep = max(self.cat.loc[:, column], default=0) + 1
         else:
-            return max(self[:,column], default=0)
+            rep = int(max(self[:, column], default=0))
+        return self.str2int(rep)
 
     def __validate__(self, db: pandas) -> None or pandas:
         """ cleaning of self.cat
@@ -718,14 +717,6 @@ class CAT(COMMON):
         db.sort_values(by=[self.FILTER_N, self.OPER_N],
                        ignore_index=True, inplace=True)
         catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
-        # 1) align filter_n among category
-        # only if we have curent category (not after remove)
-        # if any(catRows):
-        #     fltr_n = db.loc[catRows, self.FILTER_N].iloc[0]
-        #     db.loc[catRows, self.FILTER_N] = fltr_n
-        #     db.sort_values(by=[self.FILTER_N, self.OPER_N],
-        #                    ignore_index=True, inplace=True)
-        #     catRows = db.loc[:, self.CATEGORY].isin(self.curCat)
 
         # 2) check first row in cat
         if any(catRows):
@@ -740,31 +731,40 @@ class CAT(COMMON):
             # we do not have 'add' on first row
             # but for 'edit' purpose, we leave this category
             # it will be ignored by op.__validate_cat__
-  
+
         # 4) renumber filter_n to have continous
+        # among full cat DB, not only selected cat
         # especially, after rearange tree with empty cats
-        cats = list(db.loc[:,self.CATEGORY].unique())
+        # also catAdd is giving only cat and not FILTER_N
+        cats = list(db.loc[:, self.CATEGORY].unique())
         for c in cats:
-                catRows = db.loc[:,self.CATEGORY] == c
-                db.loc[catRows, self.FILTER_N] = cats.index(c)
+            catRows = db.loc[:, self.CATEGORY] == c
+            db.loc[catRows, self.FILTER_N] = cats.index(c)
 
         db.sort_values(by=[self.FILTER_N, self.OPER_N],
                        ignore_index=True, inplace=True)
 
         # 5) not make sense to duplicate
+        # reject if duplication within category
+        # warn only if duplication in different categories
         colNames = db.columns.values.tolist()
         [colNames.remove(c) for c in [self.OPER_N,
                                       self.CATEGORY,
                                       self.FILTER_N,
                                       self.FILTER_ORIG]]
-        # colNames.remove(self.OPER_N)
         dup = db.loc[:, colNames].duplicated(keep=False)
         if any(dup):
-            dupCat = list(db.loc[dup, self.CATEGORY])
+            dupCat = set(db.loc[dup, self.CATEGORY])
             dupOper = list(db.loc[dup, self.OPER_N])
-            self.parent.msg(
-                f'Identical filter already exists in {dupCat[0]} at position {dupOper[0]}. Nothing done.')
-            return pandas.DataFrame()
+            if len(dupCat) == 1:
+                # duplication within the same category
+                self.parent.msg(
+                    f' Nothing done: identical filter already exists in {dupCat} at position {dupOper}.')
+                return pandas.DataFrame()
+            else:
+                # duplication but in different categories
+                self.parent.msg(
+                    f'Identical filter already exists in {dupCat} at position {dupOper}.')
 
         return db
 
@@ -781,11 +781,11 @@ class TRANS(COMMON):
         """
         return self.trans.loc[args[0]]
 
-    def __to_dict__(self, trans_n='') -> List[Dict]:
+    def __to_dict__(self, trans_n='*') -> List[Dict]:
         """return list of rows, each row as dic\n
-        if missing trans number, return all
+        if trans_n='*', return all
         """
-        if not trans_n:
+        if trans_n == '*':
             fltr = self.trans
         else:
             fltr = self.trans.loc[self.trans.loc[:,
@@ -1203,11 +1203,10 @@ class SPLIT(COMMON):
         """
         if not any([v for k, v in split.items() if k == self.SPLIT_N]):
             split[self.SPLIT_N] = self.__max__() + 1
-        else:  # renumber split_n above inserting position
+        else:  # remove existing oper_n
             split[self.SPLIT_N] = self.str2int(split[self.SPLIT_N])
-            newSer = self.split[self.SPLIT_N].apply(
-                lambda x: self.__addAbove__(x, split[self.SPLIT_N]))
-            self.split.loc[:, self.SPLIT_N] = newSer
+            operRow = self[:, self.SPLIT_N] == split[self.SPLIT_N]
+            self.split.drop(self[operRow, 'index'], inplace=True)
 
         valid_split = self.__validate__(
             self.split.append(split, ignore_index=True))
@@ -1418,7 +1417,6 @@ class DB(COMMON):
         if split[self.CATEGORY] in self.tree.allChild().keys():
             parent = self.tree.parent(split[self.CATEGORY])
 
-        
         if self.split.add(split):
             # add split category to tree
             self.tree.add(parent, child=split[self.CATEGORY])
@@ -1469,7 +1467,7 @@ class DB(COMMON):
             return []
 
         self.cat.rm(category, oper_n)
-        
+
         self.__updateDB__(full=False)
         return True
 
@@ -1493,13 +1491,9 @@ class DB(COMMON):
 
         return impacted categories (so user can make decision if also change)
         """
-        allTrans = self.trans.add(fltr)
-        if allTrans:
-            self.msg(
-            f'impacted categories: {self.cat.__update__(allTrans, update=False)}')
-        else:
+        if not self.trans.add(fltr):
             return False
-        
+
         self.__updateDB__(full=True)
         return True
 
@@ -1579,9 +1573,9 @@ class DB(COMMON):
         # list empty categories
         self.cat.setCat('*')
         self.split.setSplit('*')
-        
-        cats = list(self.cat[:,self.CATEGORY])
-        cats += list(self.split[:,self.CATEGORY])
+
+        cats = list(self.cat[:, self.CATEGORY])
+        cats += list(self.split[:, self.CATEGORY])
         emptyCats = list(self.tree.allChild().keys())
         for c in cats:
             try:
@@ -1602,7 +1596,7 @@ class DB(COMMON):
         self.__updateDB__(full=True)
 
     def __updateDB__(self, full: bool) -> None:
-        """restore all DB, all cat and splits only
+        """restore all DB, or cat and splits only
         """
         if full:
             # restore whole op DB

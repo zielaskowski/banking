@@ -1,9 +1,2 @@
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "TOPAZ 2 WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "topaz", "filter_orig": ""}, "parent": "Grandpa"}
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "TOPAZ", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "top", "filter_orig": ""}, "parent": "Grandpa"}
-treeArrange;[];{"category": "top", "dir": "up"}
-# should not allow becouse filter exists
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "TOPAZ", "filter_n": "2", "oper": "add", "oper_n": "1.0", "kategoria": "topaz", "filter_orig": ""}, "parent": "spo\u017cywka"}
-#should rebuild everything below - all TOPAZ 2... should jump  back into topaz
-treeRm;[];{"child": "top"}
-# what will happen if you add existing category name?
-# why? cat.__validate__ first check?? when you add filter to cat?
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ZABKA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "\u017cabka", "filter_orig": ""}, "parent": "Grandpa"}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "kategoria", "filter": "\u017cabka", "val1": "-5", "days": "1", "split_n": "1", "kategoria": "new category"}];{}

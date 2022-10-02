@@ -159,21 +159,25 @@ class FileSystem:
                             dirOnly=True)
 
     def __set__(self, path, optName: str, _Ffile: list, _Ftype: list, getFn: object, dirOnly=False):
-        """set path and filename for 
+        """set path and filename
+        set path in following order:
+        1. use path if given. check if exists, set
+        2. use actually opened file (_fileXX), check if exists, set
+        3. use options. check if exists, set
         """
         if not path:
-            path = self.getOpt(optName)
+            path = getFn()
+            if not path:
+                path = self.getOpt(optName)
             # file may disapear in meantime
             if not self.__checkFile__(path):
                 self.writeOpt(op=optName, val='')
                 _Ffile[0:2] = ['', '', '']
                 return ''
-                
-        if not self.__checkFile__(path, dirOnly=dirOnly):
-            _Ffile[0:2] = ['', '', '']
+        elif not self.__checkFile__(path, dirOnly=dirOnly):
             return ''
 
-        _Ffile[0:2] = self.__splitPath__(path)
+        _Ffile[0:3] = self.__splitPath__(path)
         # override file extension
         if _Ftype:
             _Ffile[self._EXT] = _Ftype[1]
@@ -366,20 +370,21 @@ class FileSystem:
         # when file starts with dot, add module path
         if file[0:2] == './':
             file = self._fileAPP[self._PATH] + file[2:]
-        # path separator is system specific (/ for linux, \ for win)
+        # path separator is system specific (/ for linux, \ for win)        
         file = file.split(self._PS)
         name = file.pop()
         path = self.list2str(file, self._PS)
         name = name.split('.')
         if len(name) > 1:
             ext = name.pop()
+            # dot between name and extension move to extension
+            ext = '.' + ext 
         else:
+            # no extension so no file name, just path
+            path = self.list2str([path]+name, self._PS)
             ext = ''
-        name = self.list2str(name, '.')
-        # dot between name and extension move to extension
-        name = name[0:-1]
-        ext = '.' + ext
-        return [path, name, ext]
+            name = ['']
+        return [path, name[0], ext]
 
     def list2str(self, li: list, sep='') -> str:
         str = ''

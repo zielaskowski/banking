@@ -1,7 +1,17 @@
+add trans cell replace (replace whole cell if string found)
+
 add split arrange
 
-handle empty categories (ask user), now DB do not delete nothing
+split.merge to be removed?
+split.validateSplit to be removed?
+cat.__addAbove__ to be removed?
+
+handle empty categories with filters (ask user), now DB do not delete nothing
+cat.__update__()
+handle empty splits with filters (ask user), now DB do not delete nothing
+split.setImpCats()
 handle categories impacted by trans (ask user)
+cat.__update__()
 
 
 add split of single operation. Must be treated separately and splited BEFORE category

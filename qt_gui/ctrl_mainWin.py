@@ -37,8 +37,6 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         # temporary variables
         # store remove filter so possible to move to selected category what removed
         self.fltrToAdd = {}
-        # store split when editing category only filter, then restore split after editing
-        self.tmpSplit = []
         # set status bar
         self.setStatusBar()
         # stores curent category selected
@@ -937,12 +935,6 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 self.curCat = [cfg.GRANDPA]  # something went wrong
                 self.view.tree_db.selectionModel().clear()
                 self.view.tree_db.topLevelItem(1).setSelected(True)
-            else:
-                # restore split if removed during edit
-                if self.tmpSplit != []:
-                    for split in self.tmpSplit:
-                        self.db.splitAdd(split)
-                    self.tmpSplit = []
 
             if cfg.GRANDPA not in self.curCat:
                 self.view.also_not_cat.setChecked(False)
@@ -984,7 +976,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         col_n = cfg.cat_col.index(self.db.OPER_N)
         oper_n = self.view.cat_view.item(row_n, col_n).text()
 
-        self.tmpSplit = self.db.catRm(oper_n=oper_n, category=self.curCat[-1])
+        if not self.db.catRm(oper_n=oper_n, category=self.curCat[-1]):
+            return
 
         if oper == 'edit':
             fltr = {}
@@ -993,8 +986,6 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                     row_n, col).text()
             # need to reset orig filter, otherway db rebuild will revert back just edited filter
             fltr[self.db.FILTER_ORIG] = ''
-        else:
-            self.tmpSplit = []
 
         self.fill_tree()
         # fill_tree() will reset cat view, so only after we can set widgets
@@ -1194,7 +1185,13 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         path = self.selNewDB(msg='Choose SQlite3 file',
                              type='open')
         if path:
-            self.db.openDB(path)
+            if self.db.openDB(path):
+                self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+                self.fill('trans')
+                self.fill('split')
+                self.fill_tree()  # will set top item and filter tables accordingly
+                self.setCatInput()
+                self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         else:  # operation canceled
             return
 
