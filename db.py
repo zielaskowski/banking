@@ -144,6 +144,26 @@ class COMMON:
         except:
             return f'Wrong filter regExp: {regEx}'
 
+    def __correct_col_types__(self, df) -> pandas:
+        df_new = pandas.DataFrame()
+        n_col = len(cfg.op_col_type)
+        for i in range(n_col):
+            num_type = cfg.op_col_type[i]
+            col_name = cfg.op_col[i]
+            if col_name in df.columns:
+                df_new.loc[:, col_name] = df.loc[:, col_name]
+            else:
+                df_new.loc[:, col_name] = [None] * len(df)
+
+            if num_type in ['INT', 'REAL']:
+                df_new.iloc[:, i] = self.__str2num__(
+                    df_new.iloc[:, i], num_type)
+            elif num_type == 'TEXT':
+                df_new.iloc[:, i] = df_new.iloc[:, i].astype('string')
+            elif num_type == 'TIMESTAMP':
+                df_new.iloc[:, i] = pandas.to_datetime(df_new.iloc[:, i])
+        return df_new
+
 
 class OP(COMMON):
     """operations DB: stores all data imported from bank plus columns:\n
@@ -320,7 +340,7 @@ class OP(COMMON):
 
             self.op.loc[ser & grandpas, self.CATEGORY] = cat
 
-    def __updateSplit__(self, change: List[Dict]):
+    def __updateSplit__(self, change: List[Dict], splitDB: object):
         """split selected rows\n
         change can be one or more rows from split db\n
         1) hash new rows\n
@@ -345,7 +365,7 @@ class OP(COMMON):
                 except:
                     self.parent.msg('__updateSplit__: wrong type of input')
                     return False
-                self.parent.split.validateSplit(ch[self.SPLIT_N], True)
+                splitDB.validateSplit(ch[self.SPLIT_N], True)
 
                 # get op rows
                 days = (ch[self.END] - ch[self.START]) // ch[self.DAYS]
@@ -361,7 +381,7 @@ class OP(COMMON):
                 if rows.empty:
                     self.parent.msg(
                         f'Split filter refer to empty category. Rejected')
-                    self.parent.split.rm(oper_n=ch[self.SPLIT_N])
+                    splitDB.rm(oper_n=ch[self.SPLIT_N])
                     return False
 
                 availCash = rows.loc[:, colKwota].sum()
@@ -373,7 +393,7 @@ class OP(COMMON):
                     chUpd = [
                         chUpd for chUpd in change if chUpd[self.SPLIT_N] == ch[self.SPLIT_N]][0]
                     chUpd[self.VAL1] = ch[self.VAL1]
-                    self.parent.split.add(chUpd)
+                    splitDB.add(chUpd)
 
                 def substract(amount):
                     newAmount = rows\
@@ -408,7 +428,7 @@ class OP(COMMON):
                     rows = rows.append(row, ignore_index=True)
 
                 self.op = self.op.append(rows, ignore_index=True)
-                self.op = self.parent.__correct_col_types__(self.op)
+                self.op = self.__correct_col_types__(self.op)
 
             else:  # find hash only and change category
                 hashRow = self.op.loc[:, self.HASH] == ch[self.FILTER]
@@ -1610,7 +1630,7 @@ class DB(COMMON):
         # cat
         self.op.__updateCat__(self.cat.__to_dict__('*'))
         # split
-        self.op.__updateSplit__(self.split.__to_dict__('*'))
+        self.op.__updateSplit__(self.split.__to_dict__('*'), self.split)
 
         if len(self.op.op.index) == 0:
             self.IsData = False
@@ -1824,26 +1844,6 @@ class DB(COMMON):
 
         self.msg('file from unknown bank')
         return None
-
-    def __correct_col_types__(self, df) -> pandas:
-        df_new = pandas.DataFrame()
-        n_col = len(cfg.op_col_type)
-        for i in range(n_col):
-            num_type = cfg.op_col_type[i]
-            col_name = cfg.op_col[i]
-            if col_name in df.columns:
-                df_new.loc[:, col_name] = df.loc[:, col_name]
-            else:
-                df_new.loc[:, col_name] = [None] * len(df)
-
-            if num_type in ['INT', 'REAL']:
-                df_new.iloc[:, i] = self.__str2num__(
-                    df_new.iloc[:, i], num_type)
-            elif num_type == 'TEXT':
-                df_new.iloc[:, i] = df_new.iloc[:, i].astype('string')
-            elif num_type == 'TIMESTAMP':
-                df_new.iloc[:, i] = pandas.to_datetime(df_new.iloc[:, i])
-        return df_new
 
     @ staticmethod
     def __str2num__(col, num_type):
