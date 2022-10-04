@@ -122,3 +122,5 @@ treeMov;[];{"new_parent": "rozrywka", "child": "turystyka"}
 treeRm;[];{"child": "r\u00f3\u017cne"}
 
 splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "kategoria", "filter": "\u017cabka", "val1": "-5", "days": "1", "split_n": "1", "kategoria": "new category"}];{}
+splitRm;["1"];{}
+splitRm;["1"];{}

@@ -1196,17 +1196,14 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             return
 
     def newDB(self):
-        # save existing data
-        self.save_asDB()
-
         path = self.selNewDB(msg='Choose name for new SQlite3 file',
                              type='save')
         if path:
+            if not self.save_asDB(file=path):
+                return
             fileN = self.db.DEBUG_F
             self.db = DB(self.db.DEBUG)
             self.db.DEBUG_F = fileN
-            if not self.save_asDB(file=path):
-                return
         else:  # operation canceled
             return
 
@@ -1222,7 +1219,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.db.msg('Created new empty DB')
 
     def save_asDB(self, file='', ask=True) -> bool:
-        if not self.db.IsData:
+        if not self.db.isData():
             return False  # no data so dosen't make sense
 
         # DB exists?

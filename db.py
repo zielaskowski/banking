@@ -39,6 +39,10 @@ class COMMON:
         self.DAYS = cfg.split_col[5]
         self.SPLIT_N = cfg.split_col[6]
         self.DATA_OP = cfg.op_col[0]
+        self.DATA_WAL = cfg.op_col[1]
+        self.TRANS_TYP = cfg.op_col[2]
+        self.CURR = cfg.op_col[4]
+        self.AMOUNT = cfg.op_col[3]
 
         def transMultiply(vec: list, x: str, y: str) -> list:
             try:
@@ -144,25 +148,41 @@ class COMMON:
         except:
             return f'Wrong filter regExp: {regEx}'
 
-    def __correct_col_types__(self, df) -> pandas:
-        df_new = pandas.DataFrame()
+    def __correct_col_types__(self, df: pandas) -> None:
         n_col = len(cfg.op_col_type)
         for i in range(n_col):
             num_type = cfg.op_col_type[i]
             col_name = cfg.op_col[i]
             if col_name in df.columns:
-                df_new.loc[:, col_name] = df.loc[:, col_name]
+                df.loc[:, col_name] = df.loc[:, col_name]
             else:
-                df_new.loc[:, col_name] = [None] * len(df)
+                df.loc[:, col_name] = [None] * len(df)
 
             if num_type in ['INT', 'REAL']:
-                df_new.iloc[:, i] = self.__str2num__(
-                    df_new.iloc[:, i], num_type)
+                self.__str2num__(df.iloc[:, i], num_type)
             elif num_type == 'TEXT':
-                df_new.iloc[:, i] = df_new.iloc[:, i].astype('string')
+                df.iloc[:, i] = df.iloc[:, i].astype('string')
             elif num_type == 'TIMESTAMP':
-                df_new.iloc[:, i] = pandas.to_datetime(df_new.iloc[:, i])
-        return df_new
+                df.iloc[:, i] = pandas.to_datetime(df.iloc[:, i])
+
+    @ staticmethod
+    def __str2num__(col: pandas.Series, num_type: str) -> None:
+        for i in col:
+            i = str(i)
+            try:
+                if num_type == "INT":
+                    i = int(i)
+                else:
+                    i = float(i)
+            except:
+                i = ''.join(x for x in i
+                            if x.isdigit() or x == '.' or x == ',')
+                i = i.replace(",", ".")
+                if i:
+                    if num_type == "INT":
+                        i = int(i)
+                    else:
+                        i = float(i)
 
 
 class OP(COMMON):
@@ -346,8 +366,6 @@ class OP(COMMON):
         1) hash new rows\n
         2) {col_name: col_name, function: 'txt_match' , filter: filter, oper: 'add'}
         """
-        colKwota = self.sumData()[0]
-
         for ch in change:
             ch = pandas.Series(ch)
             if ch[self.COL_NAME] != self.HASH:
@@ -369,10 +387,10 @@ class OP(COMMON):
 
                 # get op rows
                 days = (ch[self.END] - ch[self.START]) // ch[self.DAYS]
-                days_n = days.days
+                days_n = int(days.days)
                 if days_n < 1:
                     self.parent.msg(
-                        '__updateSplit__: Date range shall be bigger then number of day')
+                        '__updateSplit__: Date range shall be bigger then number of days')
                     ch[self.END] = ch[self.START] + days.days
                 start = self.op.loc[:, self.DATA_OP] >= ch[self.START]
                 end = self.op.loc[:, self.DATA_OP] <= ch[self.END]
@@ -384,51 +402,58 @@ class OP(COMMON):
                     splitDB.rm(oper_n=ch[self.SPLIT_N])
                     return False
 
-                availCash = rows.loc[:, colKwota].sum()
+                availCash = rows.loc[:, self.AMOUNT].sum()
                 if abs(availCash) < abs(days_n * ch[self.VAL1]):
                     self.parent.msg(
                         f'when setting {ch[self.CATEGORY]} not enough cash in {ch[self.FILTER]}: {round(availCash,2)} is less than {days_n * ch[self.VAL1]}.')
-                    ch[self.VAL1] = abs(availCash) / days_n
+                    ch[self.VAL1] = availCash / days_n
                     # write info to status table
                     chUpd = [
                         chUpd for chUpd in change if chUpd[self.SPLIT_N] == ch[self.SPLIT_N]][0]
                     chUpd[self.VAL1] = ch[self.VAL1]
                     splitDB.add(chUpd)
+                    rows.loc[:, self.AMOUNT] = 0
+                else:
+                    def substract(amount):
+                        newAmount = rows\
+                            .loc[:, self.AMOUNT]\
+                            .apply(lambda x: round(x - amount, 2))
+                        return newAmount
 
-                def substract(amount):
-                    newAmount = rows\
-                        .loc[:, colKwota]\
-                        .apply(lambda x: x - amount)
-                    return newAmount
-
-                rows.loc[:, colKwota] = substract(
-                    ch[self.VAL1] * days_n / len(rows))
-                # some amounts may be less then substract
-                smallRows = rows.loc[:, colKwota] > 0
-                while any(smallRows):
-                    newAmount = sum(rows.loc[smallRows, colKwota]) * -1
-                    rows.drop(rows.loc[smallRows].index, inplace=True)
-                    rows.loc[:, colKwota] = substract(newAmount / len(rows))
-                    smallRows = rows.loc[:, colKwota] > 0
+                    rows.loc[:, self.AMOUNT] = substract(
+                        ch[self.VAL1] * days_n / len(rows))
+                    # some amounts may be less then substract
+                    smallRows = rows.loc[:, self.AMOUNT] > 0
+                    if any(smallRows):
+                        while all(~smallRows):
+                            newAmount = sum(
+                                rows.loc[smallRows, self.AMOUNT]) * -1
+                            rows.loc[smallRows, self.AMOUNT] = 0
+                            rows.loc[~smallRows, self.AMOUNT] = substract(
+                                newAmount / len(rows.loc[~smallRows]))
+                            smallRows = rows.loc[:, self.AMOUNT] > 0
 
                 self.op.drop(rows.index, inplace=True)
 
                 # add new rows
-                for i in range(int(days_n)):
-                    row = rows.iloc[0, :].to_dict()
-                    row[self.DATA_OP] = ch[self.START] + \
-                        pandas.Timedelta(ch[self.DAYS] * i, unit='D')
-                    row[self.CATEGORY] = ch[self.CATEGORY]
-                    row[colKwota] = ch[self.VAL1]
-                    hashRow = pandas.DataFrame(
-                        row, columns=list(row.keys()), index=[0])
-                    hashRow = hashRow.drop([self.HASH, self.CATEGORY], axis=1)
-                    row[self.HASH] = pandas.util.hash_pandas_object(
-                        hashRow, index=False).to_string(index=False).strip()
-                    rows = rows.append(row, ignore_index=True)
+                newRows = pandas.DataFrame.from_dict({
+                    self.DATA_OP: [ch[self.START] +
+                                   pandas.Timedelta(ch[self.DAYS] * i, unit='D') for i in range(days_n)],
+                    self.DATA_WAL: [ch[self.START] +
+                                    pandas.Timedelta(ch[self.DAYS] * i, unit='D') for i in range(days_n)],
+                    self.TRANS_TYP: ['split' for i in range(days_n)],
+                    self.CATEGORY: [ch[self.CATEGORY] for i in range(days_n)],
+                    self.AMOUNT: [ch[self.VAL1] for i in range(days_n)],
+                    self.CURR: [rows.loc[:, self.CURR].iloc[0] for i in range(days_n)],
+                    self.BANK: [rows.loc[:, self.BANK].iloc[0] for i in range(days_n)],
+                })
+                newRows.loc[:, self.HASH] = pandas.util.hash_pandas_object(
+                    newRows, index=False)
+
+                rows = rows.append(newRows, ignore_index=True)
 
                 self.op = self.op.append(rows, ignore_index=True)
-                self.op = self.__correct_col_types__(self.op)
+                self.__correct_col_types__(self.op)
 
             else:  # find hash only and change category
                 hashRow = self.op.loc[:, self.HASH] == ch[self.FILTER]
@@ -1403,7 +1428,6 @@ class DB(COMMON):
         self.cat_before_imp = pandas.DataFrame()
         self.tree_before_imp = pandas.DataFrame()
         self.split_before_imp = pandas.DataFrame()
-        self.IsData = False  # change to True when data exists
 
         self.fs = FileSystem()
         self.msg = self.fs.msg
@@ -1416,6 +1440,13 @@ class DB(COMMON):
         used for msg transport\n
         """
         self.fs.connect(parent)
+
+    def isData(self) -> bool:
+        # answer if data exists
+        if len(self.op.op.index) == 0:
+            return False
+        else:
+            return True
 
 # operation methods
     @writeOp
@@ -1454,7 +1485,7 @@ class DB(COMMON):
 
         self.split.rm(oper_n=oper_n, category=category)
 
-        self.__updateDB__(full=False)
+        self.__updateDB__(full=True)  # to restore amounts
         return True
 
     @writeOp
@@ -1632,11 +1663,6 @@ class DB(COMMON):
         # split
         self.op.__updateSplit__(self.split.__to_dict__('*'), self.split)
 
-        if len(self.op.op.index) == 0:
-            self.IsData = False
-        else:
-            self.IsData = True
-
 # file operation methods
     def impCommit(self, decision: str):
         """
@@ -1703,7 +1729,7 @@ class DB(COMMON):
 
         # remove cells with whitespaces
         xls.replace(r'^\s+$', np.nan, regex=True, inplace=True)
-        xls = self.__correct_col_types__(xls)
+        self.__correct_col_types__(xls)
 
         self.op_before_imp = self.op.op.copy()
         self.cat_before_imp = self.cat.cat.copy()
@@ -1746,7 +1772,7 @@ class DB(COMMON):
                 query = f'SELECT * FROM {tab}'
                 exec(f'self.{tab}.{tab} = pandas.read_sql(query, engine)')
             if not onlyTrans:
-                self.op.op = self.__correct_col_types__(self.op.op)
+                self.__correct_col_types__(self.op.op)
                 cur = engine.cursor()
                 cur.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'")
@@ -1790,7 +1816,7 @@ class DB(COMMON):
         file = self.fs.setDB(file)
 
         if file:
-            self.__create_db__(file)
+            self.__createDB__(file)
         else:
             self.msg(f'no DB {file}. Nothing written.')
             return False
@@ -1845,30 +1871,7 @@ class DB(COMMON):
         self.msg('file from unknown bank')
         return None
 
-    @ staticmethod
-    def __str2num__(col, num_type):
-        col_digit = []
-        for i in col:
-            i = str(i)
-            try:
-                if num_type == "INT":
-                    i = int(i)
-                else:
-                    i = float(i)
-                col_digit.append(i)
-            except:
-                i = ''.join(x for x in i
-                            if x.isdigit() or x == '.' or x == ',')
-                i = i.replace(",", ".")
-                if i:
-                    if num_type == "INT":
-                        i = int(i)
-                    else:
-                        i = float(i)
-                    col_digit.append(i)
-        return pandas.Series(col_digit, dtype='float')
-
-    def __create_db__(self, file: str) -> bool:
+    def __createDB__(self, file: str) -> bool:
         dirName = os.path.dirname(file)
         if not os.path.exists(dirName):
             self.msg(f'{dirName} is not correct path')
