@@ -23,7 +23,6 @@ add split of single operation. Must be treated separately and splited BEFORE cat
 
 
 
-set min max dates when starting split calendar
 
 see all data when on grandpa and "show all data" clicked
 

@@ -96,8 +96,7 @@ def readRes(fn):
                                                  f'{fName}_tree',
                                                  na_filter=False,
                                                  dtype='str')}
-            self.fixtures['op'] = self.db.__correct_col_types__(
-                self.fixtures['op'])
+            self.db.__correct_col_types__(self.fixtures['op'])
         return fn(self, *args, **kwargs)
     return deco
 
@@ -115,40 +114,40 @@ def compRes(fn):
                 fNameId = ''
                 fName = self._testMethodName
             pd.testing.assert_frame_equal(
-                self.db.op.op,
-                self.fixtures['op'],
+                self.db.op.op.reset_index(drop=True),
+                self.fixtures['op'].reset_index(drop=True),
                 check_dtype=False,
                 check_index_type=False,
                 obj=f'{DEBUG_Fn}_'
                     f'{fNameId}_'
                     f'{fName}_op')
             pd.testing.assert_frame_equal(
-                self.db.cat.cat.astype('str'),
-                self.fixtures['cat'],
+                self.db.cat.cat.astype('str').reset_index(drop=True),
+                self.fixtures['cat'].reset_index(drop=True),
                 check_dtype=False,
                 check_index_type=False,
                 obj=f'{DEBUG_Fn}_'
                     f'{fNameId}_'
                     f'{fName}_cat')
             pd.testing.assert_frame_equal(
-                self.db.split.split.astype('str'),
-                self.fixtures['split'],
+                self.db.split.split.astype('str').reset_index(drop=True),
+                self.fixtures['split'].reset_index(drop=True),
                 check_dtype=False,
                 check_index_type=False,
                 obj=f'{DEBUG_Fn}_'
                     f'{fNameId}_'
                     f'{fName}_split')
             pd.testing.assert_frame_equal(
-                self.db.trans.trans.astype('str'),
-                self.fixtures['trans'],
+                self.db.trans.trans.astype('str').reset_index(drop=True),
+                self.fixtures['trans'].reset_index(drop=True),
                 check_dtype=False,
                 check_index_type=False,
                 obj=f'{DEBUG_Fn}_'
                     f'{fNameId}_'
                     f'{fName}_trans')
             pd.testing.assert_frame_equal(
-                self.db.tree.tree,
-                self.fixtures['tree'],
+                self.db.tree.tree.reset_index(drop=True),
+                self.fixtures['tree'].reset_index(drop=True),
                 check_dtype=False,
                 check_index_type=False,
                 obj=f'{DEBUG_Fn}_'

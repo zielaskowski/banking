@@ -24,8 +24,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         super().__init__(self.view)
         self.view.show()
         self.db = DB(DEBUG=True)
-        self.db.DEBUG_F = './dev/integrationTest/setTest_cat.csv'
-        #self.fs = FileSystem()
+        self.db.DEBUG_F = './dev/integrationTest/setTest_split.csv'
         # self.db.connect(parent=self.fs.writeMsg)
         # connect signals
         self.connect_signals()
