@@ -1,0 +1,80 @@
+digraph{
+compound=true
+
+subgraph cluster_openDB{
+    label="*openBD*"
+    openDB_selFile[shape="diamond", label="selFile()"]
+    openDB_db_openDB[shape="diamond", label="db.openDB()"]
+    openDB_redraw[shape="rectangle", label="redraw"]
+
+    openDB_selFile -> openDB_db_openDB [label="yes"]
+    openDB_db_openDB -> openDB_redraw [label="yes"]
+
+    openDB_stop [label="STOP"]
+    openDB_selFile -> openDB_stop [label="no"]
+    openDB_db_openDB -> openDB_stop [label="no"]
+}
+
+openDB_db_openDB -> db_openDB_isFile [lhead=cluster_db_openDB,
+                                        arrowhead="box",arrowtail="box"]
+
+subgraph cluster_newDB{
+    label="newDB"
+    newDB_selFile[shape="diamond", label="selFile()"]
+    newDB_saveDB[shape="diamond", label="saveBD()"]
+    newDB_redraw[shape="rectangle", label="redraw"]
+
+    newDB_selFile -> newDB_saveDB [label="yes"]
+    newDB_saveDB -> newDB_redraw[label="yes"]
+
+    newDB_stop [label="STOP"]
+    newDB_selFile -> newDB_stop [label="no"]
+    newDB_saveDB -> newDB_stop [label="no"]
+}
+
+newDB_saveDB -> saveDB_isData [lhead=cluster_saveDB,
+                                arrowhead="box",arrowtail="box"]
+
+subgraph cluster_saveDB{
+    label="saveDB"
+    saveDB_isData [shape="diamond",label="isData"]
+    saveDB_isFile [shape="diamond", label="isFile"]
+    saveDB_selFile [label="select file"]
+    saveDB_db_writeDB [label="db.writeDB()"]
+
+    saveDB_isData -> saveDB_isFile [label="yes"]
+    saveDB_isFile -> saveDB_selFile [label="no"]
+    saveDB_isFile -> saveDB_db_writeDB [label="yes"]
+    saveDB_selFile -> saveDB_db_writeDB
+
+    saveDB_stop [label="STOP"]
+    saveDB_isData -> saveDB_stop [label="no"]
+}
+
+saveDB_db_writeDB -> db_writeDB_isFile [lhead=cluster_db_writeDB,
+                                        arrowhead="box",arrowtail="box"]
+
+subgraph cluster_db_openDB{
+    label="db.openDB"
+    db_openDB_isFile [shape="diamond", label="isFile"]
+    db_openDB_readSQL [label="readSQL"]
+
+    db_openDB_isFile -> db_openDB_readSQL [label="yes"]
+
+    db_openDB_saveDB_stop [label="STOP"]
+    db_openDB_isFile -> db_openDB_saveDB_stop [label="no"]
+}
+
+subgraph cluster_db_writeDB{
+    label="db.writeDB"
+    db_writeDB_isFile [shape="diamond", label="isFile"]
+    db_writeDB_writeSQL [label="readSQL"]
+
+    db_writeDB_isFile -> db_writeDB_writeSQL [label="yes"]
+
+    db_writeDB_saveDB_stop [label="STOP"]
+    db_writeDB_isFile -> db_writeDB_saveDB_stop [label="no"]
+}
+
+
+}

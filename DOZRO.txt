@@ -1,6 +1,6 @@
+
 finish testing split add on category value > split value
-db.__createDB__, use fs for file operations (file exists if we are here)
-GUIMainWin.newBD does not work when selected opened file
+
 split.rm dose not work
 
 add trans cell replace (replace whole cell if string found)

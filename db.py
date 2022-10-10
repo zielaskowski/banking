@@ -1816,7 +1816,7 @@ class DB(COMMON):
         file = self.fs.setDB(file)
 
         if file:
-            self.__createDB__(file)
+            self.__createDB__()
         else:
             self.msg(f'no DB {file}. Nothing written.')
             return False
@@ -1871,14 +1871,10 @@ class DB(COMMON):
         self.msg('file from unknown bank')
         return None
 
-    def __createDB__(self, file: str) -> bool:
-        dirName = os.path.dirname(file)
-        if not os.path.exists(dirName):
-            self.msg(f'{dirName} is not correct path')
-            return False
-        if os.path.isfile(file):
-            os.remove(file)
-        db_file = sqlite3.connect(file)
+    def __createDB__(self) -> bool:
+        if os.path.isfile(self.fs.getDB()):
+            os.remove(self.fs.getDB())
+        db_file = sqlite3.connect(self.fs.getDB())
         db = db_file.cursor()
         for tab in cfg.DB_tabs:
             cols = eval(f'cfg.{tab}_col_sql')
