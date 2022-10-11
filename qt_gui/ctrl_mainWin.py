@@ -25,7 +25,6 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.view.show()
         self.db = DB(DEBUG=True)
         self.db.DEBUG_F = './dev/integrationTest/setTest_split.csv'
-        # self.db.connect(parent=self.fs.writeMsg)
         # connect signals
         self.connect_signals()
         # hide import widgets
@@ -814,8 +813,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         txt = re.split(r'x\d+:\s+', txt)[-1]
         fltr[self.db.COL_NAME] = self.visCol[col_i]
         fltr[self.db.FILTER] = txt
-        self.__setFltrWidgets__(fltr, self.view.cat_view)
         self.view.tabMenu.setCurrentIndex(2)  # categorize tab
+        self.__setFltrWidgets__(fltr, self.view.cat_view)
         # copy to search QLineEdit, which will color selected items
         self.view.search.blockSignals(True)
         self.view.search.setText(txt)
@@ -1214,7 +1213,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.__redraw__()
         self.db.msg('Created new empty DB')
 
-    def saveDB(self, file='') -> bool:
+    def saveDB(self, file='') -> null:
         # DB exists?
         file = self.db.fs.setDB(file)
         if not file:  # no, so ask
@@ -1368,7 +1367,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             if cal.exec_():
                 widget.setText(cal.dat)
 
-    def readStat(self) -> dict:
+    def readStat(self) -> null:
         """read gui status
         """
         self.db.fs.writeOpt(op='visColumns', val=self.visCol)

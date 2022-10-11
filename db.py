@@ -128,12 +128,23 @@ class COMMON:
                          'smaller <': fltrLt,
                          'equal': fltrEq}
 
-    def str2int(self, n: str):
+    def str2num(self, n: str, d=0):
+        """"convert string to number with d decimals
+
+        Args:
+            n (str): string to convert
+            d (int, optional): number of decimal places. Defaults to 0.
+
+        Returns:
+            _type_: _description_
+        """
         try:
-            n = int(float(n))
+            if d==0:
+                n=int(float(n))
+            else:
+                n = round(float(n),d)
         except:
-            self.msg(f'unknown number : {n}')
-            return False
+            pass
         return n
 
     def validateRegEx(self, regEx: str) -> str:
@@ -198,8 +209,9 @@ class OP(COMMON):
     def __init__(self, parent):
         super().__init__()
         self.op = pandas.DataFrame(columns=cfg.op_col)  # table of operations
-        # table of operations without cats and splits
-        self.opTrans = pandas.DataFrame(columns=cfg.op_col)
+        # table of operations without cats and splits (with trans only)
+        # to spead up rebuild
+        self.opHalf = pandas.DataFrame(columns=cfg.op_col)
         self.parent = parent
 
     def get(self, category: List[str]) -> pandas:
@@ -212,12 +224,17 @@ class OP(COMMON):
         return self.op.loc[catRows, :].copy().reset_index()
 
     def ins(self, db):
-        """adds new data to self.op
+        """adds new data to self.op and self.opHalf
         does not update categories or transformations
         """
-        self.op = self.op.append(db, ignore_index=True)
-        pandas.DataFrame.drop_duplicates(
-            self.op, subset=self.HASH, inplace=True, ignore_index=True)
+        dbs = [self.op, self.opHalf]
+        for ops in range(len(dbs)):
+            dbs[ops] = dbs[ops].append(db, ignore_index=True)
+            pandas.DataFrame.drop_duplicates(dbs[ops],
+                                             subset=self.HASH,
+                                             inplace=True,
+                                             ignore_index=True)
+        self.op, self.opHalf = dbs
 
     def groupData(self, col: str, category=[cfg.GRANDPA]) -> list:
         """Grupuje wartości w kazdej kolumnie i pokazuje licznosc dla nie pogrupownych danych:\n
@@ -289,7 +306,8 @@ class OP(COMMON):
             # may happen when mporting filters on empty db
             return
 
-        self.__rmCat__()
+        # always after full rebuild
+        # self.__rmCat__()
 
         for fltr in change:
             if fltr[self.BANK] in cfg.bank.keys():  # chosen bank
@@ -306,6 +324,8 @@ class OP(COMMON):
                 ser = self.transOps[fltr[self.OPER]](
                     ser, fltr[self.VAL1], fltr[self.VAL2])
                 self.op.loc[bankRows, col] = ser
+        # refresh intermitent op
+        self.opHalf = self.op.copy(deep=True)
 
     def __updateCat__(self, change: List[Dict]):
         """update categories
@@ -325,7 +345,7 @@ class OP(COMMON):
 
         cats = set([c[self.CATEGORY]
                     for c in change])
-        self.__rmCat__(cats)
+        # self.__rmCat__(cats)
 
         # arrange by filter_n !!!!
         cats = sorted(cats, key=lambda x: [int(f[self.FILTER_N])
@@ -378,12 +398,11 @@ class OP(COMMON):
                 try:
                     ch[self.START] = pandas.to_datetime(ch[self.START])
                     ch[self.END] = pandas.to_datetime(ch[self.END])
-                    ch[self.VAL1] = self.str2int(ch[self.VAL1])
-                    ch[self.DAYS] = self.str2int(ch[self.DAYS])
+                    ch[self.VAL1] = self.str2num(ch[self.VAL1])
+                    ch[self.DAYS] = self.str2num(ch[self.DAYS])
                 except:
                     self.parent.msg('__updateSplit__: wrong type of input')
                     return False
-                splitDB.validateSplit(ch[self.SPLIT_N], True)
 
                 # get op rows
                 days = (ch[self.END] - ch[self.START]) // ch[self.DAYS]
@@ -399,8 +418,6 @@ class OP(COMMON):
                 if rows.empty:
                     self.parent.msg(
                         f'Split filter refer to empty category. Rejected')
-                    splitDB.rm(oper_n=ch[self.SPLIT_N])
-                    return False
 
                 availCash = rows.loc[:, self.AMOUNT].sum()
                 if abs(availCash) < abs(days_n * ch[self.VAL1]):
@@ -460,18 +477,6 @@ class OP(COMMON):
                 self.op.loc[hashRow, self.CATEGORY] = ch[self.CATEGORY]
 
         return True
-
-    def __rmCat__(self, category=[cfg.GRANDPA]):
-        """change category=cat to grandpa\n
-        if empty category, change all
-        """
-        for c in category:
-            if c in [cfg.GRANDPA, '*']:
-                self.op.loc[:, self.CATEGORY] = cfg.GRANDPA
-                return
-            catRows = self.op.loc[:, self.CATEGORY] == c
-            self.op.loc[catRows, self.CATEGORY] = cfg.GRANDPA
-        return
 
 
 class CAT(COMMON):
@@ -617,7 +622,7 @@ class CAT(COMMON):
         if not any([v for k, v in fltr.items() if k == self.OPER_N]):
             fltr[self.OPER_N] = self.__max__(self.OPER_N) + 1
         else:  # remove existing oper_n
-            fltr[self.OPER_N] = self.str2int(fltr[self.OPER_N])
+            fltr[self.OPER_N] = self.str2num(fltr[self.OPER_N])
             operRow = self[:, self.OPER_N] == fltr[self.OPER_N]
             self.cat.drop(self[operRow, 'index'], inplace=True)
 
@@ -750,7 +755,7 @@ class CAT(COMMON):
             rep = max(self.cat.loc[:, column], default=0) + 1
         else:
             rep = int(max(self[:, column], default=0))
-        return self.str2int(rep)
+        return self.str2num(rep)
 
     def __validate__(self, db: pandas) -> None or pandas:
         """ cleaning of self.cat
@@ -1128,7 +1133,7 @@ class IMP:
         else:
             raise StopIteration
 
-    def ins(self, bank: str, db: 'pandas'):
+    def ins(self, bank: str, db: pandas):
         """adding new data, class will work only on this new date until commit or pop
         """
         if list(self.imp.keys()) != self.scope:
@@ -1162,7 +1167,7 @@ class IMP:
                 for bnk in bnks_all
                 if re.match(f'{bank}\\d+', bnk)]
         if not bnks:
-            n = 1
+            n = 0
         else:
             n = max(bnks)
         return bank + str(n + 1)
@@ -1192,11 +1197,6 @@ class SPLIT(COMMON):
         """
         it = self.split.loc[self.splitRows, :].reset_index().loc[args[0]]
         return it
-
-    def validateSplit(self, split_n: int, valid: bool):
-        self.validSplit = self.validSplit\
-            .append({self.SPLIT_N: split_n, 'valid': valid},
-                    ignore_index=True)
 
     def setSplit(self, category=[], fltr=[], oper_n=0):
         """find rows for split: splitRows\n
@@ -1249,7 +1249,7 @@ class SPLIT(COMMON):
         if not any([v for k, v in split.items() if k == self.SPLIT_N]):
             split[self.SPLIT_N] = self.__max__() + 1
         else:  # remove existing oper_n
-            split[self.SPLIT_N] = self.str2int(split[self.SPLIT_N])
+            split[self.SPLIT_N] = self.str2num(split[self.SPLIT_N])
             operRow = self[:, self.SPLIT_N] == split[self.SPLIT_N]
             self.split.drop(self[operRow, 'index'], inplace=True)
 
@@ -1328,6 +1328,7 @@ class SPLIT(COMMON):
         1) remove duplicates
         2) renumber split_n to remove holes
         3) sort by split_n
+        4) round split value
         """
         # remove duplicates
         dup = db.duplicated(subset=[self.START, self.END, self.COL_NAME, self.FILTER, self.VAL1, self.DAYS],
@@ -1346,6 +1347,8 @@ class SPLIT(COMMON):
         db.loc[:, self.SPLIT_N] = split_l
         # sort by split_n
         db.sort_values(by=self.SPLIT_N, ignore_index=True, inplace=True)
+        # round value
+        db.loc[:,self.VAL1] = self.str2num(db.loc[:,self.VAL1],2)
 
         return db
 
@@ -1481,7 +1484,7 @@ class DB(COMMON):
         """remove split filter, also remove cat from tree
         if category have kids, kids will go to grandpa
         """
-        oper_n = self.str2int(oper_n)
+        oper_n = self.str2num(oper_n)
 
         self.split.rm(oper_n=oper_n, category=category)
 
@@ -1513,7 +1516,7 @@ class DB(COMMON):
         if category not given will use self.curCat\n
         if oper_n=0, remove whole category
         """
-        oper_n = self.str2int(oper_n)
+        oper_n = self.str2num(oper_n)
         if not oper_n:
             return []
 
@@ -1550,7 +1553,7 @@ class DB(COMMON):
 
     @writeOp
     def transRm(self, trans_n: int) -> bool:
-        trans_n = self.str2int(trans_n)
+        trans_n = self.str2num(trans_n)
         if not trans_n:
             return False
 
@@ -1612,32 +1615,15 @@ class DB(COMMON):
         return False
 
     @writeOp
-    def treeRm(self, child: str) -> str:
+    def treeRm(self, child: str) -> None:
         '''
         remove cat from tree, together with cat and split,
-        possibly, will also remove cat with split refering to child
         '''
         self.split.rm(category=child, fltr=child)
         self.cat.rm(category=child)
         self.tree.rm(child)
 
-        # list empty categories
-        self.cat.setCat('*')
-        self.split.setSplit('*')
-
-        cats = list(self.cat[:, self.CATEGORY])
-        cats += list(self.split[:, self.CATEGORY])
-        emptyCats = list(self.tree.allChild().keys())
-        for c in cats:
-            try:
-                emptyCats.remove(c)
-            except ValueError:
-                pass
-        if emptyCats:
-            self.msg(f'empty categories left: {emptyCats}')
-
         self.__updateDB__(full=False)
-        return emptyCats
 
     @writeOp
     def impRm(self, bank: str):
@@ -1652,10 +1638,13 @@ class DB(COMMON):
         if full:
             # restore whole op DB
             self.op = OP(self)
-            for bank, db in self.imp:
+            for db in self.imp.imp.values():
                 self.op.ins(db=db)
             # trans
             self.op.__updateTrans__(self.trans.__to_dict__('*'))
+        else:
+            # restore "half" op DB (op with trans)
+            self.op.op = self.op.opHalf.copy(deep=True)
 
         # order is important
         # cat
@@ -1675,10 +1664,6 @@ class DB(COMMON):
 
         if decision == 'ok':
             self.imp.commit()
-            # split very likely will be unintentionaly removed
-            # (due to insuficient funds)
-            # so we need to merge with orginal
-            self.split.merge(self.split_before_imp)
             self.__updateDB__(full=True)
             self.msg('Data added to DB')
 
@@ -1724,6 +1709,8 @@ class DB(COMMON):
         xls.columns = cfg.op_col
         # set bank name
         xls.bank = bank
+        # set all in top cat
+        xls.loc[:, self.CATEGORY] = cfg.GRANDPA
         # hash data, NEVER hash again, only at very begining with bank attached
         xls.hash = pandas.util.hash_pandas_object(xls, index=False)
 

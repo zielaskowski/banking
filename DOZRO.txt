@@ -1,7 +1,9 @@
 
-finish testing split add on category value > split value
+finish testing split
 
-split.rm dose not work
+
+
+add button to clear search filter
 
 add trans cell replace (replace whole cell if string found)
 
@@ -10,18 +12,16 @@ add split arrange?
 split.merge to be removed?
 split.validateSplit to be removed?
 cat.__addAbove__ to be removed?
+cat.__update__() to be removed?
+split.setImpCats() to be removed?
 
 handle empty categories with filters (ask user), now DB do not delete nothing
-cat.__update__()
 handle empty splits with filters (ask user), now DB do not delete nothing
-split.setImpCats()
 handle categories impacted by trans (ask user)
-cat.__update__()
+
 
 
 add split of single operation. Must be treated separately and splited BEFORE category
-
-
 
 
 see all data when on grandpa and "show all data" clicked
@@ -38,18 +38,13 @@ what to do with short filters (add (?!<=[:alphanumeric:]))?
 
 warn when closing without commited import
 
-
-
 when importing wrong bank file (csv), imp_status is not updated (remains like in import mode)
-
 
 create events (like trips)
 
 
-
 save db when import confirmed
 when start empty, create DB
-file operation are enigmatic at best
 BIG ONE: move from file aproach to user aproach with one db for different users
 give information what db is opened
 remember last open file location

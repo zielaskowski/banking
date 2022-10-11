@@ -117,7 +117,7 @@ class DBmodelProxy(QtCore.QSortFilterProxyModel):
     def lessThan(self, left, right):
         # sorting for float
         # make sure empty rows stay at end when sorted (in any order)
-        # make sure collored cells will stay on topwhen sorted (in any order)
+        # make sure collored cells will stay on top when sorted (in any order)
 
         lDat = self.sourceModel().data(left, QtCore.Qt.DisplayRole)
         rDat = self.sourceModel().data(right, QtCore.Qt.DisplayRole)
