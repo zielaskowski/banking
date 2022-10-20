@@ -4,12 +4,12 @@ else:
     import opt.data_cfg as data_cfg
 
 """CONFIGURATION FILE
-Define tables to store in DB ['op', 'cat', 'trans']
+Define tables to store in DB ['op', 'cat', 'trans', 'split']
 Define column names and types for each table in DB.
 Define column names for import files from each bank.
 
 operations DB
-    stores all operation imported from banks
+    stores all operation imported from banks (but not stored in sql)
     op_col <list> - column names
     op_col_type <list> - column types in op DB for store in SQLlite.
 
@@ -97,7 +97,7 @@ val1 = 'val1'
 fltr = 'filter'
 
 # SQL DB tables names
-DB_tabs = ['op', 'cat', 'trans', 'tree', 'split']
+DB_tabs = ['cat', 'trans', 'tree', 'split']
 
 op_col = data_cfg.op_col
 op_col_type = data_cfg.op_col_type

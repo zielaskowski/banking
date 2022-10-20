@@ -154,7 +154,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             oper = self.db.trans.opers()
             txt = 'add transformation: '
         elif self.view.tabMenu.currentIndex() == 3:  # split
-            oper = ['sel row']
+            oper = ['selected transaction']
             txt = 'add split: '
         else:
             return
@@ -202,12 +202,12 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 fltr[self.db.OPER] = op
                 if op == 'str.replace':
                     fltr[self.db.VAL1] = txt
-                if op == 'sel row':
+                if op == 'selected transaction':
                     # need to modify wiget to QLine
                     # so can write hash number
-                    self.fill(dbTxt='split', hashSplit=True)
-                    source = self.view.DB_view
-                    self.view.new_cat_name.hide()
+                    self.fill(dbTxt='split', hashSplit=self.db.HASH)
+                    #source = self.view.DB_view
+                    #self.view.new_cat_name.hide()
                     self.view.label_3.hide()
                     fltr[self.db.COL_NAME] = self.db.HASH
                     fltr[self.db.FILTER] = hashRow
@@ -543,6 +543,10 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             it = [self.db.CATEGORY, self.db.HASH]
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
+            # when change need to redraw
+            # so to have correct filter widget: comboBox of categories or QLineEdit
+            colWidget.currentIndexChanged.connect(
+                lambda x: self.fill('split', colWidget.itemText(x)))
             return colWidget
 
         def split3():
@@ -602,7 +606,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         return colWidget
 
-    def fill(self, dbTxt: str, hashSplit=False):
+    def fill(self, dbTxt: str, hashSplit=''):
         """Fill widget filters table
         """
         db = eval(f'self.db.{dbTxt}')
@@ -633,7 +637,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         for x in cols:
             # first row
             x_n = cols.index(x)
-            if hashSplit and x == self.db.FILTER:
+            if hashSplit == self.db.HASH and x == self.db.FILTER:
+                fltr[self.db.FILTER]='right click on transaction to split'
                 w_n = 100
             else:
                 w_n = x_n
@@ -654,7 +659,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         col = widget.horizontalHeader()
         col.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         # select col_name column (anything but date in the split)
-        ind = widget.model().index(0, cols.index(self.db.COL_NAME))
+        ind = widget.model().index(0, len(cols)-1)
         widget.setCurrentIndex(ind)
 
     def fill_group(self):
@@ -1093,17 +1098,20 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         for col_i in range(source.columnCount()):
             widget_name = source.horizontalHeaderItem(col_i).text()
             widget = source.cellWidget(0, col_i)
+            # do not raise events when changing widgets
+            widget.blockSignals(True)
             if isinstance(widget, QtWidgets.QComboBox):
                 if widget_name in fltr.keys():
                     widget.setCurrentText(fltr[widget_name])
             elif isinstance(widget, QtWidgets.QLineEdit):
                 if widget_name in fltr.keys():
                     widget.setText(fltr[widget_name])
-                else:
-                    if widget_name in [self.db.START, self.db.END]:
-                        widget.setText('*')
-                    else:
-                        widget.setText('')
+            widget.blockSignals(False)
+            # else:
+            #     if widget_name in [self.db.START, self.db.END]:
+            #         widget.setText('*')
+            #     else:
+            #         widget.setText('')
 
     def markFltrColors(self):
         # mark filter by color
@@ -1193,7 +1201,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
     def newDB(self) -> null:
         # save current data
         self.saveDB()
-        
+
         path = self.selFile(msg='Choose name for new SQlite3 file',
                             type='save',
                             fltr=self.db.fs.getDB(ext=True))
@@ -1218,8 +1226,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         file = self.db.fs.setDB(file)
         if not file:  # no, so ask
             ans = QtWidgets.QMessageBox.question(self.view,
-                                                    "Save DB?",
-                                                    'Save current data?')
+                                                 "Save DB?",
+                                                 'Save current data?')
             if ans == QtWidgets.QMessageBox.No:
                 return False
             file = self.selFile(msg='Choose where to save existing data',

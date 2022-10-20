@@ -1,4 +1,3 @@
+splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "hash", "filter": "550889073234985959", "val1": "-2", "days": "5", "split_n": "", "kategoria": "s
 catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "DELIKATESY CENTRUM WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "deli", "filter_orig": ""}, "parent": "Grandpa"}
-splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "deli", "val1": "-30", "days": "2", "split_n": "", "kategoria": "alko"}];{}
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ZABKA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "alko", "filter_orig": ""}, "parent": "Grandpa"}
-treeRm;[];{"child": "alko"}
+splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "deli", "val1": "-5", "days": "10", "split_n": "", "kategoria": "bb"}];{}

@@ -1,14 +1,12 @@
 """
 manage database logic, defines all operations
 """
-#from pickle import TRUE
 from typing import Dict, List, Union
 
-# from sqlalchemy import false, null, true
 import opt.parse_cfg as cfg
 from modules import FileSystem
 from dev.integrationTest.decorators import writeOp
-#from pandas.core.dtypes.missing import isnull
+
 import re
 import os
 import sqlite3
@@ -128,7 +126,7 @@ class COMMON:
                          'smaller <': fltrLt,
                          'equal': fltrEq}
 
-    def str2num(self, n: str, d=0):
+    def str2num(self, n: pandas.Series, d=0) -> Union[List[float], None]:
         """"convert string to number with d decimals
 
         Args:
@@ -136,15 +134,21 @@ class COMMON:
             d (int, optional): number of decimal places. Defaults to 0.
 
         Returns:
-            _type_: _description_
+            None: if not numeric
+            [int]: if d==0
+            [float]: otherway
         """
+        if isinstance(n, pandas.Series):
+            n = n.to_list()
+        elif not isinstance(n, List):
+            n = [n]
         try:
-            if d==0:
-                n=int(float(n))
+            if d == 0:
+                n = [int(float(i)) for i in n]
             else:
-                n = round(float(n),d)
+                n = [round(float(i), d) for i in n]
         except:
-            pass
+            n = None
         return n
 
     def validateRegEx(self, regEx: str) -> str:
@@ -169,31 +173,14 @@ class COMMON:
             else:
                 df.loc[:, col_name] = [None] * len(df)
 
-            if num_type in ['INT', 'REAL']:
-                self.__str2num__(df.iloc[:, i], num_type)
+            if num_type == 'INT':
+                df.iloc[:, i] = self.str2num(df.iloc[:, i], 0)
+            if num_type == 'REAL':
+                df.iloc[:, i] = self.str2num(df.iloc[:, i], 2)
             elif num_type == 'TEXT':
                 df.iloc[:, i] = df.iloc[:, i].astype('string')
             elif num_type == 'TIMESTAMP':
                 df.iloc[:, i] = pandas.to_datetime(df.iloc[:, i])
-
-    @ staticmethod
-    def __str2num__(col: pandas.Series, num_type: str) -> None:
-        for i in col:
-            i = str(i)
-            try:
-                if num_type == "INT":
-                    i = int(i)
-                else:
-                    i = float(i)
-            except:
-                i = ''.join(x for x in i
-                            if x.isdigit() or x == '.' or x == ',')
-                i = i.replace(",", ".")
-                if i:
-                    if num_type == "INT":
-                        i = int(i)
-                    else:
-                        i = float(i)
 
 
 class OP(COMMON):
@@ -398,8 +385,8 @@ class OP(COMMON):
                 try:
                     ch[self.START] = pandas.to_datetime(ch[self.START])
                     ch[self.END] = pandas.to_datetime(ch[self.END])
-                    ch[self.VAL1] = self.str2num(ch[self.VAL1])
-                    ch[self.DAYS] = self.str2num(ch[self.DAYS])
+                    ch[self.VAL1] = self.str2num(ch[self.VAL1])[0]
+                    ch[self.DAYS] = self.str2num(ch[self.DAYS])[0]
                 except:
                     self.parent.msg('__updateSplit__: wrong type of input')
                     return False
@@ -474,7 +461,23 @@ class OP(COMMON):
 
             else:  # find hash only and change category
                 hashRow = self.op.loc[:, self.HASH] == ch[self.FILTER]
-                self.op.loc[hashRow, self.CATEGORY] = ch[self.CATEGORY]
+
+                oldRow = self.op.loc[hashRow]
+                oldRow.loc[:, self.TRANS_TYP] = 'split'
+                oldRow.loc[:, self.AMOUNT] = self.str2num(
+                    oldRow.loc[:, self.AMOUNT], 2)[0] - self.str2num(ch[self.VAL1], 2)[0]
+
+                newRow = self.op.loc[hashRow].copy(deep=True)
+                newRow.loc[:, self.TRANS_TYP] = 'split'
+                newRow.loc[:, self.AMOUNT] = ch[self.VAL1]
+                newRow.loc[:, self.CATEGORY] = ch[self.CATEGORY]
+                newRow.loc[:, self.HASH] = pandas.util.hash_pandas_object(
+                    newRow, index=False)
+
+                self.op.drop(oldRow.index, inplace=True)
+                self.op = self.op.append(oldRow, ignore_index=True)
+                self.op = self.op.append(newRow, ignore_index=True)
+                self.__correct_col_types__(self.op)
 
         return True
 
@@ -622,7 +625,7 @@ class CAT(COMMON):
         if not any([v for k, v in fltr.items() if k == self.OPER_N]):
             fltr[self.OPER_N] = self.__max__(self.OPER_N) + 1
         else:  # remove existing oper_n
-            fltr[self.OPER_N] = self.str2num(fltr[self.OPER_N])
+            fltr[self.OPER_N] = self.str2num(fltr[self.OPER_N])[0]
             operRow = self[:, self.OPER_N] == fltr[self.OPER_N]
             self.cat.drop(self[operRow, 'index'], inplace=True)
 
@@ -755,7 +758,7 @@ class CAT(COMMON):
             rep = max(self.cat.loc[:, column], default=0) + 1
         else:
             rep = int(max(self[:, column], default=0))
-        return self.str2num(rep)
+        return self.str2num(rep)[0]
 
     def __validate__(self, db: pandas) -> None or pandas:
         """ cleaning of self.cat
@@ -1239,7 +1242,7 @@ class SPLIT(COMMON):
             category = list(set(category + newCat))
         self.impSplit = category
 
-    def add(self, split: dict) -> List[Union[Dict, None]]:
+    def add(self, split: dict) -> bool:
         """add new split, can be also used for replacement when split_n provided\n
         also possible to pass multiple dicts in list\n
         minimum input: {start_date: date, end_date: date, col_name: str, fltr: str, val: float, day: int}\n
@@ -1249,7 +1252,7 @@ class SPLIT(COMMON):
         if not any([v for k, v in split.items() if k == self.SPLIT_N]):
             split[self.SPLIT_N] = self.__max__() + 1
         else:  # remove existing oper_n
-            split[self.SPLIT_N] = self.str2num(split[self.SPLIT_N])
+            split[self.SPLIT_N] = self.str2num(split[self.SPLIT_N])[0]
             operRow = self[:, self.SPLIT_N] == split[self.SPLIT_N]
             self.split.drop(self[operRow, 'index'], inplace=True)
 
@@ -1257,9 +1260,9 @@ class SPLIT(COMMON):
             self.split.append(split, ignore_index=True))
         if isinstance(valid_split, pandas.DataFrame):
             self.split = valid_split
-            return self.__to_dict__(category=[split[self.CATEGORY]])
+            return True
         else:
-            return []
+            return False
 
     def rm(self, oper_n=0, category='', fltr='') -> List[Union[Dict, None]]:
         """remove split row
@@ -1328,7 +1331,7 @@ class SPLIT(COMMON):
         1) remove duplicates
         2) renumber split_n to remove holes
         3) sort by split_n
-        4) round split value
+        4) round split value, also reject if not numeric
         """
         # remove duplicates
         dup = db.duplicated(subset=[self.START, self.END, self.COL_NAME, self.FILTER, self.VAL1, self.DAYS],
@@ -1348,7 +1351,11 @@ class SPLIT(COMMON):
         # sort by split_n
         db.sort_values(by=self.SPLIT_N, ignore_index=True, inplace=True)
         # round value
-        db.loc[:,self.VAL1] = self.str2num(db.loc[:,self.VAL1],2)
+        val = self.str2num(db.loc[:, self.VAL1], 2)
+        if not all([type(i) in [float or int] for i in val]):
+            self.parent.msg(f"'{db.loc[:, self.VAL1]}' is not valid number")
+            return None
+        db.loc[:, self.VAL1] = val
 
         return db
 
@@ -1459,9 +1466,6 @@ class DB(COMMON):
         split = {start_date: date, end_date: date, col_name: str, fltr: str, val: float, day: int}\n
         """
         parent = cfg.GRANDPA
-        if split[self.COL_NAME] != self.CATEGORY:
-            self.msg('spliting single items not implemented yet')
-            return False
 
         if split[self.FILTER] == split[self.CATEGORY]:
             self.msg(f"can't add split to category which you split")
@@ -1484,11 +1488,13 @@ class DB(COMMON):
         """remove split filter, also remove cat from tree
         if category have kids, kids will go to grandpa
         """
-        oper_n = self.str2num(oper_n)
+        oper_n = self.str2num(oper_n)[0]
+        if not oper_n:
+            return False
 
         self.split.rm(oper_n=oper_n, category=category)
 
-        self.__updateDB__(full=True)  # to restore amounts
+        self.__updateDB__(full=False)  # to restore amounts need full update
         return True
 
     @writeOp
@@ -1516,9 +1522,9 @@ class DB(COMMON):
         if category not given will use self.curCat\n
         if oper_n=0, remove whole category
         """
-        oper_n = self.str2num(oper_n)
+        oper_n = self.str2num(oper_n)[0]
         if not oper_n:
-            return []
+            return False
 
         self.cat.rm(category, oper_n)
 
@@ -1553,7 +1559,7 @@ class DB(COMMON):
 
     @writeOp
     def transRm(self, trans_n: int) -> bool:
-        trans_n = self.str2num(trans_n)
+        trans_n = self.str2num(trans_n)[0]
         if not trans_n:
             return False
 
@@ -1735,7 +1741,8 @@ class DB(COMMON):
         """
         opens sql DB
         when file is missing get current file or lastOpened
-        when onlyTrans, import only transformations, without op DB
+        when onlyTrans, import only transformations, without imp DB
+        recreate op and opHalf based on raw data and filters
         """
         if self.imp_status:
             # not allowed when in import mode
@@ -1751,9 +1758,7 @@ class DB(COMMON):
             return False
 
         engine = sqlite3.connect(file)
-        tabs = cfg.DB_tabs.copy()
-        if onlyTrans:
-            tabs.remove('op')
+        tabs = cfg.DB_tabs
         try:
             for tab in tabs:
                 query = f'SELECT * FROM {tab}'
@@ -1771,7 +1776,7 @@ class DB(COMMON):
                     exec(
                         f'self.imp.imp["{bnk}"] = pandas.read_sql(query, engine)')
                     exec(
-                        f'self.imp.imp["{bnk}"] = self.__correct_col_types__(self.imp.imp["{bnk}"])')
+                        f'self.__correct_col_types__(self.imp.imp["{bnk}"])')
             if onlyTrans:
                 self.impCommit(decision='ok')
             else:
@@ -1787,6 +1792,8 @@ class DB(COMMON):
             self.split = SPLIT(self)
             return False
         engine.close()
+        # create op and opHalf db
+        self.__updateDB__(full=True)
         self.msg(f"opened db: {file}")
         return True
 
@@ -1874,7 +1881,7 @@ class DB(COMMON):
         return True
 
 # info methods
-    def dataRange(self, bank='') -> list:
+    def dataRange(self, bank=[]) -> list:
         """return data range for selected bank
         if bank not selected check min max among all banks
         return list [start_dat, end_date]

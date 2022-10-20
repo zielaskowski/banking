@@ -1,7 +1,11 @@
 
+deactivate dates and days when single split in __setFltrWidgets__ (mark gray)
+    based on 'null' in fltr
+
+
 finish testing split
 
-
+speed up main DB view models.DBmodel (probably findRows)
 
 add button to clear search filter
 
@@ -15,13 +19,15 @@ cat.__addAbove__ to be removed?
 cat.__update__() to be removed?
 split.setImpCats() to be removed?
 
+
+COLORING and ICONS
 handle empty categories with filters (ask user), now DB do not delete nothing
 handle empty splits with filters (ask user), now DB do not delete nothing
 handle categories impacted by trans (ask user)
 
 
 
-add split of single operation. Must be treated separately and splited BEFORE category
+
 
 
 see all data when on grandpa and "show all data" clicked
