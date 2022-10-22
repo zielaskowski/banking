@@ -1,5 +1,5 @@
 #!/bin/bash
-fname="./testing/stats/${1%.*}"
+fname="./dev/stats/${1%.*}"
 root="${2}"
 
 if [[ $# -lt 1 ]]; then

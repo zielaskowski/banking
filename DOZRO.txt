@@ -1,3 +1,5 @@
+newDB not working!!!!!
+
 
 deactivate dates and days when single split in __setFltrWidgets__ (mark gray)
     based on 'null' in fltr
@@ -14,7 +16,6 @@ add trans cell replace (replace whole cell if string found)
 add split arrange?
 
 split.merge to be removed?
-split.validateSplit to be removed?
 cat.__addAbove__ to be removed?
 cat.__update__() to be removed?
 split.setImpCats() to be removed?

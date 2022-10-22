@@ -4,12 +4,13 @@ data models extending PyQT models
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 import re
+import numpy as np
 
 class DBmodel(QtCore.QAbstractTableModel):
     def __init__(self, db):
         super().__init__()
-        self.db = db
-        self.columns = self.db.columns.to_list()
+        self.db = db.iloc[:,1:].to_numpy() # without index
+        self.columns = db.columns.to_list()
         self.columns.remove('index')
         self.backgroundColor = [False] * self.rowCount(None)
         self.fltr = ''
@@ -22,11 +23,11 @@ class DBmodel(QtCore.QAbstractTableModel):
         self.layoutAboutToBeChanged.emit()
         if db is not None:
             self.backgroundColor = [True] * self.rowCount(None)
-            self.db = self.db.append(db, ignore_index=True)
+            self.db = np.append(self.db, db.iloc[:,1:].to_numpy(),axis=0)
             self.backgroundColor.extend([False] * len(db))
         else:
             if any(self.backgroundColor):
-                self.db = self.db.loc[self.backgroundColor, :].copy()
+                self.db = self.db[self.backgroundColor, :]
                 self.backgroundColor = [False] * self.rowCount(None)
         self.layoutChanged.emit()
 
@@ -64,16 +65,12 @@ class DBmodel(QtCore.QAbstractTableModel):
         # required by QAbstractTableModel
         nas = ['None', '<NA>', 'NaT', 'nan']
         # can display only strings??, so convert numbers to string
-        txt = self.db.loc[index.row(), self.columns[index.column()]]
+        txt = self.db[index.row(), index.column()]
         if type(txt).__name__ == 'Timestamp':
             txt = txt.date()
-        try:
-            txt = round(txt,2)
-        except:
-            pass
+
         txt = str(txt)
         # set text
-
         if role == QtCore.Qt.DisplayRole:
             if txt in nas:
                 txt = ''
@@ -123,16 +120,7 @@ class DBmodelProxy(QtCore.QSortFilterProxyModel):
         rDat = self.sourceModel().data(right, QtCore.Qt.DisplayRole)
         lColor = self.sourceModel().data(left, QtCore.Qt.BackgroundRole)
         rColor = self.sourceModel().data(right, QtCore.Qt.BackgroundRole)
-        # trying to convert
-        try:
-            lDat = float(lDat)
-            rDat = float(rDat)
-        except ValueError:
-            pass
-        # both  must be the same type to compare
-        if type(lDat) != type(rDat):
-            lDat = str(lDat)
-            rDat = str(rDat)
+
         # keep colored cells at begining
         if self.sortOrder() == QtCore.Qt.AscendingOrder:
             if lColor:
