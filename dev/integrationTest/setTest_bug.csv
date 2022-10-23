@@ -1,2 +1,0 @@
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ZABKA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "\u017cabka", "filter_orig": ""}, "parent": "Grandpa"}
-splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "kategoria", "filter": "\u017cabka", "val1": "-5", "days": "1", "split_n": "1", "kategoria": "new category"}];{}

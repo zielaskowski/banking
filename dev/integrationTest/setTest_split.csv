@@ -1,18 +1,27 @@
-splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "hash", "filter": "550889073234985959", "val1": "-2", "days": "5", "split_n": "", "kategoria": "s
+
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "TOPAZ KASA 1 WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "topaz", "filter_orig": ""}, "parent": "Grandpa"}
 catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "DELIKATESY CENTRUM WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "deli", "filter_orig": ""}, "parent": "Grandpa"}
-splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "deli", "val1": "-5", "days": "10", "split_n": "", "kategoria": "bb"}];{}
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "DELIKATESY CENTRUM WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "deli", "filter_orig": ""}, "parent": "Grandpa"}
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "DELIKATESY CENTRUM WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "deli", "filter_orig": ""}, "parent": "Grandpa"}
-splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "deli", "val1": "-10", "days": "10", "split_n": "", "kategoria": "alko"}];{}
-treeRen;[];{"category": "alko", "new_category": "deli"}
-splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "hash", "filter": "550889073234985959", "val1": "-10", "days": "10", "split_n": "", "kategoria": "aaa"}];{}
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "TOPAZ 2 WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "topaz", "filter_orig": ""}, "parent": "Grandpa"}
-treeAdd;[];{"parent": "aaa", "child": "new category"}
-treeRen;[];{"category": "new category", "new_category": "spoz"}
-treeMov;[];{"new_parent": "Grandpa", "child": "spoz"}
-treeMov;[];{"new_parent": "spoz", "child": "deli"}
-treeMov;[];{"new_parent": "spoz", "child": "aaa"}
-treeMov;[];{"new_parent": "spoz", "child": "topaz"}
+treeAdd;[];{"parent": "Grandpa", "child": "new category"}
+treeRen;[];{"category": "new category", "new_category": "spo"}
+treeMov;[];{"new_parent": "spo", "child": "topaz"}
+treeMov;[];{"new_parent": "spo", "child": "deli"}
+splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "deli", "val1": "-10", "days": "2", "split_n": "", "kategoria": "alk"}];{}
+treeMov;[];{"new_parent": "spo", "child": "alk"}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "hash", "filter": "13326673698061881066", "val1": "-30", "days": "", "split_n": "", "kategoria": "alk"}];{}
 splitRm;["1"];{}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "kategoria", "filter": "deli", "val1": "-10", "days": "2", "split_n": "1", "kategoria": "alk"}];{}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "hash", "filter": "15819513748987117677", "val1": "-20", "days": "", "split_n": "", "kategoria": "alk"}];{}
 splitRm;["1"];{}
-treeRm;[];{"child": "aaa"}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "kategoria", "filter": "deli", "val1": "-10", "days": "2", "split_n": "", "kategoria": "alk"}];{}
+splitRm;["2"];{}
+splitAdd;[{"start_date": "2021-09-02", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "topaz", "val1": "-10", "days": "5", "split_n": "", "kategoria": "alk"}];{}
+splitRm;["2"];{}
+splitAdd;[{"start_date": "2021-09-02", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "topaz", "val1": "-6", "days": "5", "split_n": "2", "kategoria": "alk"}];{}
+splitAdd;[{"start_date": "2021-10-05", "end_date": "2022-01-02", "col_name": "kategoria", "filter": "deli", "val1": "-10", "days": "10", "split_n": "", "kategoria": "alk"}];{}
+splitAdd;[{"start_date": "2021-09-02", "end_date": "2021-12-26", "col_name": "kategoria", "filter": "alk", "val1": "-10", "days": "10", "split_n": "", "kategoria": "bbb"}];{}
+treeArrange;[];{"category": "bbb", "dir": "up"}
+treeRen;[];{"new_category": "alk", "category": "bbb"}
+splitRm;["4"];{}
+splitAdd;[{"start_date": "2021-09-01", "end_date": "2022-01-10", "col_name": "kategoria", "filter": "Grandpa", "val1": "-5", "days": "1", "split_n": "", "kategoria": "ccc"}];{}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "hash", "filter": "[550889073234985984]", "val1": "-5,22", "days": "", "split_n": "", "kategoria": "ddd"}];{}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "hash", "filter": "[550889073234985984]", "val1": "-5,2", "days": "", "split_n": "", "kategoria": "ddd"}];{}

@@ -35,6 +35,23 @@ class moduleDelay():
         self.timer.start(delay)
 
 
+class calendarQLineEdit(QtWidgets.QLineEdit):
+    """reimplement QLineWidget to add click event
+    """
+    def __init__(self):
+        super().__init__()
+        self.disabled = False
+    
+    def setDisabled(self,isDisable:bool):
+        self.disabled = isDisable
+    
+    def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
+        if not self.disabled:
+            cal = GUICalendar()
+            if cal.exec_():
+                self.setText(cal.dat)
+        return super().mousePressEvent(ev)
+
 class statusQLabel(QtWidgets.QLabel, moduleDelay):
     """
     Reimplement QLabel, so to catch mouse click

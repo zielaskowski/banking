@@ -1,4 +1,0 @@
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PANEK CAR SHARING WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "tr", "filter_orig": ""}, "parent": "Grandpa"}
-catRm;[];{"oper_n": "1", "category": "tr"}
-catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PANEK", "filter_n": "1", "oper": "add", "oper_n": "1", "kategoria": "tr", "filter_orig": ""}, "parent": "Grandpa"}
-treeRen;[];{"category": "tr", "new_category": "transport"}

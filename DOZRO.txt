@@ -1,23 +1,15 @@
 newDB not working!!!!!
 
-
-deactivate dates and days when single split in __setFltrWidgets__ (mark gray)
-    based on 'null' in fltr
-
+validation of VAL is not working for decimals (something wrong with decimal sign)
+when split higher val then cat, leaving positive numbers in cat?
 
 finish testing split
 
-speed up main DB view models.DBmodel (probably findRows)
-
-add button to clear search filter
 
 add trans cell replace (replace whole cell if string found)
 
-add split arrange?
 
-split.merge to be removed?
-cat.__addAbove__ to be removed?
-cat.__update__() to be removed?
+warn when changing filters during import (changes will stay if commited)
 split.setImpCats() to be removed?
 
 

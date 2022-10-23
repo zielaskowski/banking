@@ -5,6 +5,7 @@ root="${2}"
 if [[ $# -lt 1 ]]; then
     echo "proper ussage: ./stats.sh filename root_function"
     echo "for function name use Unix/Bash globbing/pattern matching"
+    echo "i.e. ./dev/stats.sh model models:*:*"
     echo
     echo "see details: https://github.com/jrfonseca/gprof2dot"
     exit 2

@@ -554,27 +554,6 @@ class CAT(COMMON):
 
         self.cat[self.FILTER] = self.cat[self.FILTER_ORIG]
 
-    def __update__(self, change: List[Dict], update: bool) -> str:
-        """transform all filters\n
-        change is one or more rows from trans DB
-
-        if not update, only return impacted
-        """
-        for fltr in change:
-            # do not change if val2=='', just warn that cat is no longer valid
-            affCats = self.cat.loc[:, self.FILTER] == fltr[self.VAL1]
-            probCats = self.cat.loc[affCats, self.CATEGORY].to_list()
-
-            if fltr[self.VAL2] == '' and probCats:
-                self.parent.msg(
-                    f'This operation may have invalidated the category: {list(set(probCats))}. Please check.')
-                continue
-
-            ser = self.cat.loc[:, self.FILTER]
-            ser = self.transOps[fltr[self.OPER]](
-                ser, fltr[self.VAL1], fltr[self.VAL2])
-            self.cat.loc[:, self.FILTER] = ser
-
     def __len__(self):
         return len(self.cat.loc[self.catRows, :])
 
@@ -741,13 +720,6 @@ class CAT(COMMON):
         # validate will renumber FILTER_N one by one
         self.__validate__(self.cat)
         return
-
-    @ staticmethod
-    def __addAbove__(x, filter_n):
-        if x >= filter_n:
-            return x + 1
-        else:
-            return x
 
     def __max__(self, column: str):
         """max function, but also handle empty db
@@ -1305,26 +1277,6 @@ class SPLIT(COMMON):
         self.split.loc[self.splitRows, self.FILTER] = new_category
 
         return self.__to_dict__(category=[new_category])
-
-    def merge(self, db: pandas):
-        """
-        used during import new data
-        split very likely will be unintentionaly removed
-        (due to insuficient funds)
-        so we need to merge with orginal
-        """
-        self.split = self.split.append(db, ignore_index=True)
-        validSplit = self.__validate__(self.split, dupComplain=False)
-        if isinstance(validSplit, pandas.DataFrame):
-            self.split = validSplit
-            self.setSplit('*')
-            return
-        else:
-            self.parent.msg(
-                'not possible to merge split database. Restoring orginal one')
-            self.split = db.copy()
-            self.setSplit('*')
-            return
 
     def __validate__(self, db, dupComplain=True) -> pandas:
         """validate split DB. returns DB if ok or empty (when found duplicates)

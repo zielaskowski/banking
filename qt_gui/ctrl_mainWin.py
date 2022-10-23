@@ -2,6 +2,7 @@
 controls GUI windows
 """
 import re
+from typing import Dict
 #from wsgiref.validate import validator
 from PyQt5 import QtCore, QtGui, QtWidgets
 from sqlalchemy import null
@@ -14,6 +15,7 @@ from qt_gui.ctrl_plot import GUIPlot_ctrl
 from qt_gui.gui_classes import GUICalendar
 from qt_gui.ctrl_stats import GUIStats_ctrl
 from qt_gui.gui_classes import statusQLabel
+from qt_gui.gui_classes import calendarQLineEdit
 from qt_gui.gui_classes import moduleDelay
 from qt_gui.gui_classes import GUISelTree
 
@@ -30,6 +32,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         # hide import widgets
         self.view.import_info.hide()
         self.view.import_status_btn.hide()
+        # how clear button in search
+        self.view.search.setClearButtonEnabled(True)
         # controling context menu
         self.before_edit = ''
         self.contextFunc = ''
@@ -91,8 +95,6 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.view.new_cat_name.returnPressed.connect(self.catORsplit)
         # cat_view
         self.view.cat_view.itemSelectionChanged.connect(self.markFltrColors)
-        # split - calendar widget
-        self.view.split_view.itemSelectionChanged.connect(self.showCalendar)
         # win layout change
         self.view.splitter_2.splitterMoved.connect(
             lambda: self.setDelay(self.headerSize, 200))
@@ -126,6 +128,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         - if user closed the window\n
         - if user resize the window\n
         """
+        # QlineEdit has no click event!!
         # exit
         if event.type() == QtCore.QEvent.Close:
             self.saveDB()
@@ -205,9 +208,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 if op == 'selected transaction':
                     # need to modify wiget to QLine
                     # so can write hash number
-                    self.fill(dbTxt='split', hashSplit=self.db.HASH)
-                    #source = self.view.DB_view
-                    #self.view.new_cat_name.hide()
+                    #self.fill(dbTxt='split', hashSplit=self.db.HASH)
                     self.view.label_3.hide()
                     fltr[self.db.COL_NAME] = self.db.HASH
                     fltr[self.db.FILTER] = hashRow
@@ -223,11 +224,11 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                         fltr[self.db.OPER] = self.db.cat.opers()[2]
 
         if self.view.tabMenu.currentIndex() == 2:  # 'categorize'
-            self.__setFltrWidgets__(fltr, self.view.cat_view)
+            self.fill('cat', fltr)
         elif self.view.tabMenu.currentIndex() == 1:  # wrangling
-            self.__setFltrWidgets__(fltr, self.view.trans_view)
+            self.fill('trans', fltr)
         elif self.view.tabMenu.currentIndex() == 3:  # split
-            self.__setFltrWidgets__(fltr, self.view.split_view)
+            self.fill('split', fltr)
 
     def DB_headerContextMenu(self, position):
         """create context menu on DB_cat_view\n
@@ -359,7 +360,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                     self.db.END: str(maxDate.date()),
                     self.db.COL_NAME: self.db.CATEGORY,
                     self.db.FILTER: self.curCat[-1]}
-            self.__setFltrWidgets__(fltr, self.view.split_view)
+            self.fill(dbTxt='split', fltr=fltr)
         # rearrange category (shift)
         elif act in arr.children():
             self.db.treeArrange(category=it_names[0], dir=act.text())
@@ -529,7 +530,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def split0():
             # QLineEdit start date
-            colWidget = QtWidgets.QLineEdit()
+            colWidget = calendarQLineEdit()
+            colWidget.setText('*')
             colWidget.setReadOnly(True)
             return colWidget
 
@@ -542,11 +544,12 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             colWidget = QtWidgets.QComboBox()
             it = [self.db.CATEGORY, self.db.HASH]
             colWidget.insertItems(-1, it)
+
             colWidget.setEditable(False)
             # when change need to redraw
             # so to have correct filter widget: comboBox of categories or QLineEdit
             colWidget.currentIndexChanged.connect(
-                lambda x: self.fill('split', colWidget.itemText(x)))
+                lambda: self.fill('split'))
             return colWidget
 
         def split3():
@@ -606,14 +609,26 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         return colWidget
 
-    def fill(self, dbTxt: str, hashSplit=''):
+    def fill(self, dbTxt: str, fltr={}):
         """Fill widget filters table
         """
         db = eval(f'self.db.{dbTxt}')
         widget = eval(f'self.view.{dbTxt}_view')
         cols = eval(f'cfg.{dbTxt}_col')
         # store filters if exists so to not reset when switching tabs
-        fltr = self.__getFltrWidgets__(widget)
+        if not fltr:
+            fltr = self.__getFltrWidgets__(widget)
+            if fltr and fltr[self.db.COL_NAME] == self.db.HASH:
+                fltr[self.db.FILTER] = 'right click on transaction to split'
+
+        if fltr and fltr[self.db.COL_NAME] == self.db.HASH :
+            singleSplit = True
+            fltr[self.db.START] = 'disable'
+            fltr[self.db.END] = 'disable'
+            fltr[self.db.DAYS] = 'disable'
+        else:
+            singleSplit = False
+            
         if dbTxt == 'trans':
             hideCols = [self.db.TRANS_N]
         elif dbTxt == 'cat':
@@ -637,8 +652,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         for x in cols:
             # first row
             x_n = cols.index(x)
-            if hashSplit == self.db.HASH and x == self.db.FILTER:
-                fltr[self.db.FILTER]='right click on transaction to split'
+            if singleSplit and x == self.db.FILTER:
                 w_n = 100
             else:
                 w_n = x_n
@@ -1091,27 +1105,33 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             fltr[widget_name] = widget_txt
         return fltr
 
-    def __setFltrWidgets__(self, fltr, source):
+    def __setFltrWidgets__(self, fltr: Dict, source: QtWidgets.QTableWidget) -> None:
         """set cat or trans widgets according to requested
-        if fltr={} set to default
+        if fltr={} fill with defoults
+        for key=='disable; gray out the widget and make inactive'
         """
         for col_i in range(source.columnCount()):
             widget_name = source.horizontalHeaderItem(col_i).text()
             widget = source.cellWidget(0, col_i)
-            # do not raise events when changing widgets
-            widget.blockSignals(True)
-            if isinstance(widget, QtWidgets.QComboBox):
-                if widget_name in fltr.keys():
+            if widget_name in fltr.keys():
+                # do not raise events when changing widgets
+                widget.blockSignals(True)
+                if isinstance(widget, QtWidgets.QComboBox):
                     widget.setCurrentText(fltr[widget_name])
-            elif isinstance(widget, QtWidgets.QLineEdit):
-                if widget_name in fltr.keys():
-                    widget.setText(fltr[widget_name])
-            widget.blockSignals(False)
-            # else:
-            #     if widget_name in [self.db.START, self.db.END]:
-            #         widget.setText('*')
-            #     else:
-            #         widget.setText('')
+                elif isinstance(widget, QtWidgets.QLineEdit):
+                    if fltr[widget_name] == 'disable':
+                        widget.setDisabled(True)
+                        widget.setStyleSheet("background-color: rgb(146, 146, 146); "
+                                             "color: rgb(146,146,146); "
+                                             "selection-background-color: rgb(255, 255, 255); "
+                                             "selection-color: rgb(0, 0, 0);")
+                    else:
+                        val = fltr[widget_name]
+                        n = self.db.str2num(val)
+                        if n:
+                            val = str(n)
+                        widget.setText(val)
+                widget.blockSignals(False)
 
     def markFltrColors(self):
         # mark filter by color
@@ -1361,19 +1381,6 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 mod.sourceModel().markBlueAddRows(None)
                 self.search()
                 self.fill_group()
-
-    def showCalendar(self):
-        """show calendar widget when date column clicked
-        """
-        it = self.view.split_view.currentIndex()
-        widget = self.view.split_view.focusWidget()
-        if not it or not isinstance(widget, QtWidgets.QLineEdit):
-            return
-
-        if cfg.split_col_type[it.column()] == 'TIMESTAMP' and it.row() == 0:
-            cal = GUICalendar()
-            if cal.exec_():
-                widget.setText(cal.dat)
 
     def readStat(self) -> null:
         """read gui status
