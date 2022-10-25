@@ -5,6 +5,7 @@ import re
 from typing import Dict
 #from wsgiref.validate import validator
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QLocale
 from sqlalchemy import null
 from db import DB
 #from modules import FileSystem
@@ -12,7 +13,6 @@ from models import DBmodelProxy
 import opt.parse_cfg as cfg
 from qt_gui.gui_classes import GUIMainWin, statusQLabel
 from qt_gui.ctrl_plot import GUIPlot_ctrl
-from qt_gui.gui_classes import GUICalendar
 from qt_gui.ctrl_stats import GUIStats_ctrl
 from qt_gui.gui_classes import statusQLabel
 from qt_gui.gui_classes import calendarQLineEdit
@@ -22,6 +22,9 @@ from qt_gui.gui_classes import GUISelTree
 
 class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
     def __init__(self):
+        # set global locale
+        QLocale.setDefault(QLocale.c())
+        
         self.view = GUIMainWin()
         super().__init__(self.view)
         self.view.show()
@@ -1126,11 +1129,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                                              "selection-background-color: rgb(255, 255, 255); "
                                              "selection-color: rgb(0, 0, 0);")
                     else:
-                        val = fltr[widget_name]
-                        n = self.db.str2num(val)
-                        if n:
-                            val = str(n)
-                        widget.setText(val)
+                        widget.setText(fltr[widget_name])
                 widget.blockSignals(False)
 
     def markFltrColors(self):

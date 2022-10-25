@@ -385,7 +385,7 @@ class OP(COMMON):
                 try:
                     ch[self.START] = pandas.to_datetime(ch[self.START])
                     ch[self.END] = pandas.to_datetime(ch[self.END])
-                    ch[self.VAL1] = self.str2num(ch[self.VAL1])[0]
+                    ch[self.VAL1] = self.str2num(ch[self.VAL1],2)[0]
                     ch[self.DAYS] = self.str2num(ch[self.DAYS])[0]
                 except:
                     self.parent.msg('__updateSplit__: wrong type of input')
@@ -429,7 +429,7 @@ class OP(COMMON):
                     # some amounts may be less then substract
                     smallRows = rows.loc[:, self.AMOUNT] > 0
                     if any(smallRows):
-                        while all(~smallRows):
+                        while not all(~smallRows):
                             newAmount = sum(
                                 rows.loc[smallRows, self.AMOUNT]) * -1
                             rows.loc[smallRows, self.AMOUNT] = 0

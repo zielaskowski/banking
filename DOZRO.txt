@@ -1,17 +1,15 @@
-newDB not working!!!!!
-
-validation of VAL is not working for decimals (something wrong with decimal sign)
-when split higher val then cat, leaving positive numbers in cat?
 
 finish testing split
 
 
 add trans cell replace (replace whole cell if string found)
 
+when spliting with higher val then available should reject rather the modify val
 
 warn when changing filters during import (changes will stay if commited)
 split.setImpCats() to be removed?
-
+cat.__restore__ to be removed?
+cat.__len__
 
 COLORING and ICONS
 handle empty categories with filters (ask user), now DB do not delete nothing
@@ -20,7 +18,7 @@ handle categories impacted by trans (ask user)
 
 
 
-
+find a way to read currently set language and adjust locale
 
 
 see all data when on grandpa and "show all data" clicked
