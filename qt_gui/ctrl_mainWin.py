@@ -1073,11 +1073,10 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             for i in range(len(cfg.split_col)):
                 fltr[cfg.split_col[i]] = self.view.split_view.item(
                     row_n, i).text()
+            fltr[self.db.SPLIT_N] = ''
+            self.fill('split', fltr)
 
         self.fill_tree()
-
-        if oper == 'edit':
-            self.__setFltrWidgets__(fltr, self.view.split_view)
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def __getFltrWidgets__(self, source: QtWidgets.QTableWidget) -> dict:

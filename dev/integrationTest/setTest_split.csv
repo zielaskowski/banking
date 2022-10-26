@@ -1,2 +1,12 @@
 catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ODSETKI OD TRANSAKCJI BEZGOTOWKOWYCH", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "aaa", "filter_orig": ""}, "parent": "Grandpa"}
 splitAdd;[{"start_date": "2021-09-01", "end_date": "2022-01-05", "col_name": "kategoria", "filter": "aaa", "val1": "-54.55", "days": "50", "split_n": "1", "kategoria": "bbb"}];{}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "hash", "filter": "15819513748987117677", "val1": "-15.5", "days": "", "split_n": "", "kategoria": "ccc"}];{}
+treeRen;[];{"new_category": "bbb", "category": "ccc"}
+splitRm;["1"];{}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "hash", "filter": "15819513748987117677", "val1": "-14.2", "days": "", "split_n": "", "kategoria": "bbb"}];{}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "RESTAURACJA INDYJ62142 Radom PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "aaa", "filter_orig": ""}, "parent": "Grandpa"}
+splitRm;["2"];{}
+splitAdd;[{"start_date": "*", "end_date": "*", "col_name": "kategoria", "filter": "aaa", "val1": "-54.55", "days": "50", "split_n": "", "kategoria": "bbb"}];{}
+catRm;[];{"oper_n": "1", "category": "aaa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ODSETKI", "filter_n": "1", "oper": "add", "oper_n": "1", "kategoria": "aaa", "filter_orig": ""}, "parent": "Grandpa"}
+treeRm;[];{"child": "aaa"}

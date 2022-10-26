@@ -1,5 +1,4 @@
 
-finish testing split
 
 
 add trans cell replace (replace whole cell if string found)
@@ -27,7 +26,7 @@ add number of operations to stat window table
 
 
 reverse log and pretify
-
+review all messages
 add statistics on front tab
 
 
@@ -49,17 +48,6 @@ remember last open file location
 
 
 
-SPLIT:
-- ask to confirm when removeing cat referenced by split
-- remove split from context menu on grandpa??
-\/ when spliting with cost higher than some operations inside cat....do something?
-\/ problem when spliting cat with kids
-\/ allow empty dates
-\/ renaming categories, rename also split (also filters)
-\/ adding filter to split category....
-\/ removing parent cat, remove also split (split ref to cat)
-\/ most commont items dissapear after split (splitting somewhere change op col types to objects, strings are excepted group_data())
-- spliting single operation is completely not clear
 
 
 check integrity (cat categories vs. tree categories)???

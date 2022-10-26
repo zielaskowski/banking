@@ -367,7 +367,7 @@ class OP(COMMON):
 
             self.op.loc[ser & grandpas, self.CATEGORY] = cat
 
-    def __updateSplit__(self, change: List[Dict], splitDB: object):
+    def __updateSplit__(self, change: List[Dict], splitDB: object) -> None:
         """split selected rows\n
         change can be one or more rows from split db\n
         1) hash new rows\n
@@ -405,6 +405,7 @@ class OP(COMMON):
                 if rows.empty:
                     self.parent.msg(
                         f'Split filter refer to empty category. Rejected')
+                    return
 
                 availCash = rows.loc[:, self.AMOUNT].sum()
                 if abs(availCash) < abs(days_n * ch[self.VAL1]):
@@ -479,7 +480,7 @@ class OP(COMMON):
                 self.op = self.op.append(newRow, ignore_index=True)
                 self.__correct_col_types__(self.op)
 
-        return True
+        return
 
 
 class CAT(COMMON):
@@ -1577,7 +1578,7 @@ class DB(COMMON):
         '''
         remove cat from tree, together with cat and split,
         '''
-        self.split.rm(category=child, fltr=child)
+        self.split.rm(category=child) #, fltr=child) ???
         self.cat.rm(category=child)
         self.tree.rm(child)
 

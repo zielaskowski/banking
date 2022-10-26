@@ -15,7 +15,6 @@ class testDBfromFile(ut.TestCase):
         self.db = DB(DEBUG=False)
         ####
         # select test suite
-        #self.DEBUG_F = './dev/integrationTest/setTest_bug.csv'
         #self.DEBUG_F = './dev/integrationTest/setTest_cat.csv'
         self.DEBUG_F = './dev/integrationTest/setTest_split.csv'
         ####
@@ -24,7 +23,7 @@ class testDBfromFile(ut.TestCase):
         ####################################
         # use write==True when setting test environment (fixtures)
         # after, use write==False for real testing
-        self.write = True
+        self.write = False
         ####################################
         self.read = not self.write
         self.fixtures = {}
