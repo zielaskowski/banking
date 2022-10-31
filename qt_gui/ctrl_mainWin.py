@@ -1203,7 +1203,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                              type='save')
         if path:
             fileN = self.db.DEBUG_F
-            self.db = DB(self.db.DEBUG)
+            self.db = DB(DEBUG=self.db.DEBUG)
             self.db.DEBUG_F = fileN
             if not self.save_asDB(file=path):
                 return
