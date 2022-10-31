@@ -1,4 +1,6 @@
+remove filter orig
 
+speedup db updates by numpy?
 
 
 add trans cell replace (replace whole cell if string found)
@@ -6,9 +8,7 @@ add trans cell replace (replace whole cell if string found)
 when spliting with higher val then available should reject rather the modify val
 
 warn when changing filters during import (changes will stay if commited)
-split.setImpCats() to be removed?
-cat.__restore__ to be removed?
-cat.__len__
+
 
 COLORING and ICONS
 handle empty categories with filters (ask user), now DB do not delete nothing

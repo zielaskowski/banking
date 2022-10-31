@@ -1,0 +1,344 @@
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "DELIKATESY CENTRUM", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "deli", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "TOPAZ", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "topaz", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "BAR OK ORIENTALNY WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PANEK CAR SHARING", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "panek", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "RESTAURACJA INDYJ62142 Radom PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ZABKA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "zabka", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "UBER", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "taxi", "filter_orig": ""}, "parent": "Grandpa"}
+treeAdd;[];{"parent": "Grandpa", "child": "new category"}
+treeRen;[];{"category": "new category", "new_category": "spozywka"}
+treeAdd;[];{"parent": "Grandpa", "child": "new category"}
+treeRen;[];{"category": "new category", "new_category": "komunikacja"}
+treeMov;[];{"new_parent": "komunikacja", "child": "panek"}
+treeMov;[];{"new_parent": "komunikacja", "child": "taxi"}
+treeMov;[];{"new_parent": "spozywka", "child": "deli"}
+treeMov;[];{"new_parent": "spozywka", "child": "topaz"}
+treeMov;[];{"new_parent": "spozywka", "child": "jedzenie na miescie"}
+treeMov;[];{"new_parent": "spozywka", "child": "zabka"}
+treeRen;[];{"category": "panek", "new_category": "car sharing"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "BOLT.EU", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "taxi", "filter_orig": ""}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "KFC", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "1", "category": "jedzenie na miescie"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "BAR OK ORIENTALNY", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ORLEN", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "paliwo", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "komunikacja", "child": "paliwo"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "BIEDRONKA", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "biedronka", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "spozywka", "child": "biedronka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "STOKROTKA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "stokrotka", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "spozywka", "child": "stokrotka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "BILETOMAT", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bilety", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "komunikacja", "child": "bilety"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "AUT BILET", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "LUX MED", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "WPLATA KLIENTA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "wlasne", "filter_orig": ""}, "parent": "Grandpa"}
+treeAdd;[];{"parent": "Grandpa", "child": "new category"}
+treeRen;[];{"category": "new category", "new_category": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ODSETKI OD TRANSAKCJI BEZGOTOWKOWYCH", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bank", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "oplaty", "child": "bank"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "CALYPSO", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "squash", "filter_orig": ""}, "parent": "Grandpa"}
+treeAdd;[];{"parent": "Grandpa", "child": "new category"}
+treeRen;[];{"category": "new category", "new_category": "rozrywka"}
+treeMov;[];{"new_parent": "rozrywka", "child": "squash"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PLAYKWADRAT", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "squash", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ALL DAY DALLMAYR Warszawa PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "zabka", "filter_orig": ""}, "parent": "spozywka"}
+treeRen;[];{"category": "zabka", "new_category": "snaki"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ODSETKI OD TRANSAKCJI GOTOWKOWYCH", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bank", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "MIESIECZNA OPLATA ZA OBSLUGE KARTY MICHAL ZIELASKOWSKI", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bank", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Pyszne.pl", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Kredyt B468-KWJ-4VWJ5D300-001 Sp\u0142ata odsetek umownych Zasilenie 6468-4VWJ5D-340", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "kredyt", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "oplaty", "child": "kredyt"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "GROMULSKI PIEKARNIA-CUK. WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "deli", "filter_orig": ""}, "parent": "spozywka"}
+treeRen;[];{"category": "topaz", "new_category": "deli"}
+treeRen;[];{"category": "biedronka", "new_category": "deli"}
+treeRen;[];{"category": "stokrotka", "new_category": "deli"}
+treeRen;[];{"category": "deli", "new_category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PASTA HOUSE GDANSK PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+transAdd;[];{"fltr": {"bank": "paribas", "col_name": "nazwa_nadawcy", "oper": "str.replace", "val1": "80144013870000000014236268", "val2": "ipko ", "trans_n": ""}}
+catAdd;[];{"fltr": {"col_name": "nazwa_nadawcy", "function": "txt_match", "filter": "ipko", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "wlasne", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "1", "category": "kredyt"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "B468-KWJ", "filter_n": "11", "oper": "add", "oper_n": "1", "kategoria": "kredyt", "filter_orig": ""}, "parent": "oplaty"}
+transAdd;[];{"fltr": {"bank": "paribas", "col_name": "nazwa_nadawcy", "oper": "str.replace", "val1": "53175000120000000033730608", "val2": "paribas ", "trans_n": ""}}
+catAdd;[];{"fltr": {"col_name": "nazwa_nadawcy", "function": "txt_match", "filter": "paribas", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "wlasne", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "HBO", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "media", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "rozrywka", "child": "media"}
+transAdd;[];{"fltr": {"bank": "paribas", "col_name": "nazwa_nadawcy", "oper": "str.replace", "val1": "05144013870000000014236163", "val2": "ipko ", "trans_n": ""}}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "MIESIECZNA OPLATA ZA KARTE KREDYTOWA GL\u00d3WNA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bank", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "RESTAURACJA KUTTER HEL PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "MPSA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "FISHMOR", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "BISTRO PIZZA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "SKLEP CHINSKI WLADYSLAWOWO PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "wyposazenie", "filter_orig": ""}, "parent": "Grandpa"}
+treeAdd;[];{"parent": "Grandpa", "child": "new category"}
+treeRen;[];{"category": "new category", "new_category": "dom"}
+treeMov;[];{"new_parent": "dom", "child": "wyposazenie"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ZARZAD PORTU MORSKIEGO HE HEL PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "podroze", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "rozrywka", "child": "podroze"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "CONNECT LUNCH BAR - MIS WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "MULTIKINO", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "media", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "SHELL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "paliwo", "filter_orig": ""}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "NETFLIX.COM", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "media", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "sp\u0142ata ods.karnych", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bank", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "STACJA PALIW", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "paliwo", "filter_orig": ""}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "McDonalds", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Dom Zabawy i Kultury DZ Warszawa PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bar", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "rozrywka", "child": "bar"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "APTEKA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PROWIZJA ZA PRZEWALUTOWANIE", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bank", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Hubiz", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Cuda na Kiju Warszawa PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bar", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ASEC", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Starbucks", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "GROMULSKI", "filter_n": "3", "oper": "add", "oper_n": "2", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Twoja Farmacja", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "WINOWAJCY ROKU WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bank", "filter_orig": ""}, "parent": "oplaty"}
+catRm;[];{"oper_n": "7", "category": "bank"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "WINOWAJCY ROKU WARSZAWA PL", "filter_n": "10", "oper": "add", "oper_n": "7", "kategoria": "bar", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "1-Minute 34524 Warszawa PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "4", "category": "snaki"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "1-Minute", "filter_n": "2", "oper": "add", "oper_n": "4", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "AMORI POMODORI URSYNOW WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "PRZYJACIELE PIZZA AND FOO WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "EMPIK S.A. WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "media", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "SUMUP *VINOKILO - DARPDE BODENHEIM DE", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "ciuchy", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "dom", "child": "ciuchy"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Transakcja BLIK, Wyp\u0142ata BLIK z bankomatu, Nr 63480533615, Bankomat Euronet", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "squash_bankomat", "filter_orig": ""}, "parent": "Grandpa"}
+treeRen;[];{"category": "squash_bankomat", "new_category": "bankomat"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "Kwota op\u0142at/prowizji -5.00 PLN", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bank", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "HM Warszawa PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "ciuchy", "filter_orig": ""}, "parent": "dom"}
+catRm;[];{"oper_n": "1", "category": "ciuchy"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "VINOKILO - DARPDE BODENHEIM DE", "filter_n": "17", "oper": "add", "oper_n": "1", "kategoria": "ciuchy", "filter_orig": ""}, "parent": "dom"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "URZAD DZIELNICY URSYNO WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "urzad", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "oplaty", "child": "urzad"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "FOTOEXPRESS WARSZAWA URSY WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "urzad", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "MERA SERWIS SGL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "WORD WARSZAWA M E RADAROW WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "urzad", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ROSSMANN 86 Warszawa PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "chemia i kosmetyki", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "dom", "child": "chemia i kosmetyki"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "VINCENT BOULANGERIE WARSZAWA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "SMYK SPOLKA AKCYJNA 05 WARSZAWA PL", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "dzieci", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "1", "category": "dzieci"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "SMYK SPOLKA AKCYJNA", "filter_n": "21", "oper": "add", "oper_n": "1", "kategoria": "dzieci", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "dom", "child": "dzieci"}
+transAdd;[];{"fltr": {"bank": "ipko", "col_name": "opis_transakcji", "oper": "str.replace", "val1": "Tytu\u0142: ", "val2": "", "trans_n": ""}}
+transAdd;[];{"fltr": {"bank": "ipko", "col_name": "lokalizacja", "oper": "str.replace", "val1": "Lokalizacja:", "val2": "", "trans_n": ""}}
+catRm;[];{"oper_n": "1", "category": "bar"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Dom Zabawy i Kultury DZ", "filter_n": "16", "oper": "add", "oper_n": "1", "kategoria": "bar", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "1", "category": "taxi"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "UBER", "filter_n": "5", "oper": "add", "oper_n": "1", "kategoria": "taxi", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "2", "category": "taxi"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "BOLT.EU", "filter_n": "5", "oper": "add", "oper_n": "2", "kategoria": "taxi", "filter_orig": ""}, "parent": "komunikacja"}
+transAdd;[];{"fltr": {"bank": "ipko", "col_name": "lokalizacja", "oper": "str.replace", "val1": "Kraj:", "val2": "", "trans_n": ""}}
+transAdd;[];{"fltr": {"bank": "ipko", "col_name": "lokalizacja", "oper": "str.replace", "val1": "Miasto:", "val2": "", "trans_n": ""}}
+transAdd;[];{"fltr": {"bank": "ipko", "col_name": "lokalizacja", "oper": "str.replace", "val1": "Adres:", "val2": "", "trans_n": ""}}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "TRAFICAR", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "car sharing", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "1", "category": "car sharing"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "PANEK CAR SHARING", "filter_n": "4", "oper": "add", "oper_n": "1", "kategoria": "car sharing", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "1", "category": "jedzenie na miescie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "BAR OK ORIENTALNY", "filter_n": "1", "oper": "add", "oper_n": "1", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "jedzenie na miescie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "RESTAURACJA INDYJ62142 Radom PL", "filter_n": "1", "oper": "add", "oper_n": "2", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "3", "category": "jedzenie na miescie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "KFC", "filter_n": "1", "oper": "add", "oper_n": "3", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "4", "category": "jedzenie na miescie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Pyszne.pl", "filter_n": "1", "oper": "add", "oper_n": "4", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "10", "category": "jedzenie na miescie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "McDonalds", "filter_n": "1", "oper": "add", "oper_n": "10", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "1", "category": "snaki"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ZABKA", "filter_n": "2", "oper": "add", "oper_n": "1", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "snaki"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ALL DAY DALLMAYR Warszawa PL", "filter_n": "2", "oper": "add", "oper_n": "2", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "3", "category": "snaki"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Hubiz", "filter_n": "2", "oper": "add", "oper_n": "3", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "4", "category": "snaki"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "1-Minute", "filter_n": "2", "oper": "add", "oper_n": "4", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "1", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "DELIKATESY CENTRUM", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "TOPAZ", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "delikatesy", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catMov;[];{"oper_n": 1, "new_oper_n": 2, "category": "jedzenie"}
+catRm;[];{"oper_n": "1", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "GROMULSKI", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "delikatesy", "filter_n": "3", "oper": "add", "oper_n": "2", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "topaz", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "1", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "GROMULSKI", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "delikatesy", "filter_n": "3", "oper": "add", "oper_n": "2", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "3", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "topaz", "filter_n": "3", "oper": "add", "oper_n": "3", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ALL DAY DALLMAYR", "filter_n": "3", "oper": "add", "oper_n": "3", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "TOPAZ", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "biedronka", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "4", "category": "jedzenie"}
+catRm;[];{"oper_n": "5", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "biedronka", "filter_n": "3", "oper": "add", "oper_n": "5", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "topaz", "filter_n": "3", "oper": "add", "oper_n": "5", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "biedronka", "filter_n": "3", "oper": "add", "oper_n": "5", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "topaz", "filter_n": "3", "oper": "add", "oper_n": "5", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "1", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "GROMULSKI", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "delikatesy", "filter_n": "3", "oper": "add", "oper_n": "2", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "topaz", "filter_n": "3", "oper": "add", "oper_n": "2", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "1", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "GROMULSKI", "filter_n": "3", "oper": "add", "oper_n": "1", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "topaz", "filter_n": "3", "oper": "add", "oper_n": "2", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "deli", "filter_n": "3", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": "topaz"}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "delikatesy", "filter_n": "3", "oper": "add", "oper_n": "2", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "topaz", "filter_n": "3", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": "delikatesy"}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "biedronka", "filter_n": "3", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": "delikatesy"}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "stokrotka", "filter_n": "3", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": "delikatesy"}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "BH POLAND", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "przychod", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "1", "category": "paliwo"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ORLEN", "filter_n": "6", "oper": "add", "oper_n": "1", "kategoria": "paliwo", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "2", "category": "paliwo"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "SHELL", "filter_n": "6", "oper": "add", "oper_n": "2", "kategoria": "paliwo", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "3", "category": "paliwo"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "STACJA PALIW", "filter_n": "6", "oper": "add", "oper_n": "3", "kategoria": "paliwo", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "1", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "BILETOMAT", "filter_n": "7", "oper": "add", "oper_n": "1", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "2", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "AUT BILET", "filter_n": "7", "oper": "add", "oper_n": "2", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "3", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MPSA", "filter_n": "7", "oper": "add", "oper_n": "3", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "4", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ASEC", "filter_n": "7", "oper": "add", "oper_n": "4", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "5", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MERA SERWIS SGL", "filter_n": "7", "oper": "add", "oper_n": "5", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "1", "category": "zdrowie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "LUX MED", "filter_n": "8", "oper": "add", "oper_n": "1", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "2", "category": "zdrowie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "APTEKA", "filter_n": "8", "oper": "add", "oper_n": "2", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "3", "category": "zdrowie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Twoja Farmacja", "filter_n": "8", "oper": "add", "oper_n": "3", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "1", "category": "squash"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "CALYPSO", "filter_n": "13", "oper": "add", "oper_n": "1", "kategoria": "squash", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "2", "category": "squash"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "PLAYKWADRAT", "filter_n": "13", "oper": "add", "oper_n": "2", "kategoria": "squash", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "2", "category": "media"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MULTIKINO", "filter_n": "14", "oper": "add", "oper_n": "2", "kategoria": "media", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "4", "category": "media"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "EMPIK S.A. WARSZAWA PL", "filter_n": "14", "oper": "add", "oper_n": "4", "kategoria": "media", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "2", "category": "bar"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Cuda na Kiju Warszawa PL", "filter_n": "16", "oper": "add", "oper_n": "2", "kategoria": "bar", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "7", "category": "bar"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "WINOWAJCY ROKU WARSZAWA PL", "filter_n": "16", "oper": "add", "oper_n": "7", "kategoria": "bar", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "2", "category": "ciuchy"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "HM Warszawa PL", "filter_n": "18", "oper": "add", "oper_n": "2", "kategoria": "ciuchy", "filter_orig": ""}, "parent": "dom"}
+catRm;[];{"oper_n": "1", "category": "chemia i kosmetyki"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ROSSMANN", "filter_n": "19", "oper": "add", "oper_n": "1", "kategoria": "chemia i kosmetyki", "filter_orig": ""}, "parent": "dom"}
+transAdd;[];{"fltr": {"bank": "ipko", "col_name": "typ_transakcji", "oper": "str.replace", "val1": "POLSKA", "val2": "", "trans_n": ""}}
+transRm;[];{"trans_n": "9"}
+catAdd;[];{"fltr": {"col_name": "typ_transakcji", "function": "txt_match", "filter": "topaz", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+transAdd;[];{"fltr": {"bank": "ipko", "col_name": "typ_transakcji", "oper": "str.replace", "val1": "POLSKA", "val2": "", "trans_n": ""}}
+transRm;[];{"trans_n": "9"}
+transAdd;[];{"fltr": {"bank": "ipko", "col_name": "ALL", "oper": "str.replace", "val1": "POLSKA", "val2": "", "trans_n": "9"}}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "biedronka", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": "topaz"}, "parent": "spozywka"}
+catRm;[];{"oper_n": "3", "category": "jedzenie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "topaz", "filter_n": "3", "oper": "add", "oper_n": "3", "kategoria": "jedzenie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "stokrotka", "filter_n": "3", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": "topaz"}, "parent": "spozywka"}
+catRm;[];{"oper_n": "1", "category": "paliwo"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ORLEN", "filter_n": "6", "oper": "add", "oper_n": "1", "kategoria": "paliwo", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "2", "category": "paliwo"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "SHELL", "filter_n": "6", "oper": "add", "oper_n": "2", "kategoria": "paliwo", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "3", "category": "paliwo"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "STACJA PALIW", "filter_n": "6", "oper": "add", "oper_n": "3", "kategoria": "paliwo", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "1", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "BILETOMAT", "filter_n": "7", "oper": "add", "oper_n": "1", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "2", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "AUT BILET", "filter_n": "7", "oper": "add", "oper_n": "2", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "3", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MPSA", "filter_n": "7", "oper": "add", "oper_n": "3", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "4", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ASEC", "filter_n": "7", "oper": "add", "oper_n": "4", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "5", "category": "bilety"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MERA SERWIS SGL", "filter_n": "7", "oper": "add", "oper_n": "5", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catRm;[];{"oper_n": "1", "category": "zdrowie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "LUX MED", "filter_n": "8", "oper": "add", "oper_n": "1", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "2", "category": "zdrowie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "APTEKA", "filter_n": "8", "oper": "add", "oper_n": "2", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "3", "category": "zdrowie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Twoja Farmacja", "filter_n": "8", "oper": "add", "oper_n": "3", "kategoria": "zdrowie", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "1", "category": "squash"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "CALYPSO", "filter_n": "13", "oper": "add", "oper_n": "1", "kategoria": "squash", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "2", "category": "squash"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "PLAYKWADRAT", "filter_n": "13", "oper": "add", "oper_n": "2", "kategoria": "squash", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "4", "category": "media"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "EMPIK S.A. WARSZAWA PL", "filter_n": "14", "oper": "add", "oper_n": "4", "kategoria": "media", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "2", "category": "media"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MULTIKINO", "filter_n": "14", "oper": "add", "oper_n": "2", "kategoria": "media", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "1", "category": "bar"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Dom Zabawy i Kultury DZ", "filter_n": "16", "oper": "add", "oper_n": "1", "kategoria": "bar", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "2", "category": "bar"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Cuda na Kiju Warszawa PL", "filter_n": "16", "oper": "add", "oper_n": "2", "kategoria": "bar", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "7", "category": "bar"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "WINOWAJCY ROKU WARSZAWA PL", "filter_n": "16", "oper": "add", "oper_n": "7", "kategoria": "bar", "filter_orig": ""}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "2", "category": "ciuchy"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "HM Warszawa PL", "filter_n": "18", "oper": "add", "oper_n": "2", "kategoria": "ciuchy", "filter_orig": ""}, "parent": "dom"}
+catRm;[];{"oper_n": "1", "category": "chemia i kosmetyki"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ROSSMANN", "filter_n": "19", "oper": "add", "oper_n": "1", "kategoria": "chemia i kosmetyki", "filter_orig": ""}, "parent": "dom"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "BH POLAND", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "dochody", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "nazwa_odbiorcy", "function": "txt_match", "filter": "KASIA SULECKA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "squash", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "typ_transakcji", "function": "txt_match", "filter": "Wyp\u0142ata z bankomatu", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bankomat", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "nazwa_odbiorcy", "function": "txt_match", "filter": "ADMUS", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "czynsz", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "oplaty", "child": "czynsz"}
+catAdd;[];{"fltr": {"col_name": "nazwa_odbiorcy", "function": "txt_match", "filter": "VECTRA S.A.", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "internet", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "nazwa_odbiorcy", "function": "txt_match", "filter": "jmdi", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "internet", "filter_orig": "VECTRA S.A."}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "oplaty", "child": "internet"}
+catAdd;[];{"fltr": {"col_name": "lokalizacja", "function": "txt_match", "filter": "Warszawa  Relay", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "5", "category": "snaki"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Warszawa  Relay", "filter_n": "2", "oper": "add", "oper_n": "5", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "REJS", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "podroze", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "typ_transakcji", "function": "txt_match", "filter": "Sp\u0142ata kredytu", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "kredyt", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "nazwa_nadawcy", "function": "txt_match", "filter": "ALINA OLENDER ZIELASKOWSKA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "kredyt", "filter_orig": "Sp\u0142ata kredytu"}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ZUZA", "filter_n": "", "oper": "rem", "oper_n": "", "kategoria": "kredyt", "filter_orig": "Sp\u0142ata kredytu"}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "nazwa_odbiorcy", "function": "txt_match", "filter": "ING UBEZPIECZENIE", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "ubezpieczenie", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "oplaty", "child": "ubezpieczenie"}
+catAdd;[];{"fltr": {"col_name": "rachunek_odbiorcy", "function": "txt_match", "filter": "26 1140 2004 0000 3802 5205 2257", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "alimenty", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "kwota", "function": "smaller <", "filter": "5000", "filter_n": "", "oper": "rem", "oper_n": "", "kategoria": "alimenty", "filter_orig": "26 1140 2004 0000 3802 5205 2257"}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "2", "category": "alimenty"}
+catAdd;[];{"fltr": {"col_name": "kwota", "function": "smaller <", "filter": "5000", "filter_n": "26", "oper": "lim", "oper_n": "2", "kategoria": "alimenty", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "2", "category": "alimenty"}
+catAdd;[];{"fltr": {"col_name": "kwota", "function": "greater >", "filter": "-5000", "filter_n": "26", "oper": "rem", "oper_n": "2", "kategoria": "alimenty", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "oplaty", "child": "alimenty"}
+catAdd;[];{"fltr": {"col_name": "nazwa_odbiorcy", "function": "txt_match", "filter": "MOBILE-TRAFFIC-DATA SP. Z O. O.", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "bilety", "filter_orig": ""}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ALL DAY DALLMAYR", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "snaki", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "snaki"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "SQUASH", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "squash", "filter_orig": ""}, "parent": "rozrywka"}
+catAdd;[];{"fltr": {"col_name": "rachunek_odbiorcy", "function": "txt_match", "filter": "49 1750 0012 0000 0000 3165 0127", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "wlasne", "filter_orig": ""}, "parent": "Grandpa"}
+catAdd;[];{"fltr": {"col_name": "rachunek_nadawcy", "function": "txt_match", "filter": "80 1440 1387 0000 0000 1423 6268", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "wlasne", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "2", "category": "jedzenie na miescie"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "RESTAURACJA INDYJ", "filter_n": "1", "oper": "add", "oper_n": "2", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "lokalizacja", "function": "txt_match", "filter": "UZYWKI SWIATA", "filter_n": "1", "oper": "add", "oper_n": "", "kategoria": "alko", "filter_orig": "RESTAURACJA INDYJ"}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "jedzenie", "child": "alko"}
+treeMov;[];{"new_parent": "spozywka", "child": "alko"}
+catAdd;[];{"fltr": {"col_name": "lokalizacja", "function": "txt_match", "filter": "Alkoholi", "filter_n": "1", "oper": "add", "oper_n": "", "kategoria": "alko", "filter_orig": "RESTAURACJA INDYJ"}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "REGENERACJA", "filter_n": "1", "oper": "add", "oper_n": "", "kategoria": "bar", "filter_orig": "RESTAURACJA INDYJ"}, "parent": "rozrywka"}
+catRm;[];{"oper_n": "1", "category": "alko"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "UZYWKI SWIATA", "filter_n": "4", "oper": "add", "oper_n": "1", "kategoria": "alko", "filter_orig": ""}, "parent": "spozywka"}
+catRm;[];{"oper_n": "2", "category": "alko"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "Alkoholi", "filter_n": "4", "oper": "add", "oper_n": "2", "kategoria": "alko", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MOTKI DWA", "filter_n": "4", "oper": "add", "oper_n": "", "kategoria": "dzieci", "filter_orig": "Alkoholi"}, "parent": "dom"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "SUBWAY", "filter_n": "4", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": "Alkoholi"}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MORDORDRUK", "filter_n": "4", "oper": "add", "oper_n": "", "kategoria": "dzieci", "filter_orig": "Alkoholi"}, "parent": "dom"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "MOLTO BENE RISTORANTE", "filter_n": "4", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": "Alkoholi"}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "LOTOS", "filter_n": "4", "oper": "add", "oper_n": "", "kategoria": "paliwo", "filter_orig": "Alkoholi"}, "parent": "komunikacja"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "PLANETA SKARBOW", "filter_n": "4", "oper": "add", "oper_n": "", "kategoria": "dzieci", "filter_orig": "Alkoholi"}, "parent": "dom"}
+catAdd;[];{"fltr": {"col_name": "nazwa_nadawcy", "function": "txt_match", "filter": "OLENDER-ZIELASKOWSKA ALINA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "kredyt", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ZUZA", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "zwrot za zuze", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "1", "category": "zwrot za zuze"}
+catAdd;[];{"fltr": {"col_name": "ALL", "function": "txt_match", "filter": "ZUZA", "filter_n": "28", "oper": "add", "oper_n": "1", "kategoria": "zwrot za zuze", "filter_orig": ""}, "parent": "Grandpa"}
+catRm;[];{"oper_n": "4", "category": "kredyt"}
+catAdd;[];{"fltr": {"col_name": "opis_transakcji", "function": "txt_match", "filter": "ZUZA", "filter_n": "12", "oper": "rem", "oper_n": "4", "kategoria": "kredyt", "filter_orig": ""}, "parent": "oplaty"}
+catAdd;[];{"fltr": {"col_name": "rachunek_nadawcy", "function": "txt_match", "filter": "26 1140 2004 0000 3802 5205 2257", "filter_n": "", "oper": "lim", "oper_n": "", "kategoria": "zwrot za zuze", "filter_orig": ""}, "parent": "Grandpa"}
+treeMov;[];{"new_parent": "alimenty", "child": "zwrot za zuze"}
+catAdd;[];{"fltr": {"col_name": "typ_transakcji", "function": "txt_match", "filter": "Zakup w terminalu - kod mobilny", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "typ_transakcji", "function": "txt_match", "filter": "Zakup w terminalu - kod mobilny", "filter_n": "", "oper": "rem", "oper_n": "", "kategoria": "jedzenie na miescie", "filter_orig": ""}, "parent": "spozywka"}
+catAdd;[];{"fltr": {"col_name": "typ_transakcji", "function": "txt_match", "filter": "Zakup w terminalu - kod mobilny", "filter_n": "", "oper": "add", "oper_n": "", "kategoria": "jedzenie", "filter_orig": "Zakup w terminalu - kod mobilny"}, "parent": "spozywka"}
+catRm;[];{"oper_n": "17", "category": "jedzenie na miescie"}
+catRm;[];{"oper_n": "18", "category": "jedzenie na miescie"}
+treeRen;[];{"category": "Grandpa", "new_category": "Grandpa"}

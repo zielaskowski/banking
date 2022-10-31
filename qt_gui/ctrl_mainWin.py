@@ -3,35 +3,33 @@ controls GUI windows
 """
 import re
 from typing import Dict
-#from wsgiref.validate import validator
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QLocale
-from sqlalchemy import null
 from db import DB
-#from modules import FileSystem
 from models import DBmodelProxy
 import opt.parse_cfg as cfg
-from qt_gui.gui_classes import GUIMainWin, statusQLabel
+from qt_gui.gui_views import GUISelTree
+from qt_gui.gui_views import GUIMainWin
 from qt_gui.ctrl_plot import GUIPlot_ctrl
 from qt_gui.ctrl_stats import GUIStats_ctrl
-from qt_gui.gui_classes import statusQLabel
-from qt_gui.gui_classes import calendarQLineEdit
-from qt_gui.gui_classes import moduleDelay
-from qt_gui.gui_classes import GUISelTree
+from qt_gui.ctrl_log import statusQLabel
+from qt_gui.gui_widgets import calendarQLineEdit
+from qt_gui.gui_widgets import calendarQDateEdit
 
 
-class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
-    def __init__(self):
+
+class GUIMainWin_ctrl(QtCore.QObject):
+    def __init__(self, argv):
         # set global locale
         QLocale.setDefault(QLocale.c())
         
         self.view = GUIMainWin()
         super().__init__(self.view)
         self.view.show()
-        self.db = DB(DEBUG=True)
-        self.db.DEBUG_F = './dev/integrationTest/setTest_split.csv'
+        self.db = DB(DEBUG=False)
+        self.db.DEBUG_F = './dev/integrationTest/setTest_allFilters.csv'
         # connect signals
-        self.connect_signals()
+        self.connectSignals()
         # hide import widgets
         self.view.import_info.hide()
         self.view.import_status_btn.hide()
@@ -53,9 +51,11 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.setStat()
         self.view.db_stat_txt.setText(self.db.fs.getOpt('welcome'))
         self.restoreDB()
+        if self.db.isData():
+            [self.plot() for arg in argv if arg=='plot']
 
     # signals and connections
-    def connect_signals(self):
+    def connectSignals(self):
         self.view.installEventFilter(self)
         # file management
         self.view.openDB_btn.clicked.connect(self.openDB)
@@ -533,9 +533,9 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def split0():
             # QLineEdit start date
-            colWidget = calendarQLineEdit()
-            colWidget.setText('*')
-            colWidget.setReadOnly(True)
+            colWidget = calendarQDateEdit()
+            colWidget.setDisabled(True)
+            colWidget.setDate(self.db.dataRange())
             return colWidget
 
         def split1():
@@ -958,6 +958,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
             if cfg.GRANDPA not in self.curCat:
                 self.view.also_not_cat.setChecked(False)
+                fltr[self.db.OPER_N]='' # need to reset so next operation will not override
+                self.fill('cat', fltr)
                 self.fill_tree()
             else:
                 self.fill('cat')
@@ -1178,7 +1180,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             mod.sort(0, QtCore.Qt.AscendingOrder)
 
     # file operations
-    def __redraw__(self) -> null:
+    def __redraw__(self) -> None:
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.fill('trans')
         self.fill('split')
@@ -1200,12 +1202,12 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         # we need system specific, because we are checking for file existence
         return QtCore.QDir.toNativeSeparators(file[0])
 
-    def restoreDB(self) -> null:
+    def restoreDB(self) -> None:
         """tries to open last DB"""
         if self.db.openDB():  # return False if fail
             self.__redraw__()
 
-    def openDB(self) -> null:
+    def openDB(self) -> None:
         # save existing data
         self.saveDB()
 
@@ -1216,7 +1218,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             if self.db.openDB(path):
                 self.__redraw__()
 
-    def newDB(self) -> null:
+    def newDB(self) -> None:
         # save current data
         self.saveDB()
 
@@ -1239,7 +1241,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.__redraw__()
         self.db.msg('Created new empty DB')
 
-    def saveDB(self, file='') -> null:
+    def saveDB(self, file='') -> None:
         # DB exists?
         file = self.db.fs.setDB(file)
         if not file:  # no, so ask
@@ -1255,7 +1257,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 return False
         return self.db.writeDB(file=file)
 
-    def imp(self) -> null:
+    def imp(self) -> None:
         path = self.selFile(msg='Choose Excell file',
                             type='open',
                             fltr=self.db.fs.getIMP(ext=True))
@@ -1273,7 +1275,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             self.view.newDB_btn.setDisabled(True)
             self.view.save_asDB_btn.setDisabled(True)
 
-    def imp_commit(self, sig):
+    def imp_commit(self, sig) -> None:
         # hide import widgets
         self.view.import_info.hide()
         self.view.import_status_btn.hide()
@@ -1292,7 +1294,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.view.newDB_btn.setDisabled(False)
         self.view.save_asDB_btn.setDisabled(False)
 
-    def exp(self) -> null:
+    def exp(self) -> None:
         # export data to csv
         path = self.selFile(msg='Choose CSV file',
                             type='save',
@@ -1302,7 +1304,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             return
         self.db.exportCSV(path)
 
-    def impCatsAndTrans(self):
+    def impCatsAndTrans(self) -> None:
         path = self.selFile(msg='Choose DB file',
                             type='open',
                             fltr=self.db.fs.getIMPDB(ext=True))
@@ -1319,7 +1321,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     # GUI
-    def headerSize(self, tab_i=''):
+    def headerSize(self) -> None:
         # spread the columns, get the size, change to interactive mode and set size manualy
         header = self.view.DB_view.horizontalHeader()
         header.setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
@@ -1330,7 +1332,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 header.setDefaultSectionSize(size)
         header.setSectionResizeMode(QtWidgets.QHeaderView.Interactive)
 
-    def DBforTab(self):
+    def DBforTab(self) -> None:
         """adjust filter view according to active tab\n
         also show "new category" name QLineEdit only for proper tabs
         called by signal when tab changed
@@ -1354,7 +1356,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             self.fill(dbTxt=tabs[tab])
         self.view.new_cat_name.blockSignals(False)
 
-    def setStatusBar(self):
+    def setStatusBar(self) -> None:
         # add text messages
         self.view.msg = statusQLabel(self.db.fs)
         self.db.connect(self.view.msg.setMsg)
@@ -1380,7 +1382,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 self.search()
                 self.fill_group()
 
-    def readStat(self) -> null:
+    def readStat(self) -> None:
         """read gui status
         """
         self.db.fs.writeOpt(op='visColumns', val=self.visCol)

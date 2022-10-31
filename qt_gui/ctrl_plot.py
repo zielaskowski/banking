@@ -2,11 +2,10 @@
 controll logic for plot window
 """
 
-import imp
 from PyQt5 import QtCore
 import plotly.express as pex
 from db import DB
-from qt_gui.gui_classes import GUIPlot
+from qt_gui.gui_views import GUIPlot
 
 
 class GUIPlot_ctrl(QtCore.QObject):
@@ -20,7 +19,16 @@ class GUIPlot_ctrl(QtCore.QObject):
         self.view.show()
         self.db = db
         self.plot_test()
-
+        self.connectSignals()
+        
+    def connectSignals(self):
+        self.view.startDate.dateChanged.connect(self.changeDate)
+        self.view.endDate.dateChanged.connect(self.changeDate)
+    
+    def changeDate(self):
+        self.startDate = self.view.startDate.getDateStr()
+        self.endDate = self.view.endDate.getDateStr()
+    
     def plot_test(self):
         df = pex.data.iris()
         fig = pex.scatter(df, x="sepal_width", y="sepal_length")

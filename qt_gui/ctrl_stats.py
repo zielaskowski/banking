@@ -5,9 +5,9 @@ control logic for stats window
 import pandas
 import plotly as pex
 from bs4 import BeautifulSoup as bs
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui
 from db import DB
-from qt_gui.gui_classes import GUIStats
+from qt_gui.gui_views import GUIStats
 
 
 class GUIStats_ctrl(QtCore.QObject):

@@ -332,7 +332,6 @@ class OP(COMMON):
 
         cats = set([c[self.CATEGORY]
                     for c in change])
-        # self.__rmCat__(cats)
 
         # arrange by filter_n !!!!
         cats = sorted(cats, key=lambda x: [int(f[self.FILTER_N])
@@ -537,23 +536,6 @@ class CAT(COMMON):
         if category:
             self.setCat(category)
         return self.cat.loc[self.catRows, :].to_dict('records')
-
-    def __restore__(self, trans: List[Dict]):
-        # restore cat filters to original (before any transform)
-        # necessery when playing with transform
-        # filter_original not enough when cat created AFTER filter
-
-        # warn when removing filter with val2 in cat filter and filter==filter_orig
-        affCats = np.array(self.cat.loc[:, self.FILTER] == trans[0][self.VAL2])
-        origCats = np.array(self.cat[self.FILTER]
-                            == self.cat[self.FILTER_ORIG])
-
-        probCats = self.cat.loc[affCats & origCats, self.CATEGORY].to_list()
-        if probCats:
-            self.parent.msg(
-                f'This operation may have invalidated the category: {list(set(probCats))}. Please check.')
-
-        self.cat[self.FILTER] = self.cat[self.FILTER_ORIG]
 
     def __len__(self):
         return len(self.cat.loc[self.catRows, :])
@@ -997,7 +979,7 @@ class TREE(COMMON):
             subset=self.CATEGORY, keep='first', inplace=True)
         return True
 
-    def ren(self, category: str, new_category: str):
+    def ren(self, category: str, new_category: str) -> bool:
         """rename category (also the one present in parent column)
         - can't change cat name to any of cat's child
         - can't change cat to it's parent
@@ -1008,12 +990,12 @@ class TREE(COMMON):
 
         if category == cfg.GRANDPA:
             self.par.msg(f'tree.ren(): Not allowed to rename "{category}".')
-            return
+            return False
 
         if new_category in forbidden:
             self.par.msg(
                 f'tree.ren(): Not allowed to rename into child or parent')
-            return
+            return False
 
         catRows = self.tree.loc[:, self.CATEGORY] == category
         parRows = self.tree.loc[:, self.CAT_PARENT] == category
@@ -1160,7 +1142,6 @@ class SPLIT(COMMON):
         super().__init__()
         self.parent = parent
         self.split = pandas.DataFrame(columns=cfg.split_col)
-        self.validSplit = pandas.DataFrame(columns=[self.SPLIT_N, 'valid'])
         self.impSplit = [cfg.GRANDPA]
         self.splitRows = []
         self.setSplit(category=['*'])
@@ -1255,29 +1236,28 @@ class SPLIT(COMMON):
         else:
             return []  # must be list because may be send to op.__update__
 
-    def ren(self, new_category: str, category: str) -> List[Union[Dict, None]]:
+    def ren(self, new_category: str, category: str) -> bool:
         '''
         rename split category, but also categories in filter
         return split categories, but also catrgoies in filter
         '''
-        self.setSplit(category=[new_category])
-        newCatRows = self.splitRows
-        self.setSplit(category=[category])
-        oldCatRows = self.splitRows
-        if not any(oldCatRows | newCatRows):
-            return []
-
         if category in [cfg.GRANDPA, '*']:
             self.parent.msg(
                 f'split.ren: Not allowed operation on {cfg.GRANDPA}. Select one of the categories first.')
-            return []
+            return False
 
+        self.setSplit(category=[category])
+        if any(self.split.loc[self.splitRows, self.FILTER].isin([new_category])):
+            # not allowed to change cat to filter of split
+            # this way split would split itself
+            self.parent.msg(f'not allowed to change name to split filter reference')
+            return False
+        
         self.split.loc[self.splitRows, self.CATEGORY] = new_category
 
         self.setSplit(fltr=[category])
         self.split.loc[self.splitRows, self.FILTER] = new_category
-
-        return self.__to_dict__(category=[new_category])
+        return True
 
     def __validate__(self, db, dupComplain=True) -> pandas:
         """validate split DB. returns DB if ok or empty (when found duplicates)
@@ -1517,31 +1497,30 @@ class DB(COMMON):
             return False
 
         allTrans = self.trans.rm(trans_n)
-        self.msg(
-            f'impacted categories: {self.cat.__update__(allTrans, update=False)}')
-
+        
         self.__updateDB__(full=True)
         return True
 
     @writeOp
     def transMov(self, trans_n: int, new_trans_n: int) -> bool:
         allTrans = self.trans.mov(trans_n, new_trans_n)
-        self.msg(
-            f'impacted categories: {self.cat.__update__(allTrans,update=False)}')
+
         self.__updateDB__(full=True)
         return True
 
     @writeOp
     def treeRen(self, new_category: str, category: str) -> bool:
-        if not self.tree.ren(category, new_category):
-            return False
-
-        # need also change split filter, may refer to changed cat
-        self.split.ren(new_category, category)
-        self.cat.ren(new_category, category)
-
-        self.__updateDB__(full=False)
-        return True
+        parent = self.tree.parent(category)
+        if self.tree.ren(category, new_category):
+            # need also change split filter, may refer to changed cat
+            if self.split.ren(new_category, category):
+                self.cat.ren(new_category, category)    
+                self.__updateDB__(full=False)
+                return True
+            else:
+                # split failed so restore old cat
+                self.tree.add(parent=parent, child=category)
+        return False
 
     @writeOp
     def treeAdd(self, parent: str, child: str) -> bool:
