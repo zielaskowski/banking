@@ -13,12 +13,13 @@ from qt_gui.gui_views import GUIMainWin
 from qt_gui.ctrl_plot import GUIPlot_ctrl
 from qt_gui.ctrl_stats import GUIStats_ctrl
 from qt_gui.ctrl_log import statusQLabel
-from qt_gui.gui_widgets import calendarQLineEdit
+from qt_gui.gui_widgets import disQLineEdit
+from qt_gui.gui_widgets import disQComboBox
 from qt_gui.gui_widgets import calendarQDateEdit
+from qt_gui.gui_widgets import moduleDelay
 
 
-
-class GUIMainWin_ctrl(QtCore.QObject):
+class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
     def __init__(self, argv):
         # set global locale
         QLocale.setDefault(QLocale.c())
@@ -131,7 +132,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
         - if user closed the window\n
         - if user resize the window\n
         """
-        # QlineEdit has no click event!!
         # exit
         if event.type() == QtCore.QEvent.Close:
             self.saveDB()
@@ -424,7 +424,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def trans0():
             # QtWidget:combo, col_name:BANK
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             it = list(cfg.bank)
             it.append(cfg.bank_names_all)
             colWidget.insertItems(-1, it)
@@ -433,7 +433,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def trans1():
             # QtWidget:combo, col_name:COL_NAME
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             it = cfg.cat_col_names.copy()
             # don't mess with categories
             if self.db.CATEGORY in it:
@@ -446,7 +446,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def trans2():
             # QtWidget:combo, col_name:OPER
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             it = self.db.trans.opers()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
@@ -454,7 +454,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def trans3():
             # QtWidget:lineEdit, col_name:val1
-            colWidget = QtWidgets.QLineEdit()
+            colWidget = disQLineEdit()
             return colWidget
 
         def trans4():
@@ -467,7 +467,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def cat0():
             # QtWidget:combo, col_name:col_name
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             it = cfg.cat_col_names.copy()
             # add ALL column names
             it.append(cfg.cat_col_all)
@@ -477,7 +477,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def cat1():
             # QtWidget:lineEdit, function:selector
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             it = self.db.cat.fltrs()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
@@ -485,7 +485,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def cat2():
             # QtWidget:combo, col_name:filter
-            colWidget = QtWidgets.QLineEdit()
+            colWidget = disQLineEdit()
             return colWidget
 
         def cat3():
@@ -494,7 +494,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def cat4():
             # QtWidget:combo, col_name:oper
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             it = self.db.cat.opers()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
@@ -518,7 +518,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
             else:
                 cat = self.curCat
             data = self.db.op.groupData(col=self.visCol[col_n], category=cat)
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             colWidget.insertItems(-1, data)
             colWidget.setEditable(False)
             colWidget.textActivated.connect(self.addFltr_fromGR)
@@ -526,25 +526,25 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def tree1():
             # widget for column header in tree
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             colWidget.insertItems(-1, self.db.op.sumData())
             colWidget.setEditable(False)
             return colWidget
 
         def split0(startEndDate=0):
-            # QLineEdit start date
+            # QDateEdit start date
             colWidget = calendarQDateEdit()
-            colWidget.setDisabled(True)
-            colWidget.setStrDate(self.db.dataRange()[startEndDate])
+            colWidget.setDisabled(False)
+            colWidget.setDate(self.db.dataRange()[startEndDate])
             return colWidget
 
         def split1():
-            # QLineEdit end date
+            # QEdit end date
             return split0(startEndDate=1)
 
         def split2():
             # QComboWidget col_name
-            colWidget = QtWidgets.QComboBox()
+            colWidget = disQComboBox()
             it = [self.db.CATEGORY, self.db.HASH]
             colWidget.insertItems(-1, it)
 
@@ -556,8 +556,8 @@ class GUIMainWin_ctrl(QtCore.QObject):
             return colWidget
 
         def split3():
-            # QLineEdit filter
-            colWidget = QtWidgets.QComboBox()
+            # QComboBox filter
+            colWidget = disQComboBox()
             it = self.db.tree.allChild().keys()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
@@ -565,13 +565,13 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def split4():
             # QLineEdit value
-            colWidget = QtWidgets.QLineEdit()
+            colWidget = disQLineEdit()
             colWidget.setValidator(QtGui.QDoubleValidator(top=0, decimals=2))
             return colWidget
 
         def split5():
             # QLineEdit days
-            colWidget = QtWidgets.QLineEdit()
+            colWidget = disQLineEdit()
             if self.db.op.op.empty:
                 totDays = 0
             else:
@@ -584,7 +584,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
 
         def split6():
             # QLineEdit split_n
-            colWidget = QtWidgets.QLineEdit()
+            colWidget = disQLineEdit()
             return colWidget
 
         def split7():
@@ -594,7 +594,7 @@ class GUIMainWin_ctrl(QtCore.QObject):
         def split100():
             # special case when spliting by hash
             # QtWidget:Qline, col_name:filter
-            colWidget = QtWidgets.QLineEdit()
+            colWidget = disQLineEdit()
             colWidget.setReadOnly(True)
             return colWidget
 
@@ -604,12 +604,6 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget = eval(tabName + '()')
         else:
             colWidget = eval(tabName + str(col_n) + '()')
-        if colWidget:
-            colWidget.setStyleSheet("background-color: rgb(26, 255, 14); "
-                                    "color: rgb(0,0,0); "
-                                    "selection-background-color: rgb(255, 255, 255); "
-                                    "selection-color: rgb(0, 0, 0);")
-
         return colWidget
 
     def fill(self, dbTxt: str, fltr={}):
@@ -1120,17 +1114,14 @@ class GUIMainWin_ctrl(QtCore.QObject):
             if widget_name in fltr.keys():
                 # do not raise events when changing widgets
                 widget.blockSignals(True)
-                if isinstance(widget, QtWidgets.QComboBox):
+                if fltr[widget_name] == 'disable':
+                        widget.setDisabled(True)
+                elif isinstance(widget, QtWidgets.QComboBox):
                     widget.setCurrentText(fltr[widget_name])
                 elif isinstance(widget, QtWidgets.QLineEdit):
-                    if fltr[widget_name] == 'disable':
-                        widget.setDisabled(True)
-                        widget.setStyleSheet("background-color: rgb(146, 146, 146); "
-                                             "color: rgb(146,146,146); "
-                                             "selection-background-color: rgb(255, 255, 255); "
-                                             "selection-color: rgb(0, 0, 0);")
-                    else:
-                        widget.setText(fltr[widget_name])
+                    widget.setText(fltr[widget_name])
+                elif isinstance(widget, QtWidgets.QDateEdit):
+                    widget.setDate(fltr[widget_name])
                 widget.blockSignals(False)
 
     def markFltrColors(self):

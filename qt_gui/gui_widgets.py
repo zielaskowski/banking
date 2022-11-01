@@ -6,6 +6,27 @@ from qt_gui.design.calendar import Ui_calendar
 from pandas import Timestamp
 from typing import Union
 
+
+class Style():
+    """set colors on widgets
+    """
+    def __init__(self) -> None:
+        self.disabledStyle = "background-color: rgb(146, 146, 146); \
+                            color: rgb(200,200,200); \
+                            selection-background-color: rgb(146, 146, 146); \
+                            selection-color: rgb(200, 200, 200);"
+        self.activeStyle = "background-color: rgb(26, 255, 14); \
+                            color: rgb(0,0,0); \
+                            selection-background-color: rgb(255, 255, 255); \
+                            selection-color: rgb(0, 0, 0);"
+
+    def setWidgetColors(self) -> None:
+        if self.isDisabled:
+            self.setStyleSheet(self.disabledStyle)
+        else:
+            self.setStyleSheet(self.activeStyle)
+
+
 class GUICalendar(QtWidgets.QDialog, Ui_calendar):
     """
     display small calendar widget (dialog) to select dates
@@ -52,10 +73,14 @@ class moduleDelay():
         self.timer.start(delay)
 
 
-class calendarQDateEdit(QtWidgets.QDateEdit):
+class calendarQDateEdit(QtWidgets.QDateEdit, Style):
     def __init__(self, *argv, **kwargs):
         super().__init__(*argv, **kwargs)
+        self.setSpecialValueText('any')  # used when set to not limit date
+        self.setMinimumDate(QtCore.QDate.fromString(
+            '1901-01-01', QtCore.Qt.ISODate))
         self.isDisabled = False
+        self.setWidgetColors()
 
     def getDateStr(self) -> str:
         """return date in string format
@@ -69,50 +94,51 @@ class calendarQDateEdit(QtWidgets.QDateEdit):
         self.isDisabled = isDisabled
         if isDisabled:
             self.cal = '*'
-            self.setStyleSheet("background-color: rgb(146, 146, 146); "
-                               "color: rgb(200,200,200); "
-                               "selection-background-color: rgb(146, 146, 146); "
-                               "selection-color: rgb(200, 200, 200);")
         else:
             self.cal = self.date().toString(QtCore.Qt.ISODate)
-            self.setStyleSheet("background-color: rgb(255, 255, 255); "
-                               "color: rgb(0,0,0); "
-                               "selection-background-color: rgb(61, 174, 233); "
-                               "selection-color: rgb(0, 0, 0);")
+        self.setWidgetColors()
 
-    def setStrDate(self, date: Union[str, Timestamp]) -> None:
+    def setDate(self, date: Union[str, Timestamp, QtCore.QDate]) -> None:
         if isinstance(date, Timestamp):
             date = date.strftime('%Y-%m-%d')
-        self.setDate(QtCore.QDate.fromString(
-            date, QtCore.Qt.ISODate))
+        if isinstance(date, str):
+            date = QtCore.QDate.fromString(date, QtCore.Qt.ISODate)
+        self.setWidgetColors()
+        return super().setDate(date)
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
-        cal = GUICalendar()
-        if cal.exec_():
-            self.blockSignals(True)
-            if cal.dat == '*':
-                self.setDisabled(True)
-            else:
-                self.setDisabled(False)
-                self.setStrDate(cal.dat)
-            self.blockSignals(False)
-            self.dateChanged.emit(self.date())
-
-
-class calendarQLineEdit(QtWidgets.QLineEdit):
-    """reimplement QLineWidget to add click event
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.disabled = False
-
-    def setDisabled(self, isDisable: bool) -> None:
-        self.disabled = isDisable
-
-    def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
-        if not self.disabled:
+        if not self.isDisabled:
             cal = GUICalendar()
             if cal.exec_():
-                self.setText(cal.dat)
-        return super().mousePressEvent(ev)
+                self.blockSignals(True)
+                if cal.dat == '*':
+                    self.setDate('1900-01-01')
+                else:
+                    self.setDisabled(False)
+                    self.setDate(cal.dat)
+                self.blockSignals(False)
+        self.dateChanged.emit(self.date())
+
+
+class disQLineEdit(QtWidgets.QLineEdit, Style):
+    def __init__(self, *argv, **kwargs):
+        super().__init__(*argv, **kwargs)
+        self.isDisabled = False
+        self.setWidgetColors()
+
+    def setDisabled(self, isDisabled: bool) -> None:
+        self.isDisabled = isDisabled
+        self.setWidgetColors()
+        return super().setDisabled(isDisabled)
+
+
+class disQComboBox(QtWidgets.QComboBox, Style):
+    def __init__(self, *argv, **kwargs):
+        super().__init__(*argv, **kwargs)
+        self.isDisabled = False
+        self.setWidgetColors()
+
+    def setDisabled(self, isDisabled: bool) -> None:
+        self.isDisabled = isDisabled
+        self.setWidgetColors(self)
+        return super().setDisabled(isDisabled)
