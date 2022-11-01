@@ -3,7 +3,8 @@ re-define (modify) standard widgets
 """
 from PyQt5 import QtWidgets, QtCore, QtGui
 from qt_gui.design.calendar import Ui_calendar
-
+from pandas import Timestamp
+from typing import Union
 
 class GUICalendar(QtWidgets.QDialog, Ui_calendar):
     """
@@ -55,7 +56,7 @@ class calendarQDateEdit(QtWidgets.QDateEdit):
     def __init__(self, *argv, **kwargs):
         super().__init__(*argv, **kwargs)
         self.isDisabled = False
-    
+
     def getDateStr(self) -> str:
         """return date in string format
         """
@@ -79,6 +80,12 @@ class calendarQDateEdit(QtWidgets.QDateEdit):
                                "selection-background-color: rgb(61, 174, 233); "
                                "selection-color: rgb(0, 0, 0);")
 
+    def setStrDate(self, date: Union[str, Timestamp]) -> None:
+        if isinstance(date, Timestamp):
+            date = date.strftime('%Y-%m-%d')
+        self.setDate(QtCore.QDate.fromString(
+            date, QtCore.Qt.ISODate))
+
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         cal = GUICalendar()
         if cal.exec_():
@@ -87,8 +94,7 @@ class calendarQDateEdit(QtWidgets.QDateEdit):
                 self.setDisabled(True)
             else:
                 self.setDisabled(False)
-                self.setDate(QtCore.QDate.fromString(
-                    cal.dat, QtCore.Qt.ISODate))
+                self.setStrDate(cal.dat)
             self.blockSignals(False)
             self.dateChanged.emit(self.date())
 

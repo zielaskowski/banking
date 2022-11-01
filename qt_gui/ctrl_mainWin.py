@@ -531,16 +531,16 @@ class GUIMainWin_ctrl(QtCore.QObject):
             colWidget.setEditable(False)
             return colWidget
 
-        def split0():
+        def split0(startEndDate=0):
             # QLineEdit start date
             colWidget = calendarQDateEdit()
             colWidget.setDisabled(True)
-            colWidget.setDate(self.db.dataRange())
+            colWidget.setStrDate(self.db.dataRange()[startEndDate])
             return colWidget
 
         def split1():
             # QLineEdit end date
-            return split0()
+            return split0(startEndDate=1)
 
         def split2():
             # QComboWidget col_name
