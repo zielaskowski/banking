@@ -6,12 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>961</width>
-    <height>675</height>
+    <width>986</width>
+    <height>679</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
+  </property>
+  <property name="statusTip">
+   <string>blas</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
@@ -54,7 +57,17 @@
        </widget>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_3"/>
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </item>
@@ -101,15 +114,24 @@
          </widget>
         </item>
         <item>
-         <widget class="QSlider" name="startDateSlide">
+         <widget class="calendarQSlider" name="startDateSlide">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="statusTip">
+           <string/>
+          </property>
+          <property name="pageStep">
+           <number>12</number>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="tickPosition">
+           <enum>QSlider::TicksBothSides</enum>
           </property>
          </widget>
         </item>
@@ -131,7 +153,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QSlider" name="endDateSlide">
+         <widget class="calendarQSlider" name="endDateSlide">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -140,6 +162,9 @@
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="tickPosition">
+           <enum>QSlider::TicksBothSides</enum>
           </property>
          </widget>
         </item>
@@ -170,7 +195,12 @@
   <customwidget>
    <class>calendarQDateEdit</class>
    <extends>QDateEdit</extends>
-   <header location="global">qt_gui.gui_widgets</header>
+   <header>qt_gui.gui_widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>calendarQSlider</class>
+   <extends>QSlider</extends>
+   <header>qt_gui.gui_widgets</header>
   </customwidget>
  </customwidgets>
  <resources/>

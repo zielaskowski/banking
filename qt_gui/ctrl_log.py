@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtGui
 from qt_gui.gui_views import GUILog
 from qt_gui.gui_widgets import moduleDelay
 

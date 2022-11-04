@@ -23,12 +23,17 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
     def __init__(self, argv):
         # set global locale
         QLocale.setDefault(QLocale.c())
-        
+
         self.view = GUIMainWin()
         super().__init__(self.view)
         self.view.show()
         self.db = DB(DEBUG=False)
         self.db.DEBUG_F = './dev/integrationTest/setTest_allFilters.csv'
+        # tab names
+        self.tabsName = {0: 'data',
+                         1: 'trans',
+                         2: 'cat',
+                         3: 'split'}
         # connect signals
         self.connectSignals()
         # hide import widgets
@@ -53,7 +58,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.view.db_stat_txt.setText(self.db.fs.getOpt('welcome'))
         self.restoreDB()
         if self.db.isData():
-            [self.plot() for arg in argv if arg=='plot']
+            [self.plot() for arg in argv if arg == 'plot']
 
     # signals and connections
     def connectSignals(self):
@@ -211,7 +216,6 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 if op == 'selected transaction':
                     # need to modify wiget to QLine
                     # so can write hash number
-                    #self.fill(dbTxt='split', hashSplit=self.db.HASH)
                     self.view.label_3.hide()
                     fltr[self.db.COL_NAME] = self.db.HASH
                     fltr[self.db.FILTER] = hashRow
@@ -226,12 +230,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                         # ...and rem on 2nd
                         fltr[self.db.OPER] = self.db.cat.opers()[2]
 
-        if self.view.tabMenu.currentIndex() == 2:  # 'categorize'
-            self.fill('cat', fltr)
-        elif self.view.tabMenu.currentIndex() == 1:  # wrangling
-            self.fill('trans', fltr)
-        elif self.view.tabMenu.currentIndex() == 3:  # split
-            self.fill('split', fltr)
+        self.fill(self.tabsName[self.view.tabMenu.currentIndex()], fltr)
 
     def DB_headerContextMenu(self, position):
         """create context menu on DB_cat_view\n
@@ -618,14 +617,14 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             if fltr and fltr[self.db.COL_NAME] == self.db.HASH:
                 fltr[self.db.FILTER] = 'right click on transaction to split'
 
-        if fltr and fltr[self.db.COL_NAME] == self.db.HASH :
+        if fltr and fltr[self.db.COL_NAME] == self.db.HASH:
             singleSplit = True
             fltr[self.db.START] = 'disable'
             fltr[self.db.END] = 'disable'
             fltr[self.db.DAYS] = 'disable'
         else:
             singleSplit = False
-            
+
         if dbTxt == 'trans':
             hideCols = [self.db.TRANS_N]
         elif dbTxt == 'cat':
@@ -842,14 +841,10 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         triggered by enter in category name QLineEdit
         based on current tab will choose addCat or addSplit
         '''
-        tabs = {0: 'data',
-                1: 'trans',
-                2: 'cat',
-                3: 'split'}
-        tab = self.view.tabMenu.currentIndex()
-        if tabs[tab] == 'cat':
+        tab = self.tabsName[self.view.tabMenu.currentIndex()]
+        if tab == 'cat':
             self.addFltr()
-        if tabs[tab] == 'split':
+        if tab == 'split':
             self.addSplit()
 
     def addTrans(self):
@@ -952,7 +947,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
             if cfg.GRANDPA not in self.curCat:
                 self.view.also_not_cat.setChecked(False)
-                fltr[self.db.OPER_N]='' # need to reset so next operation will not override
+                # need to reset so next operation will not override
+                fltr[self.db.OPER_N] = ''
                 self.fill('cat', fltr)
                 self.fill_tree()
             else:
@@ -1115,7 +1111,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 # do not raise events when changing widgets
                 widget.blockSignals(True)
                 if fltr[widget_name] == 'disable':
-                        widget.setDisabled(True)
+                    widget.setDisabled(True)
                 elif isinstance(widget, QtWidgets.QComboBox):
                     widget.setCurrentText(fltr[widget_name])
                 elif isinstance(widget, QtWidgets.QLineEdit):

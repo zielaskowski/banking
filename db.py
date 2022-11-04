@@ -1813,7 +1813,7 @@ class DB(COMMON):
         return True
 
 # info methods
-    def dataRange(self, bank=[]) -> list:
+    def dataRange(self, bank=[]) -> List[str]:
         """return data range for selected bank
         if bank not selected check min max among all banks
         return list [start_dat, end_date]
@@ -1827,7 +1827,7 @@ class DB(COMMON):
         for b in bank[1:]:
             datMin = min(datMin, self.imp.imp[b][self.DATA_OP].min())
             datMax = max(datMax, self.imp.imp[b][self.DATA_OP].max())
-        return [datMin, datMax]
+        return [datMin.strftime('%Y-%m-%d'), datMax.strftime('%Y-%m-%d')]
 
     def dataBanks(self) -> list:
         """return available banks imported"""
