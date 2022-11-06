@@ -21,16 +21,17 @@ class GUIPlot_ctrl(QtCore.QObject, moduleDelay):
         self.db = db
         self.startDate, self.endDate = self.str2Qdate(
             db.dataRange())
-
+        self.view.startDate.setSpecialValueText('')
+        self.view.endDate.setSpecialValueText('')
         # set min max dates
         self.view.startDate.setDate(self.startDate)
-        self.view.startDate.setLimits(
-            start=self.startDate,
-            end=self.endDate)
+        self.view.startDate.setDateRange(
+            self.startDate,
+            self.endDate)
         self.view.endDate.setDate(self.endDate)
-        self.view.endDate.setLimits(
-            start=self.startDate,
-            end=self.endDate)
+        self.view.endDate.setDateRange(
+            self.startDate,
+            self.endDate)
         self.view.startDateSlide.setSlider(
             start=self.startDate,
             end=self.endDate)
@@ -41,6 +42,8 @@ class GUIPlot_ctrl(QtCore.QObject, moduleDelay):
         # relate widgets between each other
         self.view.startDate.setMaxWidget(self.view.endDate)
         self.view.endDate.setMinWidget(self.view.startDate)
+        self.view.startDateSlide.setMaxValWidget(self.view.endDateSlide)
+        self.view.endDateSlide.setMinValWidget(self.view.startDateSlide)
 
         self.connectSignals()
         self.plot_test()
@@ -69,14 +72,15 @@ class GUIPlot_ctrl(QtCore.QObject, moduleDelay):
         self.view.startDateSlide.valueChanged.connect(
             lambda: self.view.startDate.setDate(self.view.startDateSlide.getDate()))
         self.view.endDateSlide.valueChanged.connect(
-            lambda: self.view.endDate.setDate(self.view.endDateSlide.getDate()))
+            lambda: self.view.endDate.setDate(self.view.endDateSlide.getDate(40)))
 
     def changeDate(self):
-        self.startDate = self.view.startDate.date()
-        self.endDate = self.view.endDate.date()
-        self.view.startDateSlide.update(self.startDate)
-        self.view.endDateSlide.update(self.endDate)
-        self.setDelay(self.plot_test, 800)
+        # self.startDate = self.view.startDate.date()
+        # self.endDate = self.view.endDate.date()
+        # self.view.startDateSlide.update(self.startDate)
+        # self.view.endDateSlide.update(self.endDate)
+        # self.setDelay(self.plot_test, 800)
+        pass
 
     def plot_test(self):
         df = pex.data.iris()

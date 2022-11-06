@@ -84,32 +84,10 @@ class calendarQDateEdit(QtWidgets.QDateEdit, Style):
         self.setWidgetColors()
 
     def setMaxWidget(self, widget: QtWidgets.QDateEdit):
-        def updWidget():
-            self.setMaximumDate(widget.date())
-            if widget.date() < self.date():
-                self.blockSignals(True)
-                self.setDate(widget.date())
-                self.blockSignals(False)
-        widget.dateChanged.connect(updWidget)
+        widget.dateChanged.connect(lambda: self.setMaximumDate(widget.date()))
 
     def setMinWidget(self, widget: QtWidgets.QDateEdit):
-        def updWidget():
-            self.setMinimumDate(widget.date())
-            if widget.date() > self.date():
-                self.blockSignals(True)
-                self.setDate(widget.date())
-                self.blockSignals(False)
-        widget.dateChanged.connect(updWidget)
-
-    def setLimits(self, start: QtCore.QDate, end: QtCore.QDate) -> None:
-        self.setMaximumDate(end)
-        self.setMinimumDate(start)
-
-    def setMaximumDate(self, end: QtCore.QDate) -> None:
-        return super().setMaximumDate(end.addDays(+1))
-
-    def setMinimumDate(self, min: QtCore.QDate) -> None:
-        return super().setMinimumDate(min.addDays(-1))
+        widget.dateChanged.connect(lambda: self.setMinimumDate(widget.date()))
 
     def getDateStr(self) -> str:
         """return date in string format
@@ -129,9 +107,7 @@ class calendarQDateEdit(QtWidgets.QDateEdit, Style):
         if isinstance(date, str):
             date = QtCore.QDate.fromString(date, QtCore.Qt.ISODate)
         self.setWidgetColors()
-        #self.blockSignals(True)
         super().setDate(date)
-        #self.blockSignals(False)
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         if not self.isDisabled:
@@ -178,11 +154,17 @@ class calendarQSlider(QtWidgets.QSlider):
         super().__init__(*argv, **kwargs)
         self.startDate = QtCore.QDate()
 
-    # def setMinWidget(self, widget: QtWidgets.QSlider):
-    #     widget.valueChanged.connect(lambda:self.setMaxVal)
+    def setMinValWidget(self, widget: QtWidgets.QSlider):
+        def updVal():
+            if widget.getDate() > self.getDate():
+                self.update(widget.getDate())
+        widget.valueChanged.connect(updVal)
 
-    # def setMaxWidget(self, widget: QtWidgets.QSlider):
-    #     pass
+    def setMaxValWidget(self, widget: QtWidgets.QSlider):
+        def updVal():
+            if widget.getDate() < self.getDate():
+                self.update(widget.getDate())
+        widget.valueChanged.connect(updVal)
 
     def setSlider(self, start: QtCore.QDate, end: QtCore.QDate, val=None):
         """set limits for slider based on provided dates
@@ -209,7 +191,12 @@ class calendarQSlider(QtWidgets.QSlider):
         self.setValue(self.months(date) - self.months(self.startDate))
         self.blockSignals(False)
 
-    def getDate(self) -> QtCore.QDate:
+    def getDate(self, days=1) -> QtCore.QDate:
         """return slider position as QDate
         """
-        return self.startDate.addMonths(self.value())
+        date = self.startDate.addMonths(self.value())
+        nextMonth = date.addMonths(1)
+        daysInMonth = date.daysTo(nextMonth)
+        if days > daysInMonth:
+            days = daysInMonth
+        return date.addDays(days-1)

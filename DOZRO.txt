@@ -1,3 +1,9 @@
+user startdate change
+set min on enddate
+
+set
+
+
 remove filter orig
 
 speedup db updates by numpy?

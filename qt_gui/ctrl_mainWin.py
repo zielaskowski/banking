@@ -808,7 +808,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         self.setCatInput()
         self.view.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         # update progress bar
-        self.view.prog.setValue(self.db.dataRows()[1] * 100)
+        self.view.prog.setValue(int(self.db.dataRows()[1] * 100))
 
     # categorizing
     def setCatInput(self):
