@@ -234,7 +234,7 @@ class OP(COMMON):
         """
         if self.op.empty:
             return ['empty']
-        # categorize only strrings
+        # categorize only strings
         dtName = self.op[col].dtypes.name
         if dtName != 'string':
             return ['n/a']

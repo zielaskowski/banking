@@ -166,14 +166,16 @@ class calendarQSlider(QtWidgets.QSlider):
                 self.update(widget.getDate())
         widget.valueChanged.connect(updVal)
 
-    def setSlider(self, start: QtCore.QDate, end: QtCore.QDate, val=None):
+    def setSlider(self, start: QtCore.QDate, end: QtCore.QDate, val=0):
         """set limits for slider based on provided dates
         tick is one month, page is year
         Args:
-            start (str): start date as str ISO format yyy-mm-dd
-            end (str): end date as str ISO format yyy-mm-dd
+            start (QDate): start date as QDate
+            end (QDate): end date as QDate
+            val (int): set position of slider
         """
         self.startDate = start
+        self.setPageStep = 12
         self.setMinimum(0)
         self.setMaximum(self.months(end) - self.months(start))
         if val:

@@ -1,8 +1,6 @@
-user startdate change
-set min on enddate
+protect tree.allChild against wrong catStart
 
-set
-
+how duplicate cats are handled by tree
 
 remove filter orig
 
