@@ -16,14 +16,15 @@ class testDBfromFile(ut.TestCase):
         ####
         # select test suite
         #self.DEBUG_F = './dev/integrationTest/setTest_cat.csv'
-        self.DEBUG_F = './dev/integrationTest/setTest_split.csv'
+        #self.DEBUG_F = './dev/integrationTest/setTest_split.csv'
+        self.DEBUG_F = './dev/integrationTest/setTest_allFilters.csv'
         ####
         self.DEBUG_Fn = re.sub("^.*(?=\/)\/", "", self.DEBUG_F) #remove path
         self.DEBUG_Fn = re.sub("\.[^\.]*$", "", self.DEBUG_Fn) #remove file ext
         ####################################
         # use write==True when setting test environment (fixtures)
         # after, use write==False for real testing
-        self.write = False
+        self.write = True
         ####################################
         self.read = not self.write
         self.fixtures = {}

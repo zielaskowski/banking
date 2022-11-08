@@ -13,8 +13,8 @@ from qt_gui.gui_views import GUIMainWin
 from qt_gui.ctrl_plot import GUIPlot_ctrl
 from qt_gui.ctrl_stats import GUIStats_ctrl
 from qt_gui.ctrl_log import statusQLabel
-from qt_gui.gui_widgets import disQLineEdit
-from qt_gui.gui_widgets import disQComboBox
+from qt_gui.gui_widgets import betterLineEdit
+from qt_gui.gui_widgets import betterComboBox
 from qt_gui.gui_widgets import calendarQDateEdit
 from qt_gui.gui_widgets import moduleDelay
 
@@ -423,7 +423,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def trans0():
             # QtWidget:combo, col_name:BANK
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             it = list(cfg.bank)
             it.append(cfg.bank_names_all)
             colWidget.insertItems(-1, it)
@@ -432,7 +432,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def trans1():
             # QtWidget:combo, col_name:COL_NAME
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             it = cfg.cat_col_names.copy()
             # don't mess with categories
             if self.db.CATEGORY in it:
@@ -445,7 +445,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def trans2():
             # QtWidget:combo, col_name:OPER
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             it = self.db.trans.opers()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
@@ -453,7 +453,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def trans3():
             # QtWidget:lineEdit, col_name:val1
-            colWidget = disQLineEdit()
+            colWidget = betterLineEdit()
             return colWidget
 
         def trans4():
@@ -466,7 +466,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def cat0():
             # QtWidget:combo, col_name:col_name
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             it = cfg.cat_col_names.copy()
             # add ALL column names
             it.append(cfg.cat_col_all)
@@ -475,16 +475,16 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             return colWidget
 
         def cat1():
-            # QtWidget:lineEdit, function:selector
-            colWidget = disQComboBox()
+            # QtWidget:combo, function:selector
+            colWidget = betterComboBox()
             it = self.db.cat.fltrs()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
             return colWidget
 
         def cat2():
-            # QtWidget:combo, col_name:filter
-            colWidget = disQLineEdit()
+            # QtWidget:lineEdit, col_name:filter
+            colWidget = betterLineEdit()
             return colWidget
 
         def cat3():
@@ -493,7 +493,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def cat4():
             # QtWidget:combo, col_name:oper
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             it = self.db.cat.opers()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
@@ -517,7 +517,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             else:
                 cat = self.curCat
             data = self.db.op.groupData(col=self.visCol[col_n], category=cat)
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             colWidget.insertItems(-1, data)
             colWidget.setEditable(False)
             colWidget.textActivated.connect(self.addFltr_fromGR)
@@ -525,7 +525,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def tree1():
             # widget for column header in tree
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             colWidget.insertItems(-1, self.db.op.sumData())
             colWidget.setEditable(False)
             return colWidget
@@ -534,7 +534,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
             # QDateEdit start date
             colWidget = calendarQDateEdit()
             colWidget.setDisabled(False)
-            colWidget.setDate(self.db.dataRange()[startEndDate])
+            colWidget.setText(self.db.dataRange()[startEndDate])
             return colWidget
 
         def split1():
@@ -543,7 +543,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def split2():
             # QComboWidget col_name
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             it = [self.db.CATEGORY, self.db.HASH]
             colWidget.insertItems(-1, it)
 
@@ -556,7 +556,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def split3():
             # QComboBox filter
-            colWidget = disQComboBox()
+            colWidget = betterComboBox()
             it = self.db.tree.allChild().keys()
             colWidget.insertItems(-1, it)
             colWidget.setEditable(False)
@@ -564,13 +564,13 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def split4():
             # QLineEdit value
-            colWidget = disQLineEdit()
+            colWidget = betterLineEdit()
             colWidget.setValidator(QtGui.QDoubleValidator(top=0, decimals=2))
             return colWidget
 
         def split5():
             # QLineEdit days
-            colWidget = disQLineEdit()
+            colWidget = betterLineEdit()
             if self.db.op.op.empty:
                 totDays = 0
             else:
@@ -583,7 +583,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
 
         def split6():
             # QLineEdit split_n
-            colWidget = disQLineEdit()
+            colWidget = betterLineEdit()
             return colWidget
 
         def split7():
@@ -593,7 +593,7 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         def split100():
             # special case when spliting by hash
             # QtWidget:Qline, col_name:filter
-            colWidget = disQLineEdit()
+            colWidget = betterLineEdit()
             colWidget.setReadOnly(True)
             return colWidget
 
@@ -1079,23 +1079,19 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
         for col_i in range(source.columnCount()):
             widget = source.cellWidget(0, col_i)
             widget_name = source.horizontalHeaderItem(col_i).text()
+            widget_txt = widget.currentText()
 
-            if isinstance(widget, QtWidgets.QComboBox):
-                widget_txt = widget.currentText()
-            elif isinstance(widget, QtWidgets.QLineEdit):
-                if widget.hasAcceptableInput() or widget.text() == '':
-                    widget_txt = widget.text()
-                else:
-                    widget_txt = ''
-                    msg = (f'shall have value between {widget.validator().bottom()} ' +
-                           f'and {widget.validator().top()} ' +
-                           f'with maximum {widget.validator().decimals()} decimals')
-                    msgBox = QtWidgets.QMessageBox()
-                    msgBox.setText(f'<b>column {widget_name}</b> ' + msg)
-                    msgBox.exec()
-                    return {}
-            else:
-                widget_txt = ''
+            if hasattr(widget, 'hasAcceptableInput') and\
+                    not widget.hasAcceptableInput() and\
+                    widget_txt != '':
+                msg = (f'shall have value between {widget.validator().bottom()} ' +
+                       f'and {widget.validator().top()} ' +
+                       f'with maximum {widget.validator().decimals()} decimals\n' +
+                       f'Decimal symbol shall be "{widget.locale().decimalPoint()}"')
+                msgBox = QtWidgets.QMessageBox()
+                msgBox.setText(f'<b>column {widget_name}</b> ' + msg)
+                msgBox.exec()
+                return {}
             fltr[widget_name] = widget_txt
         return fltr
 
@@ -1112,12 +1108,8 @@ class GUIMainWin_ctrl(QtCore.QObject, moduleDelay):
                 widget.blockSignals(True)
                 if fltr[widget_name] == 'disable':
                     widget.setDisabled(True)
-                elif isinstance(widget, QtWidgets.QComboBox):
-                    widget.setCurrentText(fltr[widget_name])
-                elif isinstance(widget, QtWidgets.QLineEdit):
+                else:
                     widget.setText(fltr[widget_name])
-                elif isinstance(widget, QtWidgets.QDateEdit):
-                    widget.setDate(fltr[widget_name])
                 widget.blockSignals(False)
 
     def markFltrColors(self):

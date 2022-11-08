@@ -78,8 +78,9 @@ class calendarQDateEdit(QtWidgets.QDateEdit, Style):
     def __init__(self, *argv, **kwargs):
         super().__init__(*argv, **kwargs)
         self.setSpecialValueText('any')  # used when select to not limit date
-        self.setMinimumDate(QtCore.QDate.fromString(
-            '1901-01-01', QtCore.Qt.ISODate))
+        self.specialDate = QtCore.QDate.fromString(
+            '1901-01-01', QtCore.Qt.ISODate)
+        self.setMinimumDate(self.specialDate)
         self.isDisabled = False
         self.setWidgetColors()
 
@@ -89,10 +90,10 @@ class calendarQDateEdit(QtWidgets.QDateEdit, Style):
     def setMinWidget(self, widget: QtWidgets.QDateEdit):
         widget.dateChanged.connect(lambda: self.setMinimumDate(widget.date()))
 
-    def getDateStr(self) -> str:
+    def currentText(self) -> str:
         """return date in string format
         """
-        if self.isDisabled:
+        if self.isDisabled or self.date() == self.specialDate:
             return '*'
         else:
             return self.date().toString(QtCore.Qt.ISODate)
@@ -101,13 +102,13 @@ class calendarQDateEdit(QtWidgets.QDateEdit, Style):
         self.isDisabled = isDisabled
         self.setWidgetColors()
 
-    def setDate(self, date: Union[str, Timestamp, QtCore.QDate]) -> None:
+    def setText(self, date: Union[str, Timestamp, QtCore.QDate]) -> None:
         if isinstance(date, Timestamp):
             date = date.strftime('%Y-%m-%d')
         if isinstance(date, str):
             date = QtCore.QDate.fromString(date, QtCore.Qt.ISODate)
         self.setWidgetColors()
-        super().setDate(date)
+        return super().setDate(date)
 
     def mousePressEvent(self, ev: QtGui.QMouseEvent) -> None:
         if not self.isDisabled:
@@ -118,14 +119,14 @@ class calendarQDateEdit(QtWidgets.QDateEdit, Style):
             if cal.exec_():
                 if cal.dat == '*':
                     # outside limit so special text will be displayed
-                    self.setDate('1900-01-01')
+                    self.setText('1900-01-01')
                 else:
-                    self.setDate(cal.dat)
+                    self.setText(cal.dat)
                 self.blockSignals(False)
         self.dateChanged.emit(self.date())
 
 
-class disQLineEdit(QtWidgets.QLineEdit, Style):
+class betterLineEdit(QtWidgets.QLineEdit, Style):
     def __init__(self, *argv, **kwargs):
         super().__init__(*argv, **kwargs)
         self.isDisabled = False
@@ -136,8 +137,12 @@ class disQLineEdit(QtWidgets.QLineEdit, Style):
         self.setWidgetColors()
         return super().setDisabled(isDisabled)
 
+    def currentText(self):
+        """just wrapper for widget unification"""
+        return super().text()
 
-class disQComboBox(QtWidgets.QComboBox, Style):
+
+class betterComboBox(QtWidgets.QComboBox, Style):
     def __init__(self, *argv, **kwargs):
         super().__init__(*argv, **kwargs)
         self.isDisabled = False
@@ -147,6 +152,11 @@ class disQComboBox(QtWidgets.QComboBox, Style):
         self.isDisabled = isDisabled
         self.setWidgetColors(self)
         return super().setDisabled(isDisabled)
+
+    def setText(self, txt: str) -> None:
+        """simple wrapper of setCurrentText to standaraize calls among widgets
+        """
+        return super().setCurrentText(txt)
 
 
 class calendarQSlider(QtWidgets.QSlider):

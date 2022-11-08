@@ -30,11 +30,11 @@ class GUIPlot_ctrl(QtCore.QObject, moduleDelay):
         self.view.startDate.setSpecialValueText('')
         self.view.endDate.setSpecialValueText('')
         # set min max dates
-        self.view.startDate.setDate(self.startDate)
+        self.view.startDate.setText(self.startDate)
         self.view.startDate.setDateRange(
             self.startDate,
             self.endDate)
-        self.view.endDate.setDate(self.endDate)
+        self.view.endDate.setText(self.endDate)
         self.view.endDate.setDateRange(
             self.startDate,
             self.endDate)
@@ -86,8 +86,8 @@ class GUIPlot_ctrl(QtCore.QObject, moduleDelay):
     def changeDateSlide(self, a):
         # set date widgets to match slider
         # the order is important, endDate will change startDate maxDate
-        self.view.endDate.setDate(self.view.endDateSlide.getDate(31))
-        self.view.startDate.setDate(self.view.startDateSlide.getDate())
+        self.view.endDate.setText(self.view.endDateSlide.getDate(31))
+        self.view.startDate.setText(self.view.startDateSlide.getDate())
 
     def changeDate(self, a):
         # change slider widgets to match data
