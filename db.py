@@ -201,14 +201,30 @@ class OP(COMMON):
         self.opHalf = pandas.DataFrame(columns=cfg.op_col)
         self.parent = parent
 
-    def get(self, category: List[str]) -> pandas:
+    def get(self, category: List[str], startDate="", endDate="", cols=[""]) -> pandas:
         """returns pandas db for category\n
+        you can limit by start and end date
+        and ask only for limited columns
         """
-        # stores list of bools for rows assigned to curCat
+        # stores list of bools for rows assigned to category
         if isinstance(category, str):
             category = [category]
         catRows = self.op.loc[:, self.CATEGORY].isin(category)
-        return self.op.loc[catRows, :].copy().reset_index()
+        # limit dates
+        if startDate:
+            startDate = pandas.to_datetime(startDate)
+            startRows = self.op.loc[:, self.DATA_OP] >= startDate
+        else:
+            startRows = [True] * len(self.op)
+        if endDate:
+            endDate = pandas.to_datetime(endDate)
+            endRows = self.op.loc[:, self.DATA_OP] <= endDate
+        else:
+            endRows = [True] * len(self.op)
+        # limit columns
+        if not all([c in self.op.columns for c in cols]):
+            cols = self.op.columns
+        return self.op.loc[catRows & startRows & endRows, cols].copy().reset_index()
 
     def ins(self, db):
         """adds new data to self.op and self.opHalf
@@ -384,7 +400,7 @@ class OP(COMMON):
                 try:
                     ch[self.START] = pandas.to_datetime(ch[self.START])
                     ch[self.END] = pandas.to_datetime(ch[self.END])
-                    ch[self.VAL1] = self.str2num(ch[self.VAL1],2)[0]
+                    ch[self.VAL1] = self.str2num(ch[self.VAL1], 2)[0]
                     ch[self.DAYS] = self.str2num(ch[self.DAYS])[0]
                 except:
                     self.parent.msg('__updateSplit__: wrong type of input')
@@ -964,6 +980,29 @@ class TREE(COMMON):
 
         return childLev
 
+    def flatChild(self, catStart=cfg.GRANDPA, ignoreCat=[]) -> dict:
+        """return dictionary with all childs as keys
+        and highest parent just below catStart for each kid
+        used for ploting
+
+        Args:
+            catStart (str, optional): category to start
+                (will plot all kids of catStart). Defaults to cfg.GRANDPA.
+            ignoreCat (list): these cats will be ignored (usually *income* and *own*)
+
+        Returns:
+            dict: kid:highest_parent
+        """
+        parentCats = self.child(catStart)
+        [parentCats.remove(c) for c in ignoreCat if c in parentCats]
+
+        grpCat = {}
+        for cat in parentCats:
+            grpCat[cat] = cat
+            grpCat.update({kid: cat for kid in self.allChild(cat).keys()})
+
+        return grpCat
+
     def add(self, parent: str, child: str):
         """adds new category (only empty)\n
         parent must exists, check for duplicates (drop last if found one)\n
@@ -1250,9 +1289,10 @@ class SPLIT(COMMON):
         if any(self.split.loc[self.splitRows, self.FILTER].isin([new_category])):
             # not allowed to change cat to filter of split
             # this way split would split itself
-            self.parent.msg(f'not allowed to change name to split filter reference')
+            self.parent.msg(
+                f'not allowed to change name to split filter reference')
             return False
-        
+
         self.split.loc[self.splitRows, self.CATEGORY] = new_category
 
         self.setSplit(fltr=[category])
@@ -1497,7 +1537,7 @@ class DB(COMMON):
             return False
 
         allTrans = self.trans.rm(trans_n)
-        
+
         self.__updateDB__(full=True)
         return True
 
@@ -1514,7 +1554,7 @@ class DB(COMMON):
         if self.tree.ren(category, new_category):
             # need also change split filter, may refer to changed cat
             if self.split.ren(new_category, category):
-                self.cat.ren(new_category, category)    
+                self.cat.ren(new_category, category)
                 self.__updateDB__(full=False)
                 return True
             else:
@@ -1557,7 +1597,7 @@ class DB(COMMON):
         '''
         remove cat from tree, together with cat and split,
         '''
-        self.split.rm(category=child) #, fltr=child) ???
+        self.split.rm(category=child)  # , fltr=child) ???
         self.cat.rm(category=child)
         self.tree.rm(child)
 

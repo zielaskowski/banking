@@ -5,6 +5,7 @@ from typing import Union, List
 import pandas as pd
 from PyQt5 import QtCore
 import plotly.express as pex
+import plotly.graph_objects as go
 from db import DB
 from qt_gui.gui_views import GUIPlot
 from qt_gui.gui_widgets import moduleDelay
@@ -69,19 +70,20 @@ class GUIPlot_ctrl(QtCore.QObject, moduleDelay):
             date = [date]
         return [QtCore.QDate.fromString(d, QtCore.Qt.ISODate) for d in date]
 
-    def Qdate2panda(self, date: QtCore.QDate) -> pd:
+    def Qdate2str(self, date: QtCore.QDate) -> str:
         """convert QDate to pandas timestamp 
 
         Args:
             date (Timestamp from pandas): date in QDate format
         """
-        return pd.to_datetime(date.toString(QtCore.Qt.ISODate))
+        return date.toString(QtCore.Qt.ISODate)
 
     def connectSignals(self):
         self.view.startDate.dateChanged.connect(self.changeDate)
         self.view.endDate.dateChanged.connect(self.changeDate)
         self.view.startDateSlide.valueChanged.connect(self.changeDateSlide)
         self.view.endDateSlide.valueChanged.connect(self.changeDateSlide)
+        self.view.plotLevel.currentTextChanged.connect(self.plot)
 
     def changeDateSlide(self, a):
         # set date widgets to match slider
@@ -100,21 +102,47 @@ class GUIPlot_ctrl(QtCore.QObject, moduleDelay):
         self.setDelay(self.plot, 800)
 
     def plot(self):
-        df = self.db.op.get(self.db.tree.allChild(catStart=self.cat).keys())
-        # limit to dates
-        start = df.loc[:,self.db.DATA_OP] >= self.Qdate2panda(self.startDate)
-        end = df.loc[:,self.db.DATA_OP] <= self.Qdate2panda(self.endDate)
-        df = df.loc[start & end,[self.db.DATA_OP, self.db.AMOUNT, self.db.CATEGORY]]
-        
+        selCat = self.view.plotLevel.currentText()
+        ignoreCat = ['wlasne', 'dochody']
+
+        kidsCats = self.db.tree.flatChild(catStart=selCat, ignoreCat=ignoreCat)
+
+        # categories
+        df = self.db.op.get(category=list(kidsCats.keys()),
+                            startDate=self.Qdate2str(self.startDate),
+                            endDate=self.Qdate2str(self.endDate),
+                            cols=[self.db.DATA_OP,
+                                  self.db.AMOUNT,
+                                  self.db.CATEGORY])
+        df.loc[:, 'parCat'] = [kidsCats[i] for i in df.loc[:, self.db.CATEGORY]]
+
+        # bilans
+        catBilans = list(self.db.tree.allChild().keys())
+        [catBilans.remove(c) for c in ignoreCat if c in catBilans]
+        df_bilans = self.db.op.get(category=catBilans,
+                                   startDate=self.Qdate2str(self.startDate),
+                                   endDate=self.Qdate2str(self.endDate),
+                                   cols=[self.db.DATA_OP,
+                                         self.db.AMOUNT,
+                                         self.db.CATEGORY])
+        df_bilans.loc[:, 'parCat'] = df_bilans.loc[:, self.db.CATEGORY]
+
         # group
         timeGrp = pd.Grouper(key=self.db.DATA_OP, freq='M')
-        df = df.groupby([timeGrp,self.db.CATEGORY]).sum()
-        
+        df = df.groupby([timeGrp, 'parCat']).sum()
+        df_bilans = df_bilans.groupby(timeGrp).sum()
         df.reset_index(inplace=True)
-        fig = pex.bar(df, 
-                      x=self.db.DATA_OP, 
-                      y= self.db.AMOUNT,
-                      color=self.db.CATEGORY,
-                      barmode='group')
-        
+        df_bilans.reset_index(inplace=True)
+
+        fig = go.Figure()
+        fig.add_traces(list(pex.bar(df,
+                                x=self.db.DATA_OP,
+                                y=self.db.AMOUNT,
+                                color='parCat',
+                                barmode='group').select_traces()))
+
+        fig.add_traces(list(pex.line(df_bilans,
+                                    x=self.db.DATA_OP,
+                                    y=self.db.AMOUNT).select_traces()))
+
         self.view.plot.setHtml(fig.to_html(include_plotlyjs='cdn'))
